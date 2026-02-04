@@ -1,4 +1,5 @@
 {
   "key.chainveinfabric.config": "打开配置",
-  "key.category.chainveinfabric.general": "连锁挖矿 Fabric"
+  "key.category.chainveinfabric.general": "连锁挖矿 Fabric",
+  "options.chainveinfabric.chainVein": "连锁采集"
 }

@@ -1,4 +1,5 @@
 {
   "key.chainveinfabric.config": "Open Config",
-  "key.category.chainveinfabric.general": "Chain Vein Fabric"
+  "key.category.chainveinfabric.general": "Chain Vein Fabric",
+  "options.chainveinfabric.chainVein": "Chain Mining"
 }
