@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "chainveinfabric",
+  "version": "${version}",
+  "name": "ChainVeinFabric",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "GPL-3.0",
+  "icon": "assets/chainveinfabric/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "org.edtp.chainveinfabric.client.ChainveinfabricDataGenerator"
+    ],
+    "client": [
+      "org.edtp.chainveinfabric.client.ChainveinfabricClient"
+    ],
+    "main": [
+      "org.edtp.chainveinfabric.Chainveinfabric"
+    ]
+  },
+  "mixins": [
+    "chainveinfabric.mixins.json",
+    {
+      "config": "chainveinfabric.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
