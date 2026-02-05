@@ -26,10 +26,20 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ChainVeinScreen extends Screen {
+    private enum Tab {
+        WHITELIST, SETTINGS
+    }
+
+    private Tab currentTab = Tab.WHITELIST;
+
     private Text chainVeinLabel;
     private TextFieldWidget searchBox;
     private BlockListWidget blockListWidget;
     private WhitelistWidget whitelistWidget;
+
+    // Tab 2 elements
+    private TextFieldWidget maxBlocksBox;
+    private CyclingButtonWidget<Boolean> directToInventoryButton;
 
     public ChainVeinScreen() {
         super(Text.of("Chain Vein Config"));
@@ -41,9 +51,28 @@ public class ChainVeinScreen extends Screen {
         this.chainVeinLabel = Text.translatable("options.chainveinfabric.chainVein");
 
         int centerX = this.width / 2;
-        int topY = this.height / 4;
+        int topY = 40;
 
-        // 连锁采集开关
+        // Tab buttons
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("options.chainveinfabric.tab.whitelist"), button -> {
+            this.currentTab = Tab.WHITELIST;
+            this.clearAndInit();
+        }).dimensions(centerX - 105, 10, 100, 20).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("options.chainveinfabric.tab.settings"), button -> {
+            this.currentTab = Tab.SETTINGS;
+            this.clearAndInit();
+        }).dimensions(centerX + 5, 10, 100, 20).build());
+
+        if (this.currentTab == Tab.WHITELIST) {
+            initWhitelistTab(centerX, topY);
+        } else {
+            initSettingsTab(centerX, topY);
+        }
+    }
+
+    private void initWhitelistTab(int centerX, int topY) {
+        // Chain Mining Toggle
         this.addDrawableChild(
                 CyclingButtonWidget.onOffBuilder(Chainveinfabric.CONFIG.isChainVeinEnabled)
                         .omitKeyText()
@@ -51,7 +80,7 @@ public class ChainVeinScreen extends Screen {
                             Chainveinfabric.CONFIG.isChainVeinEnabled = value;
                         }));
 
-        // 搜索框 (横跨两个列表)
+        // Search Box
         this.searchBox = new TextFieldWidget(this.textRenderer, centerX - 210, topY + 30, 420, 20,
                 Text.translatable("options.chainveinfabric.search").copy().formatted(Formatting.GRAY));
         this.searchBox.setMaxLength(256);
@@ -59,21 +88,40 @@ public class ChainVeinScreen extends Screen {
         this.searchBox.setChangedListener(this::onSearchBoxChanged);
         this.addSelectableChild(this.searchBox);
 
-        // 左侧：所有方块列表
+        // Lists
         int listWidth = 200;
-        int listTopY = topY + 60;
+        int listTopY = topY + 65;
         int listHeight = this.height - listTopY - 20;
 
         this.blockListWidget = new BlockListWidget(this.client, listWidth, listHeight, listTopY, 24);
         this.blockListWidget.setX(centerX - 210);
         this.addDrawableChild(this.blockListWidget);
 
-        // 右侧：白名单列表
         this.whitelistWidget = new WhitelistWidget(this.client, listWidth, listHeight, listTopY, 24);
         this.whitelistWidget.setX(centerX + 10);
         this.addDrawableChild(this.whitelistWidget);
 
         this.refreshLists();
+    }
+
+    private void initSettingsTab(int centerX, int topY) {
+        // Max Blocks Input
+        this.maxBlocksBox = new TextFieldWidget(this.textRenderer, centerX + 10, topY, 100, 20, Text.of(String.valueOf(Chainveinfabric.CONFIG.maxChainBlocks)));
+        this.maxBlocksBox.setText(String.valueOf(Chainveinfabric.CONFIG.maxChainBlocks));
+        this.maxBlocksBox.setChangedListener(text -> {
+            try {
+                Chainveinfabric.CONFIG.maxChainBlocks = Integer.parseInt(text);
+            } catch (NumberFormatException ignored) {}
+        });
+        this.addSelectableChild(this.maxBlocksBox);
+
+        // Direct to Inventory Toggle
+        this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(Chainveinfabric.CONFIG.directToInventory)
+                .omitKeyText()
+                .build(centerX + 10, topY + 30, 100, 20, Text.empty(), (button, value) -> {
+                    Chainveinfabric.CONFIG.directToInventory = value;
+                });
+        this.addDrawableChild(this.directToInventoryButton);
     }
 
     private void onSearchBoxChanged(String search) {
@@ -91,9 +139,9 @@ public class ChainVeinScreen extends Screen {
 
     @Override
     public void resize(int width, int height) {
-        String search = this.searchBox.getText();
+        String search = (this.searchBox != null) ? this.searchBox.getText() : "";
         super.resize(width, height);
-        this.searchBox.setText(search);
+        if (this.searchBox != null) this.searchBox.setText(search);
         this.refreshLists();
     }
 
@@ -102,17 +150,22 @@ public class ChainVeinScreen extends Screen {
         this.renderInGameBackground(context);
         super.render(context, mouseX, mouseY, delta);
 
-        this.searchBox.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 20, 0xFFFFFFFF);
+        int centerX = this.width / 2;
+        int topY = 40;
 
-        context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.allBlocks"),
-                this.width / 2 - 210, this.height / 4 + 50, 0xFFFFFFFF);
-        context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.whitelist"),
-                this.width / 2 + 10, this.height / 4 + 50, 0xFFFFFFFF);
-
-        int labelX = this.width / 2 - this.textRenderer.getWidth(this.chainVeinLabel) - 20;
-        int labelY = this.height / 4 + (20 - this.textRenderer.fontHeight) / 2;
-        context.drawTextWithShadow(this.textRenderer, this.chainVeinLabel, labelX, labelY, 0xFFFFFFFF);
+        if (this.currentTab == Tab.WHITELIST) {
+            this.searchBox.render(context, mouseX, mouseY, delta);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.allBlocks"), centerX - 210, topY + 55, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.whitelist"), centerX + 10, topY + 55, 0xFFFFFFFF);
+            
+            int labelX = centerX - this.textRenderer.getWidth(this.chainVeinLabel) - 20;
+            int labelY = topY + (20 - this.textRenderer.fontHeight) / 2;
+            context.drawTextWithShadow(this.textRenderer, this.chainVeinLabel, labelX, labelY, 0xFFFFFFFF);
+        } else {
+            this.maxBlocksBox.render(context, mouseX, mouseY, delta);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, topY + 5, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 35, 0xFFFFFFFF);
+        }
     }
 
     @Override
@@ -121,7 +174,7 @@ public class ChainVeinScreen extends Screen {
         super.close();
     }
 
-    // --- 白名单列表组件 ---
+    // --- Inner classes (WhitelistWidget and BlockListWidget) remain exactly as before ---
     class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEntry> {
         public WhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
             super(client, width, height, top, itemHeight);
@@ -137,17 +190,9 @@ public class ChainVeinScreen extends Screen {
                     .forEach(block -> this.addEntry(new WhitelistEntry(block)));
         }
 
-        public int getRowWidth() {
-            return 180;
-        }
-
-        protected int getScrollbarPositionX() {
-            return this.getX() + this.width + 6;
-        }
-
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-            builder.put(NarrationPart.USAGE, Text.translatable("narration.whitelist.usage"));
-        }
+        public int getRowWidth() { return 180; }
+        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
+        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.whitelist.usage")); }
 
         class WhitelistEntry extends EntryListWidget.Entry<WhitelistEntry> {
             private final Identifier blockIdentifier;
@@ -162,25 +207,18 @@ public class ChainVeinScreen extends Screen {
                             Chainveinfabric.CONFIG.whitelistedBlocks.remove(this.blockIdentifier.toString());
                             Chainveinfabric.CONFIG.save();
                             ChainVeinScreen.this.refreshLists();
-                        })
-                        .dimensions(0, 0, 40, 20).build();
+                        }).dimensions(0, 0, 40, 20).build();
             }
 
             @Override
             public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                // 使用 getX() 和 getY() 获取实际渲染坐标
-                int x = this.getX();
-                int y = this.getY();
-                int entryWidth = this.getWidth();
-                int entryHeight = this.getHeight();
-
+                int x = this.getX(); int y = this.getY();
+                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
                 Block block = Registries.BLOCK.get(this.blockIdentifier);
                 if (block != null && block.asItem() != null) {
                     context.drawItem(block.asItem().getDefaultStack(), x + 2, y + 2);
                 }
-                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.blockDisplayName, x + 24,
-                        y + (entryHeight - 8) / 2, 0xFFFFFFFF);
-                
+                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
                 this.removeButton.setX(x + entryWidth - 42);
                 this.removeButton.setY(y + (entryHeight - 20) / 2);
                 this.removeButton.render(context, mouseX, mouseY, tickDelta);
@@ -188,62 +226,38 @@ public class ChainVeinScreen extends Screen {
 
             @Override
             public boolean mouseClicked(Click click, boolean doubled) {
-                if (this.removeButton.mouseClicked(click, doubled)) {
-                    return true;
-                }
+                if (this.removeButton.mouseClicked(click, doubled)) return true;
                 return super.mouseClicked(click, doubled);
             }
 
-            public Text getNarration() {
-                return Text.translatable("narrator.entry.block", this.blockDisplayName.getString());
-            }
+            public Text getNarration() { return Text.translatable("narrator.entry.block", this.blockDisplayName.getString()); }
         }
     }
 
-    // --- 所有方块列表组件 ---
     class BlockListWidget extends EntryListWidget<BlockListWidget.BlockEntry> {
         private final List<BlockEntry> allEntries;
 
         public BlockListWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
             super(client, width, height, top, itemHeight);
-            this.allEntries = Registries.BLOCK.stream()
-                    .map(BlockEntry::new)
-                    .sorted(Comparator.comparing(entry -> entry.blockIdentifier.toString()))
-                    .collect(Collectors.toList());
+            this.allEntries = Registries.BLOCK.stream().map(BlockEntry::new).sorted(Comparator.comparing(entry -> entry.blockIdentifier.toString())).collect(Collectors.toList());
             this.filter("");
         }
 
-        private void updateEntries(List<BlockEntry> entries) {
-            this.clearEntries();
-            entries.forEach(this::addEntry);
-        }
+        private void updateEntries(List<BlockEntry> entries) { this.clearEntries(); entries.forEach(this::addEntry); }
 
         public void filter(String search) {
             List<BlockEntry> filteredEntries;
-            if (search.isEmpty()) {
-                filteredEntries = this.allEntries;
-            } else {
+            if (search.isEmpty()) { filteredEntries = this.allEntries; } else {
                 String lowerCaseSearch = search.toLowerCase(Locale.ROOT);
-                filteredEntries = this.allEntries.stream()
-                        .filter(entry -> entry.blockIdentifier.toString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch) ||
-                                entry.blockDisplayName.getString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch))
-                        .collect(Collectors.toList());
+                filteredEntries = this.allEntries.stream().filter(entry -> entry.blockIdentifier.toString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch) || entry.blockDisplayName.getString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch)).collect(Collectors.toList());
             }
             this.updateEntries(filteredEntries);
             this.setScrollY(0);
         }
 
-        public int getRowWidth() {
-            return 180;
-        }
-
-        protected int getScrollbarPositionX() {
-            return this.getX() + this.width + 6;
-        }
-
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-            builder.put(NarrationPart.USAGE, Text.translatable("narration.allblocks.usage"));
-        }
+        public int getRowWidth() { return 180; }
+        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
+        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.allblocks.usage")); }
 
         class BlockEntry extends EntryListWidget.Entry<BlockEntry> {
             private final Identifier blockIdentifier;
@@ -258,25 +272,18 @@ public class ChainVeinScreen extends Screen {
                             Chainveinfabric.CONFIG.whitelistedBlocks.add(this.blockIdentifier.toString());
                             Chainveinfabric.CONFIG.save();
                             ChainVeinScreen.this.refreshLists();
-                        })
-                        .dimensions(0, 0, 40, 20).build();
+                        }).dimensions(0, 0, 40, 20).build();
             }
 
             @Override
             public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                // 使用 getX() 和 getY() 获取实际渲染坐标
-                int x = this.getX();
-                int y = this.getY();
-                int entryWidth = this.getWidth();
-                int entryHeight = this.getHeight();
-
+                int x = this.getX(); int y = this.getY();
+                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
                 Block block = Registries.BLOCK.get(this.blockIdentifier);
                 if (block != null && block.asItem() != null) {
                     context.drawItem(block.asItem().getDefaultStack(), x + 2, y + 2);
                 }
-                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.blockDisplayName, x + 24,
-                        y + (entryHeight - 8) / 2, 0xFFFFFFFF);
-                
+                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
                 this.addButton.setX(x + entryWidth - 42);
                 this.addButton.setY(y + (entryHeight - 20) / 2);
                 this.addButton.render(context, mouseX, mouseY, tickDelta);
@@ -284,15 +291,11 @@ public class ChainVeinScreen extends Screen {
 
             @Override
             public boolean mouseClicked(Click click, boolean doubled) {
-                if (this.addButton.mouseClicked(click, doubled)) {
-                    return true;
-                }
+                if (this.addButton.mouseClicked(click, doubled)) return true;
                 return super.mouseClicked(click, doubled);
             }
 
-            public Text getNarration() {
-                return Text.translatable("narrator.entry.block", this.blockDisplayName.getString());
-            }
+            public Text getNarration() { return Text.translatable("narrator.entry.block", this.blockDisplayName.getString()); }
         }
     }
 }

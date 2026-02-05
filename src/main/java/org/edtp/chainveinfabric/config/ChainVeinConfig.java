@@ -16,6 +16,8 @@ public class ChainVeinConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public boolean isChainVeinEnabled = true;
+    public int maxChainBlocks = 64;
+    public boolean directToInventory = false;
     public Set<String> whitelistedBlocks = new HashSet<>();
 
     public static ChainVeinConfig load() {
