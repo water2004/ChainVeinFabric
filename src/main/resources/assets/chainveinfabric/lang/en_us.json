@@ -1,5 +1,14 @@
 {
   "key.chainveinfabric.config": "Open Config",
   "key.category.chainveinfabric.general": "Chain Vein Fabric",
-  "options.chainveinfabric.chainVein": "Chain Mining"
+  "options.chainveinfabric.chainVein": "Chain Mining",
+  "options.chainveinfabric.search": "Search blocks",
+  "options.chainveinfabric.add": "Add",
+  "options.chainveinfabric.remove": "Remove",
+  "options.chainveinfabric.allBlocks": "Available Blocks",
+  "options.chainveinfabric.whitelist": "Whitelist",
+  "narrator.entry.block": "Block: %s",
+  "narration.list.usage": "Block list",
+  "narration.whitelist.usage": "Whitelisted blocks",
+  "narration.allblocks.usage": "All available blocks"
 }

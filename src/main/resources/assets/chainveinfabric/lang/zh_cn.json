@@ -1,5 +1,14 @@
 {
   "key.chainveinfabric.config": "打开配置",
   "key.category.chainveinfabric.general": "连锁挖矿 Fabric",
-  "options.chainveinfabric.chainVein": "连锁采集"
+  "options.chainveinfabric.chainVein": "连锁采集",
+  "options.chainveinfabric.search": "搜索方块",
+  "options.chainveinfabric.add": "添加",
+  "options.chainveinfabric.remove": "移除",
+  "options.chainveinfabric.allBlocks": "所有方块",
+  "options.chainveinfabric.whitelist": "白名单",
+  "narrator.entry.block": "方块: %s",
+  "narration.list.usage": "方块列表",
+  "narration.whitelist.usage": "白名单方块",
+  "narration.allblocks.usage": "所有可用方块"
 }
