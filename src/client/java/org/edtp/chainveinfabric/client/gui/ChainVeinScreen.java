@@ -40,6 +40,7 @@ public class ChainVeinScreen extends Screen {
     // Tab 2 elements
     private TextFieldWidget maxBlocksBox;
     private CyclingButtonWidget<Boolean> directToInventoryButton;
+    private CyclingButtonWidget<Boolean> toolProtectionButton;
 
     public ChainVeinScreen() {
         super(Text.of("Chain Vein Config"));
@@ -122,6 +123,14 @@ public class ChainVeinScreen extends Screen {
                     Chainveinfabric.CONFIG.directToInventory = value;
                 });
         this.addDrawableChild(this.directToInventoryButton);
+
+        // Tool Protection Toggle
+        this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(Chainveinfabric.CONFIG.toolProtection)
+                .omitKeyText()
+                .build(centerX + 10, topY + 60, 100, 20, Text.empty(), (button, value) -> {
+                    Chainveinfabric.CONFIG.toolProtection = value;
+                });
+        this.addDrawableChild(this.toolProtectionButton);
     }
 
     private void onSearchBoxChanged(String search) {
@@ -165,6 +174,7 @@ public class ChainVeinScreen extends Screen {
             this.maxBlocksBox.render(context, mouseX, mouseY, delta);
             context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, topY + 5, 0xFFFFFFFF);
             context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 35, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 65, 0xFFFFFFFF);
         }
     }
 

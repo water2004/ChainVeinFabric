@@ -85,11 +85,19 @@ public abstract class ChainVeinMixin {
         boolean canHarvest = player.canHarvest(targetState); // 循环外判断一次
         boolean directToInv = Chainveinfabric.CONFIG.directToInventory;
         boolean startedWithItem = !tool.isEmpty(); // 记录初始是否持有物品
+        boolean toolProtection = Chainveinfabric.CONFIG.toolProtection;
         
         for (BlockPos pos : toBreak) {
             // 如果是非创造模式，且初始有工具但现在工具损毁了，停止连锁
             if (!isCreative && startedWithItem && tool.isEmpty()) {
                 break;
+            }
+
+            // 工具保护逻辑：耐久低于等于10停止
+            if (!isCreative && toolProtection && startedWithItem && tool.isDamageable()) {
+                if (tool.getMaxDamage() - tool.getDamage() <= 10) {
+                    break;
+                }
             }
 
             BlockState state = world.getBlockState(pos);
