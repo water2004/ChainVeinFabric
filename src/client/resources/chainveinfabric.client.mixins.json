@@ -4,6 +4,7 @@
   "package": "org.edtp.chainveinfabric.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ChainVeinClientMixin"
   ],
   "injectors": {
     "defaultRequire": 1

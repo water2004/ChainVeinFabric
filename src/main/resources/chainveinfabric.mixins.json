@@ -4,7 +4,6 @@
   "package": "org.edtp.chainveinfabric.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ChainVeinMixin"
   ],
   "injectors": {
     "defaultRequire": 1

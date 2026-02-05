@@ -1,4 +1,4 @@
-package org.edtp.chainveinfabric.config;
+package org.edtp.chainveinfabric.client.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,7 +15,7 @@ public class ChainVeinConfig {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chainveinfabric.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public boolean isChainVeinEnabled = true;
+    public boolean isChainVeinEnabled = false;
     public int maxChainBlocks = 64;
     public boolean directToInventory = false;
     public boolean toolProtection = false;

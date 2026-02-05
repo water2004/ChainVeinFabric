@@ -10,16 +10,20 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.edtp.chainveinfabric.Chainveinfabric;
+import org.edtp.chainveinfabric.client.config.ChainVeinConfig; // Corrected import
 import org.edtp.chainveinfabric.client.gui.ChainVeinScreen;
 import org.lwjgl.glfw.GLFW;
 
 public class ChainveinfabricClient implements ClientModInitializer {
 
+    public static ChainVeinConfig CONFIG;
     private static final KeyBinding.Category CHAIN_VEIN_CATEGORY = KeyBinding.Category.create(Identifier.of("chainveinfabric", "general"));
     private static KeyBinding configKeyBinding;
 
     @Override
     public void onInitializeClient() {
+        CONFIG = ChainVeinConfig.load();
+        
         configKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.chainveinfabric.config",
                 InputUtil.Type.KEYSYM,
@@ -35,7 +39,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
 
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
         HudElementRegistry.addLast(Identifier.of("chainveinfabric", "indicator"), (context, deltaTracker) -> {
-            if (Chainveinfabric.CONFIG != null && Chainveinfabric.CONFIG.isChainVeinEnabled) {
+            if (CONFIG != null && CONFIG.isChainVeinEnabled) {
                 Text activeText = Text.translatable("hud.chainveinfabric.active");
                 int width = context.getScaledWindowWidth();
                 context.drawCenteredTextWithShadow(

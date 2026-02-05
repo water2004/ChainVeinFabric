@@ -12,7 +12,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import org.edtp.chainveinfabric.Chainveinfabric;
+import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.jspecify.annotations.Nullable;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.screen.narration.NarrationPart;
@@ -75,10 +75,10 @@ public class ChainVeinScreen extends Screen {
     private void initWhitelistTab(int centerX, int topY) {
         // Chain Mining Toggle
         this.addDrawableChild(
-                CyclingButtonWidget.onOffBuilder(Chainveinfabric.CONFIG.isChainVeinEnabled)
+                CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.isChainVeinEnabled)
                         .omitKeyText()
                         .build(centerX + 10, topY, 60, 20, Text.empty(), (button, value) -> {
-                            Chainveinfabric.CONFIG.isChainVeinEnabled = value;
+                            ChainveinfabricClient.CONFIG.isChainVeinEnabled = value;
                         }));
 
         // Search Box
@@ -107,28 +107,28 @@ public class ChainVeinScreen extends Screen {
 
     private void initSettingsTab(int centerX, int topY) {
         // Max Blocks Input
-        this.maxBlocksBox = new TextFieldWidget(this.textRenderer, centerX + 10, topY, 100, 20, Text.of(String.valueOf(Chainveinfabric.CONFIG.maxChainBlocks)));
-        this.maxBlocksBox.setText(String.valueOf(Chainveinfabric.CONFIG.maxChainBlocks));
+        this.maxBlocksBox = new TextFieldWidget(this.textRenderer, centerX + 10, topY, 100, 20, Text.of(String.valueOf(ChainveinfabricClient.CONFIG.maxChainBlocks)));
+        this.maxBlocksBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxChainBlocks));
         this.maxBlocksBox.setChangedListener(text -> {
             try {
-                Chainveinfabric.CONFIG.maxChainBlocks = Integer.parseInt(text);
+                ChainveinfabricClient.CONFIG.maxChainBlocks = Integer.parseInt(text);
             } catch (NumberFormatException ignored) {}
         });
         this.addSelectableChild(this.maxBlocksBox);
 
         // Direct to Inventory Toggle
-        this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(Chainveinfabric.CONFIG.directToInventory)
+        this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.directToInventory)
                 .omitKeyText()
                 .build(centerX + 10, topY + 30, 100, 20, Text.empty(), (button, value) -> {
-                    Chainveinfabric.CONFIG.directToInventory = value;
+                    ChainveinfabricClient.CONFIG.directToInventory = value;
                 });
         this.addDrawableChild(this.directToInventoryButton);
 
         // Tool Protection Toggle
-        this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(Chainveinfabric.CONFIG.toolProtection)
+        this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.toolProtection)
                 .omitKeyText()
                 .build(centerX + 10, topY + 60, 100, 20, Text.empty(), (button, value) -> {
-                    Chainveinfabric.CONFIG.toolProtection = value;
+                    ChainveinfabricClient.CONFIG.toolProtection = value;
                 });
         this.addDrawableChild(this.toolProtectionButton);
     }
@@ -180,7 +180,7 @@ public class ChainVeinScreen extends Screen {
 
     @Override
     public void close() {
-        Chainveinfabric.CONFIG.save();
+        ChainveinfabricClient.CONFIG.save();
         super.close();
     }
 
@@ -193,7 +193,7 @@ public class ChainVeinScreen extends Screen {
 
         public void refresh() {
             this.clearEntries();
-            Chainveinfabric.CONFIG.whitelistedBlocks.stream()
+            ChainveinfabricClient.CONFIG.whitelistedBlocks.stream()
                     .map(id -> Registries.BLOCK.get(Identifier.of(id)))
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
@@ -214,8 +214,8 @@ public class ChainVeinScreen extends Screen {
                 this.blockDisplayName = block.getName();
                 this.removeButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.remove"),
                         button -> {
-                            Chainveinfabric.CONFIG.whitelistedBlocks.remove(this.blockIdentifier.toString());
-                            Chainveinfabric.CONFIG.save();
+                            ChainveinfabricClient.CONFIG.whitelistedBlocks.remove(this.blockIdentifier.toString());
+                            ChainveinfabricClient.CONFIG.save();
                             ChainVeinScreen.this.refreshLists();
                         }).dimensions(0, 0, 40, 20).build();
             }
@@ -279,8 +279,8 @@ public class ChainVeinScreen extends Screen {
                 this.blockDisplayName = block.getName();
                 this.addButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.add"),
                         button -> {
-                            Chainveinfabric.CONFIG.whitelistedBlocks.add(this.blockIdentifier.toString());
-                            Chainveinfabric.CONFIG.save();
+                            ChainveinfabricClient.CONFIG.whitelistedBlocks.add(this.blockIdentifier.toString());
+                            ChainveinfabricClient.CONFIG.save();
                             ChainVeinScreen.this.refreshLists();
                         }).dimensions(0, 0, 40, 20).build();
             }
