@@ -87,6 +87,9 @@ public abstract class ChainVeinMixin {
         boolean startedWithItem = !tool.isEmpty(); // 记录初始是否持有物品
         boolean toolProtection = Chainveinfabric.CONFIG.toolProtection;
         
+        int blocksBroken = 0;
+        boolean protectionTriggered = false;
+        
         for (BlockPos pos : toBreak) {
             // 如果是非创造模式，且初始有工具但现在工具损毁了，停止连锁
             if (!isCreative && startedWithItem && tool.isEmpty()) {
@@ -96,6 +99,7 @@ public abstract class ChainVeinMixin {
             // 工具保护逻辑：耐久低于等于10停止
             if (!isCreative && toolProtection && startedWithItem && tool.isDamageable()) {
                 if (tool.getMaxDamage() - tool.getDamage() <= 10) {
+                    protectionTriggered = true;
                     break;
                 }
             }
@@ -110,6 +114,7 @@ public abstract class ChainVeinMixin {
             
             if (world.removeBlock(pos, false)) {
                 targetBlock.onBroken(world, pos, state);
+                blocksBroken++;
                 
                 if (!isCreative) {
                     if (canHarvest) {
@@ -137,6 +142,14 @@ public abstract class ChainVeinMixin {
                     }
                 }
             }
+        }
+
+        // Send feedback messages to action bar
+        if (blocksBroken > 1) {
+            player.sendMessage(net.minecraft.text.Text.translatable("message.chainveinfabric.broken", blocksBroken), true);
+        }
+        if (protectionTriggered) {
+            player.sendMessage(net.minecraft.text.Text.translatable("message.chainveinfabric.protection"), true);
         }
     }
 }

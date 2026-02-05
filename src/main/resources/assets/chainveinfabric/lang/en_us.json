@@ -15,5 +15,8 @@
   "narrator.entry.block": "Block: %s",
   "narration.list.usage": "Block list",
   "narration.whitelist.usage": "Whitelisted blocks",
-  "narration.allblocks.usage": "All available blocks"
+  "narration.allblocks.usage": "All available blocks",
+  "hud.chainveinfabric.active": "CHAIN VEIN ACTIVE",
+  "message.chainveinfabric.broken": "Chain mined %d blocks",
+  "message.chainveinfabric.protection": "Chain mining stopped: Tool durability low!"
 }

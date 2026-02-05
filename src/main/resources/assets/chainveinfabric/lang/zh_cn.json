@@ -15,5 +15,8 @@
   "narrator.entry.block": "方块: %s",
   "narration.list.usage": "方块列表",
   "narration.whitelist.usage": "白名单方块",
-  "narration.allblocks.usage": "所有可用方块"
+  "narration.allblocks.usage": "所有可用方块",
+  "hud.chainveinfabric.active": "连锁采集已开启",
+  "message.chainveinfabric.broken": "连锁采集了 %d 个方块",
+  "message.chainveinfabric.protection": "连锁采集已停止：工具耐久不足！"
 }
