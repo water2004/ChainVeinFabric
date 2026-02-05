@@ -7,7 +7,7 @@
   "authors": [],
   "contact": {},
   "license": "GPL-3.0",
-  "icon": "assets/chainveinfabric/icon.png",
+  "icon": "assets/icon.png",
   "environment": "*",
   "entrypoints": {
     "fabric-datagen": [
@@ -28,8 +28,9 @@
     }
   ],
   "depends": {
-    "fabricloader": ">=${loader_version}",
-    "fabric-api": "*",
-    "minecraft": "${minecraft_version}"
+    "fabricloader": ">=0.18.0",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}",
+    "carpet": "*"
   }
 }
