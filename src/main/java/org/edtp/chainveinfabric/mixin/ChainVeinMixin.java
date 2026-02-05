@@ -28,7 +28,7 @@ public abstract class ChainVeinMixin {
     @Final
     protected ServerPlayerEntity player;
 
-    private boolean isChainMining = false; // Prevent recursion if tryBreakBlock is called within chain mining
+    private boolean isChainMining = false;
 
     @Inject(method = "tryBreakBlock", at = @At("HEAD"), cancellable = true)
     private void onTryBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
@@ -43,12 +43,9 @@ public abstract class ChainVeinMixin {
             return;
         }
 
-        // Logic for chain mining
         isChainMining = true;
         try {
             performChainMining(pos, state);
-            // We've handled everything, including the original block.
-            // Cancel the original call to prevent double breaking of the first block.
             cir.setReturnValue(true); 
         } finally {
             isChainMining = false;
@@ -66,7 +63,7 @@ public abstract class ChainVeinMixin {
         int maxBlocks = Chainveinfabric.CONFIG.maxChainBlocks;
         Block targetBlock = targetState.getBlock();
 
-        // 1. Find all connected blocks of the same type up to the limit using BFS
+        // 1. 广度优先搜索 (BFS) 查找相连的同类方块
         while (!queue.isEmpty() && toBreak.size() < maxBlocks) {
             BlockPos current = queue.poll();
             toBreak.add(current);
@@ -82,49 +79,50 @@ public abstract class ChainVeinMixin {
             }
         }
 
-        // 2. Break blocks and handle drops/inventory
+        // 2. 预优化判断
         ItemStack tool = player.getMainHandStack();
+        boolean isCreative = player.isCreative();
+        boolean canHarvest = player.canHarvest(targetState); // 循环外判断一次
+        boolean directToInv = Chainveinfabric.CONFIG.directToInventory;
+        boolean startedWithItem = !tool.isEmpty(); // 记录初始是否持有物品
         
         for (BlockPos pos : toBreak) {
-            if (tool.isEmpty() && !player.isCreative()) {
-                break; // Stop if tool breaks
+            // 如果是非创造模式，且初始有工具但现在工具损毁了，停止连锁
+            if (!isCreative && startedWithItem && tool.isEmpty()) {
+                break;
             }
 
             BlockState state = world.getBlockState(pos);
             if (!state.isOf(targetBlock)) continue;
 
-            // Handle block breaking effects and logic
             BlockEntity blockEntity = world.getBlockEntity(pos);
             
-            // Check if player can harvest this specific block
-            boolean canHarvest = player.canHarvest(state);
-
-            // Call onBreak (spawns particles, triggers events)
-            state.getBlock().onBreak(world, pos, state, player);
+            // 触发方块被破坏前的逻辑（粒子效果、猪灵愤怒等）
+            targetBlock.onBreak(world, pos, state, player);
             
-            // Remove block
-            boolean removed = world.removeBlock(pos, false);
-            if (removed) {
-                state.getBlock().onBroken(world, pos, state);
+            if (world.removeBlock(pos, false)) {
+                targetBlock.onBroken(world, pos, state);
                 
-                if (!player.isCreative()) {
-                    // Handle drops ONLY if canHarvest is true
+                if (!isCreative) {
                     if (canHarvest) {
-                        if (Chainveinfabric.CONFIG.directToInventory) {
+                        if (directToInv) {
+                            // 获取掉落物并尝试存入背包
                             List<ItemStack> drops = Block.getDroppedStacks(state, world, pos, blockEntity, player, tool);
                             for (ItemStack drop : drops) {
                                 if (!player.getInventory().insertStack(drop)) {
-                                    // Inventory full, drop at original position
+                                    // 背包满了，掉落在起始位置
                                     Block.dropStack(world, startPos, drop);
                                 }
                             }
+                            // 显式触发经验值掉落
+                            state.onStacksDropped(world, pos, tool, true);
                         } else {
-                            // Normal drop at current position
+                            // 正常在原位掉落物品和经验
                             Block.dropStacks(state, world, pos, blockEntity, player, tool);
                         }
                     }
 
-                    // Handle tool durability
+                    // 消耗耐久并检查工具是否损毁
                     tool.postMine(world, state, pos, player);
                     if (tool.isEmpty()) {
                         player.sendEquipmentBreakStatus(tool.getItem(), EquipmentSlot.MAINHAND);
