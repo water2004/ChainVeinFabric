@@ -39,6 +39,7 @@ public class ChainVeinScreen extends Screen {
 
     // Tab 2 elements
     private TextFieldWidget maxBlocksBox;
+    private TextFieldWidget maxRadiusBox;
     private CyclingButtonWidget<Boolean> directToInventoryButton;
     private CyclingButtonWidget<Boolean> toolProtectionButton;
     private CyclingButtonWidget<Boolean> diagonalEdgeButton;
@@ -118,10 +119,20 @@ public class ChainVeinScreen extends Screen {
         });
         this.addSelectableChild(this.maxBlocksBox);
 
+        // Max Radius Input
+        this.maxRadiusBox = new TextFieldWidget(this.textRenderer, centerX + 10, topY + 30, 100, 20, Text.of(String.valueOf(ChainveinfabricClient.CONFIG.maxRadius)));
+        this.maxRadiusBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxRadius));
+        this.maxRadiusBox.setChangedListener(text -> {
+            try {
+                ChainveinfabricClient.CONFIG.maxRadius = Integer.parseInt(text);
+            } catch (NumberFormatException ignored) {}
+        });
+        this.addSelectableChild(this.maxRadiusBox);
+
         // Direct to Inventory Toggle
         this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.directToInventory)
                 .omitKeyText()
-                .build(centerX + 10, topY + 30, 100, 20, Text.empty(), (button, value) -> {
+                .build(centerX + 10, topY + 60, 100, 20, Text.empty(), (button, value) -> {
                     ChainveinfabricClient.CONFIG.directToInventory = value;
                 });
         this.addDrawableChild(this.directToInventoryButton);
@@ -129,7 +140,7 @@ public class ChainVeinScreen extends Screen {
         // Tool Protection Toggle
         this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.toolProtection)
                 .omitKeyText()
-                .build(centerX + 10, topY + 60, 100, 20, Text.empty(), (button, value) -> {
+                .build(centerX + 10, topY + 90, 100, 20, Text.empty(), (button, value) -> {
                     ChainveinfabricClient.CONFIG.toolProtection = value;
                 });
         this.addDrawableChild(this.toolProtectionButton);
@@ -137,7 +148,7 @@ public class ChainVeinScreen extends Screen {
         // Diagonal Edge Toggle
         this.diagonalEdgeButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalEdge)
                 .omitKeyText()
-                .build(centerX + 10, topY + 90, 100, 20, Text.empty(), (button, value) -> {
+                .build(centerX + 10, topY + 120, 100, 20, Text.empty(), (button, value) -> {
                     ChainveinfabricClient.CONFIG.diagonalEdge = value;
                 });
         this.addDrawableChild(this.diagonalEdgeButton);
@@ -145,7 +156,7 @@ public class ChainVeinScreen extends Screen {
         // Diagonal Corner Toggle
         this.diagonalCornerButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalCorner)
                 .omitKeyText()
-                .build(centerX + 10, topY + 120, 100, 20, Text.empty(), (button, value) -> {
+                .build(centerX + 10, topY + 150, 100, 20, Text.empty(), (button, value) -> {
                     ChainveinfabricClient.CONFIG.diagonalCorner = value;
                 });
         this.addDrawableChild(this.diagonalCornerButton);
@@ -190,11 +201,13 @@ public class ChainVeinScreen extends Screen {
             context.drawTextWithShadow(this.textRenderer, this.chainVeinLabel, labelX, labelY, 0xFFFFFFFF);
         } else {
             this.maxBlocksBox.render(context, mouseX, mouseY, delta);
+            this.maxRadiusBox.render(context, mouseX, mouseY, delta);
             context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, topY + 5, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 35, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 65, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, topY + 95, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, topY + 125, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxRadius"), centerX - 120, topY + 35, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 65, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 95, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, topY + 125, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, topY + 155, 0xFFFFFFFF);
         }
     }
 

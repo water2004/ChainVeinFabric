@@ -17,6 +17,7 @@ public class ChainVeinConfig {
 
     public boolean isChainVeinEnabled = false;
     public int maxChainBlocks = 64;
+    public int maxRadius = 6;
     public boolean directToInventory = false;
     public boolean toolProtection = false;
     public boolean diagonalEdge = false;

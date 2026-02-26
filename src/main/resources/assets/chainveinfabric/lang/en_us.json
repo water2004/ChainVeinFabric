@@ -10,6 +10,7 @@
   "options.chainveinfabric.tab.whitelist": "Whitelist Management",
   "options.chainveinfabric.tab.settings": "General Settings",
   "options.chainveinfabric.maxBlocks": "Max Chain Blocks",
+  "options.chainveinfabric.maxRadius": "Max Radius",
   "options.chainveinfabric.directToInventory": "Direct to Inventory",
   "options.chainveinfabric.toolProtection": "Tool Protection (Durability > 10)",
   "options.chainveinfabric.diagonalEdge": "Diagonal (Edge)",

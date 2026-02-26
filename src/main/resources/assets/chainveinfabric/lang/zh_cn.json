@@ -10,6 +10,7 @@
   "options.chainveinfabric.tab.whitelist": "白名单管理",
   "options.chainveinfabric.tab.settings": "通用设置",
   "options.chainveinfabric.maxBlocks": "连锁采集上限",
+  "options.chainveinfabric.maxRadius": "搜索半径",
   "options.chainveinfabric.directToInventory": "直接进入背包",
   "options.chainveinfabric.toolProtection": "工具保护 (耐久 > 10)",
   "options.chainveinfabric.diagonalEdge": "斜边方向 (12向)",

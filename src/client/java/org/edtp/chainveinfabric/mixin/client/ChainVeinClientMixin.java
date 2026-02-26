@@ -76,6 +76,12 @@ public abstract class ChainVeinClientMixin {
                         if (diffs == 3 && !ChainveinfabricClient.CONFIG.diagonalCorner) continue;
 
                         BlockPos neighbor = current.add(dx, dy, dz);
+                        
+                        // Distance check: only add if within maxRadius from the original startPos
+                        if (neighbor.getSquaredDistance(startPos) > ChainveinfabricClient.CONFIG.maxRadius * ChainveinfabricClient.CONFIG.maxRadius) {
+                            continue;
+                        }
+
                         if (!visited.contains(neighbor)) {
                             visited.add(neighbor);
                             if (client.world.getBlockState(neighbor).isOf(targetBlock)) {
