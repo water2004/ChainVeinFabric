@@ -65,12 +65,23 @@ public abstract class ChainVeinClientMixin {
             BlockPos current = queue.poll();
             toBreak.add(current); // Add everything, including startPos
 
-            for (BlockPos neighbor : BlockPos.iterate(current.add(-1, -1, -1), current.add(1, 1, 1))) {
-                BlockPos immutableNeighbor = neighbor.toImmutable();
-                if (!visited.contains(immutableNeighbor)) {
-                    visited.add(immutableNeighbor);
-                    if (client.world.getBlockState(immutableNeighbor).isOf(targetBlock)) {
-                        queue.add(immutableNeighbor);
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                        int diffs = (dx != 0 ? 1 : 0) + (dy != 0 ? 1 : 0) + (dz != 0 ? 1 : 0);
+
+                        if (diffs == 2 && !ChainveinfabricClient.CONFIG.diagonalEdge) continue;
+                        if (diffs == 3 && !ChainveinfabricClient.CONFIG.diagonalCorner) continue;
+
+                        BlockPos neighbor = current.add(dx, dy, dz);
+                        if (!visited.contains(neighbor)) {
+                            visited.add(neighbor);
+                            if (client.world.getBlockState(neighbor).isOf(targetBlock)) {
+                                queue.add(neighbor);
+                            }
+                        }
                     }
                 }
             }

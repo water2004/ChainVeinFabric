@@ -19,6 +19,8 @@ public class ChainVeinConfig {
     public int maxChainBlocks = 64;
     public boolean directToInventory = false;
     public boolean toolProtection = false;
+    public boolean diagonalEdge = false;
+    public boolean diagonalCorner = false;
     public Set<String> whitelistedBlocks = new HashSet<>();
 
     public static ChainVeinConfig load() {

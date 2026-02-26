@@ -41,6 +41,8 @@ public class ChainVeinScreen extends Screen {
     private TextFieldWidget maxBlocksBox;
     private CyclingButtonWidget<Boolean> directToInventoryButton;
     private CyclingButtonWidget<Boolean> toolProtectionButton;
+    private CyclingButtonWidget<Boolean> diagonalEdgeButton;
+    private CyclingButtonWidget<Boolean> diagonalCornerButton;
 
     public ChainVeinScreen() {
         super(Text.of("Chain Vein Config"));
@@ -131,6 +133,22 @@ public class ChainVeinScreen extends Screen {
                     ChainveinfabricClient.CONFIG.toolProtection = value;
                 });
         this.addDrawableChild(this.toolProtectionButton);
+
+        // Diagonal Edge Toggle
+        this.diagonalEdgeButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalEdge)
+                .omitKeyText()
+                .build(centerX + 10, topY + 90, 100, 20, Text.empty(), (button, value) -> {
+                    ChainveinfabricClient.CONFIG.diagonalEdge = value;
+                });
+        this.addDrawableChild(this.diagonalEdgeButton);
+
+        // Diagonal Corner Toggle
+        this.diagonalCornerButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalCorner)
+                .omitKeyText()
+                .build(centerX + 10, topY + 120, 100, 20, Text.empty(), (button, value) -> {
+                    ChainveinfabricClient.CONFIG.diagonalCorner = value;
+                });
+        this.addDrawableChild(this.diagonalCornerButton);
     }
 
     private void onSearchBoxChanged(String search) {
@@ -175,6 +193,8 @@ public class ChainVeinScreen extends Screen {
             context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, topY + 5, 0xFFFFFFFF);
             context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 35, 0xFFFFFFFF);
             context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 65, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, topY + 95, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, topY + 125, 0xFFFFFFFF);
         }
     }
 

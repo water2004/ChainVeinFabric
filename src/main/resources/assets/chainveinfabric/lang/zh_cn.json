@@ -12,6 +12,8 @@
   "options.chainveinfabric.maxBlocks": "连锁采集上限",
   "options.chainveinfabric.directToInventory": "直接进入背包",
   "options.chainveinfabric.toolProtection": "工具保护 (耐久 > 10)",
+  "options.chainveinfabric.diagonalEdge": "斜边方向 (12向)",
+  "options.chainveinfabric.diagonalCorner": "斜角方向 (8向)",
   "narrator.entry.block": "方块: %s",
   "narration.list.usage": "方块列表",
   "narration.whitelist.usage": "白名单方块",

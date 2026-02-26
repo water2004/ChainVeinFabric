@@ -12,6 +12,8 @@
   "options.chainveinfabric.maxBlocks": "Max Chain Blocks",
   "options.chainveinfabric.directToInventory": "Direct to Inventory",
   "options.chainveinfabric.toolProtection": "Tool Protection (Durability > 10)",
+  "options.chainveinfabric.diagonalEdge": "Diagonal (Edge)",
+  "options.chainveinfabric.diagonalCorner": "Diagonal (Corner)",
   "narrator.entry.block": "Block: %s",
   "narration.list.usage": "Block list",
   "narration.whitelist.usage": "Whitelisted blocks",
