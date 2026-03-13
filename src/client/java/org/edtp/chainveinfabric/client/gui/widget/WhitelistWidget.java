@@ -39,8 +39,9 @@ public class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEn
     public int getRowWidth() { return 180; }
     protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
 
-    public void appendClickableNarrations(NarrationMessageBuilder builder) {
-        builder.put(NarrationPart.USAGE, Text.translatable("narration.whitelist.usage"));
+    @Override
+    protected void appendClickableNarrations(net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+        builder.put(net.minecraft.client.gui.screen.narration.NarrationPart.USAGE, Text.translatable("narration.whitelist.usage"));
     }
 
     public class WhitelistEntry extends EntryListWidget.Entry<WhitelistEntry> {

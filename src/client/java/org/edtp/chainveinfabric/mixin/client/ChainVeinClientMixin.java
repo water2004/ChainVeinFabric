@@ -1,7 +1,6 @@
 package org.edtp.chainveinfabric.mixin.client;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.block.FarmlandBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
@@ -38,11 +37,13 @@ public abstract class ChainVeinClientMixin {
         ClientChainHandler.performChainMine(client, pos, state);
     }
 
-    @Inject(method = "interactBlock", at = @At("HEAD"))
+    @Inject(method = "interactBlock", at = @At("RETURN"))
     private void onInteractBlock(ClientPlayerEntity player, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
-        if (ClientChainHandler.isChainOperating() || 
+        ActionResult result = cir.getReturnValue();
+        
+        // 只有当点击操作成功（即成功放置了作物/发生了交互）时才触发连锁
+        if (!result.isAccepted() || ClientChainHandler.isChainOperating() || 
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
-            ChainveinfabricClient.CONFIG.mode != ChainVeinConfig.ChainMode.CHAIN_PLANT ||
             client.world == null || client.player == null || hand != Hand.MAIN_HAND) {
             return;
         }
@@ -51,10 +52,9 @@ public abstract class ChainVeinClientMixin {
         BlockState state = client.world.getBlockState(pos);
         ItemStack stack = player.getStackInHand(hand);
         
-        if (stack.isEmpty()) {
-            return;
-        }
+        if (stack.isEmpty()) return;
 
+        // 执行连锁处理（种植、打蜡等）
         ClientChainHandler.performChainInteract(client, pos, state, stack);
     }
 }

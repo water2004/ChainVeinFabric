@@ -1,8 +1,8 @@
 package org.edtp.chainveinfabric.client.logic;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.FarmlandBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.HoneycombItem;
@@ -18,7 +18,6 @@ import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 
 import java.util.List;
-import java.util.function.BiPredicate;
 
 public class InteractLogic {
     public static void perform(MinecraftClient client, BlockPos pos, BlockState state, ItemStack stack) {
@@ -30,26 +29,27 @@ public class InteractLogic {
     }
 
     private static void handlePlanting(MinecraftClient client, BlockPos pos, BlockState state, ItemStack stack) {
-        if (!(state.getBlock() instanceof FarmlandBlock)) return;
-        
         String itemId = Registries.ITEM.getId(stack.getItem()).toString();
         if (!ChainveinfabricClient.CONFIG.whitelistedCrops.contains(itemId)) return;
 
-        List<BlockPos> toPlant = ChainSearcher.findConnected(client, pos, (start, current) -> 
-            client.world.getBlockState(current).getBlock() instanceof FarmlandBlock && 
+        Block targetSoil = state.getBlock(); // 以当前交互成功的方块作为基准土壤
+
+        // 搜索连接的同类土壤，且上方必须是空气
+        List<BlockPos> targets = ChainSearcher.findConnected(client, pos, (start, current) -> 
+            client.world.getBlockState(current).isOf(targetSoil) && 
             client.world.getBlockState(current.up()).isAir()
         );
 
-        executeInteract(client, pos, toPlant, stack, "message.chainveinfabric.planted");
+        if (targets.size() <= 1) return;
+
+        executeInteract(client, pos, targets, stack, "message.chainveinfabric.planted");
     }
 
     private static void handleUtility(MinecraftClient client, BlockPos pos, BlockState state, ItemStack stack) {
-        // Only trigger if holding Honeycomb or Axe
         boolean isWaxing = stack.getItem() instanceof HoneycombItem;
         boolean isAxe = stack.getItem() instanceof AxeItem;
         if (!isWaxing && !isAxe) return;
 
-        // Find connected blocks of the SAME type
         List<BlockPos> targets = ChainSearcher.findConnected(client, pos, (start, current) -> 
             client.world.getBlockState(current).isOf(state.getBlock())
         );

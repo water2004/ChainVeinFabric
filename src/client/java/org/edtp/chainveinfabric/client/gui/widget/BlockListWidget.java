@@ -48,8 +48,9 @@ public class BlockListWidget extends EntryListWidget<BlockListWidget.BlockEntry>
     public int getRowWidth() { return 180; }
     protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
 
-    public void appendClickableNarrations(NarrationMessageBuilder builder) {
-        builder.put(NarrationPart.USAGE, Text.translatable("narration.allblocks.usage"));
+    @Override
+    protected void appendClickableNarrations(net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+        builder.put(net.minecraft.client.gui.screen.narration.NarrationPart.USAGE, Text.translatable("narration.allblocks.usage"));
     }
 
     public class BlockEntry extends EntryListWidget.Entry<BlockEntry> {

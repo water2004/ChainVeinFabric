@@ -1,14 +1,15 @@
 package org.edtp.chainveinfabric.client.gui.widget;
 
+import net.minecraft.block.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.screen.narration.NarrationPart;
 import net.minecraft.client.gui.Click;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -27,10 +28,31 @@ public class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
         this.textRenderer = textRenderer;
         this.onRefresh = onRefresh;
         this.allEntries = Registries.ITEM.stream()
+                .filter(this::isPlantable)
                 .map(ItemEntry::new)
                 .sorted(Comparator.comparing(entry -> entry.itemIdentifier.toString()))
                 .collect(Collectors.toList());
         this.filter("");
+    }
+
+    private boolean isPlantable(Item item) {
+        if (item == Items.NETHER_WART || item == Items.COCOA_BEANS || 
+            item == Items.SUGAR_CANE || item == Items.BAMBOO || 
+            item == Items.SWEET_BERRIES || item == Items.CHORUS_FRUIT) {
+            return true;
+        }
+
+        if (item instanceof BlockItem blockItem) {
+            Block block = blockItem.getBlock();
+            return block instanceof PlantBlock || 
+                   block instanceof CropBlock || 
+                   block instanceof SaplingBlock || 
+                   block instanceof StemBlock || 
+                   block instanceof AttachedStemBlock ||
+                   block instanceof AzaleaBlock ||
+                   block instanceof SeaPickleBlock;
+        }
+        return false;
     }
 
     public void filter(String search) {
@@ -48,8 +70,9 @@ public class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
     public int getRowWidth() { return 180; }
     protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
 
-    public void appendClickableNarrations(NarrationMessageBuilder builder) {
-        builder.put(NarrationPart.USAGE, Text.translatable("narration.allitems.usage"));
+    @Override
+    protected void appendClickableNarrations(net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+        builder.put(net.minecraft.client.gui.screen.narration.NarrationPart.USAGE, Text.translatable("narration.allitems.usage"));
     }
 
     public class ItemEntry extends EntryListWidget.Entry<ItemEntry> {
