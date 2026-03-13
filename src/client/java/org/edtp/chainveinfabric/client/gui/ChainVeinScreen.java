@@ -78,7 +78,35 @@ public class ChainVeinScreen extends Screen {
 
     private DropdownWidget<ChainVeinConfig.ChainMode> modeDropdown;
 
+    @Override
+    public boolean mouseClicked(Click click, boolean doubled) {
+        // Absolute Priority 1: Dropdown Menu (only in BASIC tab)
+        if (this.currentTab == Tab.BASIC && this.modeDropdown != null) {
+            if (this.modeDropdown.mouseClicked(click, doubled)) {
+                return true;
+            }
+        }
+        // Fallback to standard distribution
+        return super.mouseClicked(click, doubled);
+    }
+
     private void initBasicTab(int centerX, int topY) {
+        // Mode Dropdown (Added FIRST in init for priority)
+        this.modeDropdown = new DropdownWidget<>(centerX - 210, topY, 150, 20, 
+            Text.translatable("options.chainveinfabric.mode"),
+            java.util.Arrays.asList(ChainVeinConfig.ChainMode.values()),
+            ChainveinfabricClient.CONFIG.mode,
+            mode -> switch (mode) {
+                case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
+                case CHAIN_PLANT -> Text.translatable("options.chainveinfabric.mode.plant");
+            },
+            value -> {
+                ChainveinfabricClient.CONFIG.mode = value;
+                this.clearAndInit(); // Refresh lists
+            }
+        );
+        this.addSelectableChild(this.modeDropdown);
+
         // Chain Enabled Toggle
         this.addDrawableChild(
                 CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.isChainVeinEnabled)
@@ -122,7 +150,7 @@ public class ChainVeinScreen extends Screen {
             this.addDrawableChild(cwList);
         }
 
-        // Mode Dropdown (Added last to ensure it renders on top and receives clicks first)
+        // Mode Dropdown (Added LAST for highest event priority)
         this.modeDropdown = new DropdownWidget<>(centerX - 210, topY, 150, 20, 
             Text.translatable("options.chainveinfabric.mode"),
             java.util.Arrays.asList(ChainVeinConfig.ChainMode.values()),
@@ -136,7 +164,7 @@ public class ChainVeinScreen extends Screen {
                 this.clearAndInit(); // Refresh lists
             }
         );
-        this.addDrawableChild(this.modeDropdown);
+        this.addSelectableChild(this.modeDropdown);
 
         this.refreshLists();
     }
@@ -231,6 +259,7 @@ public class ChainVeinScreen extends Screen {
 
         if (this.currentTab == Tab.BASIC) {
             this.searchBox.render(context, mouseX, mouseY, delta);
+
             String allText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.allBlocks" : "options.chainveinfabric.allCrops";
             String whitelistText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.whitelist" : "options.chainveinfabric.cropWhitelist";
             
@@ -240,6 +269,11 @@ public class ChainVeinScreen extends Screen {
             int labelX = centerX + 150 - this.textRenderer.getWidth(this.chainVeinLabel) - 10;
             int labelY = topY + (20 - this.textRenderer.fontHeight) / 2;
             context.drawTextWithShadow(this.textRenderer, this.chainVeinLabel, labelX, labelY, 0xFFFFFFFF);
+
+            // Render dropdown ABSOLUTELY LAST to ensure it's on top of labels and everything else
+            if (this.modeDropdown != null) {
+                this.modeDropdown.render(context, mouseX, mouseY, delta);
+            }
         } else {
             this.maxBlocksBox.render(context, mouseX, mouseY, delta);
             this.maxRadiusBox.render(context, mouseX, mouseY, delta);
@@ -304,51 +338,59 @@ public class ChainVeinScreen extends Screen {
             context.fill(x + width - 1, y, x + width, y + height, color); // Right
         }
 
-        private void handleAction(double mouseX, double mouseY) {
+        @Override
+        public boolean mouseClicked(Click click, boolean doubled) {
+            if (!this.active || !this.visible) return false;
+
+            double mx = click.x();
+            double my = click.y();
             int x = getX();
             int y = getY();
-            if (mouseY >= y && mouseY < y + height) {
-                expanded = !expanded;
-            } else if (expanded) {
+
+            if (expanded) {
+                // Check if any option is clicked
                 int optionY = y + height;
                 for (T value : values) {
-                    if (mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height) {
-                        selected = value;
-                        onSelect.accept(value);
-                        expanded = false;
-                        return;
+                    if (mx >= x && mx < x + width && my >= optionY && my < optionY + height) {
+                        this.selected = value;
+                        this.onSelect.accept(value);
+                        this.expanded = false;
+                        return true;
                     }
                     optionY += height;
                 }
-                expanded = false;
-            }
-        }
 
-        @Override
-        public boolean mouseClicked(Click click, boolean doubled) {
-            if (this.active && this.visible) {
-                double mouseX = click.x();
-                double mouseY = click.y();
-                int x = getX();
-                int y = getY();
-
-                if (expanded) {
-                    int totalHeight = height + (values.size() * height);
-                    if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + totalHeight) {
-                        this.handleAction(mouseX, mouseY);
-                        return true;
-                    }
-                    expanded = false;
-                    return false;
+                // Check if main button is clicked to close
+                if (mx >= x && mx < x + width && my >= y && my < y + height) {
+                    this.expanded = false;
+                    return true;
                 }
-                
-                // Manual bounds check for the main button
-                if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height) {
-                    this.handleAction(mouseX, mouseY);
+
+                // Clicked elsewhere while expanded: close and let other elements handle
+                this.expanded = false;
+                return false;
+            } else {
+                // Check if main button is clicked to open
+                if (mx >= x && mx < x + width && my >= y && my < y + height) {
+                    this.expanded = true;
                     return true;
                 }
             }
+
             return false;
+        }
+
+        private void handleAction(double mouseX, double mouseY) {
+            // Simplified: This logic is now handled directly in mouseClicked
+        }
+
+        @Override
+        public boolean isMouseOver(double mouseX, double mouseY) {
+            if (!this.visible) return false;
+            int x = getX();
+            int y = getY();
+            int currentHeight = expanded ? height + (values.size() * height) : height;
+            return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + currentHeight;
         }
 
         @Override
