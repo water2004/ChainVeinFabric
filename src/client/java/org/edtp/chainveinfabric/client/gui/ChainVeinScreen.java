@@ -76,20 +76,9 @@ public class ChainVeinScreen extends Screen {
         }
     }
 
-    private void initBasicTab(int centerX, int topY) {
-        // Mode Dropdown
-        this.addDrawableChild(CyclingButtonWidget.<ChainVeinConfig.ChainMode>builder(mode -> {
-            return switch (mode) {
-                case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
-                case CHAIN_PLANT -> Text.translatable("options.chainveinfabric.mode.plant");
-            };
-        }, ChainveinfabricClient.CONFIG.mode)
-        .values(ChainVeinConfig.ChainMode.values())
-        .build(centerX - 210, topY, 150, 20, Text.translatable("options.chainveinfabric.mode"), (button, value) -> {
-            ChainveinfabricClient.CONFIG.mode = value;
-            this.clearAndInit(); // Refresh lists
-        }));
+    private DropdownWidget<ChainVeinConfig.ChainMode> modeDropdown;
 
+    private void initBasicTab(int centerX, int topY) {
         // Chain Enabled Toggle
         this.addDrawableChild(
                 CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.isChainVeinEnabled)
@@ -132,6 +121,22 @@ public class ChainVeinScreen extends Screen {
             this.whitelistWidget = cwList;
             this.addDrawableChild(cwList);
         }
+
+        // Mode Dropdown (Added last to ensure it renders on top and receives clicks first)
+        this.modeDropdown = new DropdownWidget<>(centerX - 210, topY, 150, 20, 
+            Text.translatable("options.chainveinfabric.mode"),
+            java.util.Arrays.asList(ChainVeinConfig.ChainMode.values()),
+            ChainveinfabricClient.CONFIG.mode,
+            mode -> switch (mode) {
+                case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
+                case CHAIN_PLANT -> Text.translatable("options.chainveinfabric.mode.plant");
+            },
+            value -> {
+                ChainveinfabricClient.CONFIG.mode = value;
+                this.clearAndInit(); // Refresh lists
+            }
+        );
+        this.addDrawableChild(this.modeDropdown);
 
         this.refreshLists();
     }
@@ -251,6 +256,105 @@ public class ChainVeinScreen extends Screen {
     public void close() {
         ChainveinfabricClient.CONFIG.save();
         super.close();
+    }
+
+    class DropdownWidget<T> extends net.minecraft.client.gui.widget.ClickableWidget {
+        private final List<T> values;
+        private final java.util.function.Function<T, Text> textGetter;
+        private final java.util.function.Consumer<T> onSelect;
+        private boolean expanded = false;
+        private T selected;
+
+        public DropdownWidget(int x, int y, int width, int height, Text message, List<T> values, T initialValue, java.util.function.Function<T, Text> textGetter, java.util.function.Consumer<T> onSelect) {
+            super(x, y, width, height, message);
+            this.values = values;
+            this.selected = initialValue;
+            this.textGetter = textGetter;
+            this.onSelect = onSelect;
+        }
+
+        @Override
+        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+            int x = getX();
+            int y = getY();
+            
+            // Main box background and border
+            context.fill(x, y, x + width, y + height, 0xFF000000);
+            drawRectBorder(context, x, y, width, height, 0xFFFFFFFF);
+            
+            context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
+            context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
+
+            if (expanded) {
+                int optionY = y + height;
+                for (T value : values) {
+                    boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height;
+                    context.fill(x, optionY, x + width, optionY + height, hovered ? 0xFF444444 : 0xFF222222);
+                    drawRectBorder(context, x, optionY, width, height, 0xFF888888);
+                    context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
+                    optionY += height;
+                }
+            }
+        }
+
+        private void drawRectBorder(DrawContext context, int x, int y, int width, int height, int color) {
+            context.fill(x, y, x + width, y + 1, color); // Top
+            context.fill(x, y + height - 1, x + width, y + height, color); // Bottom
+            context.fill(x, y, x + 1, y + height, color); // Left
+            context.fill(x + width - 1, y, x + width, y + height, color); // Right
+        }
+
+        private void handleAction(double mouseX, double mouseY) {
+            int x = getX();
+            int y = getY();
+            if (mouseY >= y && mouseY < y + height) {
+                expanded = !expanded;
+            } else if (expanded) {
+                int optionY = y + height;
+                for (T value : values) {
+                    if (mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height) {
+                        selected = value;
+                        onSelect.accept(value);
+                        expanded = false;
+                        return;
+                    }
+                    optionY += height;
+                }
+                expanded = false;
+            }
+        }
+
+        @Override
+        public boolean mouseClicked(Click click, boolean doubled) {
+            if (this.active && this.visible) {
+                double mouseX = click.x();
+                double mouseY = click.y();
+                int x = getX();
+                int y = getY();
+
+                if (expanded) {
+                    int totalHeight = height + (values.size() * height);
+                    if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + totalHeight) {
+                        this.handleAction(mouseX, mouseY);
+                        return true;
+                    }
+                    expanded = false;
+                    return false;
+                }
+                
+                // Manual bounds check for the main button
+                if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height) {
+                    this.handleAction(mouseX, mouseY);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        protected void appendClickableNarrations(NarrationMessageBuilder builder) {
+            builder.put(NarrationPart.TITLE, getMessage());
+        }
     }
 
     class CropWhitelistWidget extends EntryListWidget<CropWhitelistWidget.CropWhitelistEntry> {
