@@ -15,7 +15,13 @@ public class ChainVeinConfig {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chainveinfabric.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    public enum ChainMode {
+        CHAIN_MINE,
+        CHAIN_PLANT
+    }
+
     public boolean isChainVeinEnabled = false;
+    public ChainMode mode = ChainMode.CHAIN_MINE;
     public int maxChainBlocks = 64;
     public int maxRadius = 6;
     public boolean directToInventory = false;
@@ -23,6 +29,7 @@ public class ChainVeinConfig {
     public boolean diagonalEdge = false;
     public boolean diagonalCorner = false;
     public Set<String> whitelistedBlocks = new HashSet<>();
+    public Set<String> whitelistedCrops = new HashSet<>();
 
     public static ChainVeinConfig load() {
         try (FileReader reader = new FileReader(CONFIG_PATH.toFile())) {

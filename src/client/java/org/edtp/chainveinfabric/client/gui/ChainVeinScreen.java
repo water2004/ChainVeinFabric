@@ -13,6 +13,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.jspecify.annotations.Nullable;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.screen.narration.NarrationPart;
@@ -27,15 +28,15 @@ import java.util.stream.Collectors;
 
 public class ChainVeinScreen extends Screen {
     private enum Tab {
-        WHITELIST, SETTINGS
+        BASIC, SETTINGS
     }
 
-    private Tab currentTab = Tab.WHITELIST;
+    private Tab currentTab = Tab.BASIC;
 
     private Text chainVeinLabel;
     private TextFieldWidget searchBox;
-    private BlockListWidget blockListWidget;
-    private WhitelistWidget whitelistWidget;
+    private EntryListWidget<?> allListWidget;
+    private EntryListWidget<?> whitelistWidget;
 
     // Tab 2 elements
     private TextFieldWidget maxBlocksBox;
@@ -58,8 +59,8 @@ public class ChainVeinScreen extends Screen {
         int topY = 40;
 
         // Tab buttons
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("options.chainveinfabric.tab.whitelist"), button -> {
-            this.currentTab = Tab.WHITELIST;
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("options.chainveinfabric.tab.basic"), button -> {
+            this.currentTab = Tab.BASIC;
             this.clearAndInit();
         }).dimensions(centerX - 105, 10, 100, 20).build());
 
@@ -68,19 +69,32 @@ public class ChainVeinScreen extends Screen {
             this.clearAndInit();
         }).dimensions(centerX + 5, 10, 100, 20).build());
 
-        if (this.currentTab == Tab.WHITELIST) {
-            initWhitelistTab(centerX, topY);
+        if (this.currentTab == Tab.BASIC) {
+            initBasicTab(centerX, topY);
         } else {
             initSettingsTab(centerX, topY);
         }
     }
 
-    private void initWhitelistTab(int centerX, int topY) {
-        // Chain Mining Toggle
+    private void initBasicTab(int centerX, int topY) {
+        // Mode Dropdown
+        this.addDrawableChild(CyclingButtonWidget.<ChainVeinConfig.ChainMode>builder(mode -> {
+            return switch (mode) {
+                case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
+                case CHAIN_PLANT -> Text.translatable("options.chainveinfabric.mode.plant");
+            };
+        }, ChainveinfabricClient.CONFIG.mode)
+        .values(ChainVeinConfig.ChainMode.values())
+        .build(centerX - 210, topY, 150, 20, Text.translatable("options.chainveinfabric.mode"), (button, value) -> {
+            ChainveinfabricClient.CONFIG.mode = value;
+            this.clearAndInit(); // Refresh lists
+        }));
+
+        // Chain Enabled Toggle
         this.addDrawableChild(
                 CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.isChainVeinEnabled)
                         .omitKeyText()
-                        .build(centerX + 10, topY, 60, 20, Text.empty(), (button, value) -> {
+                        .build(centerX + 150, topY, 60, 20, Text.empty(), (button, value) -> {
                             ChainveinfabricClient.CONFIG.isChainVeinEnabled = value;
                         }));
 
@@ -97,13 +111,27 @@ public class ChainVeinScreen extends Screen {
         int listTopY = topY + 65;
         int listHeight = this.height - listTopY - 20;
 
-        this.blockListWidget = new BlockListWidget(this.client, listWidth, listHeight, listTopY, 24);
-        this.blockListWidget.setX(centerX - 210);
-        this.addDrawableChild(this.blockListWidget);
+        if (ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE) {
+            BlockListWidget bList = new BlockListWidget(this.client, listWidth, listHeight, listTopY, 24);
+            bList.setX(centerX - 210);
+            this.allListWidget = bList;
+            this.addDrawableChild(bList);
 
-        this.whitelistWidget = new WhitelistWidget(this.client, listWidth, listHeight, listTopY, 24);
-        this.whitelistWidget.setX(centerX + 10);
-        this.addDrawableChild(this.whitelistWidget);
+            WhitelistWidget wList = new WhitelistWidget(this.client, listWidth, listHeight, listTopY, 24);
+            wList.setX(centerX + 10);
+            this.whitelistWidget = wList;
+            this.addDrawableChild(wList);
+        } else {
+            ItemListWidget iList = new ItemListWidget(this.client, listWidth, listHeight, listTopY, 24);
+            iList.setX(centerX - 210);
+            this.allListWidget = iList;
+            this.addDrawableChild(iList);
+
+            CropWhitelistWidget cwList = new CropWhitelistWidget(this.client, listWidth, listHeight, listTopY, 24);
+            cwList.setX(centerX + 10);
+            this.whitelistWidget = cwList;
+            this.addDrawableChild(cwList);
+        }
 
         this.refreshLists();
     }
@@ -167,11 +195,16 @@ public class ChainVeinScreen extends Screen {
     }
 
     private void refreshLists() {
-        if (this.blockListWidget != null) {
-            this.blockListWidget.filter(this.searchBox.getText());
+        if (this.allListWidget instanceof BlockListWidget) {
+            ((BlockListWidget) this.allListWidget).filter(this.searchBox.getText());
+        } else if (this.allListWidget instanceof ItemListWidget) {
+            ((ItemListWidget) this.allListWidget).filter(this.searchBox.getText());
         }
-        if (this.whitelistWidget != null) {
-            this.whitelistWidget.refresh();
+
+        if (this.whitelistWidget instanceof WhitelistWidget) {
+            ((WhitelistWidget) this.whitelistWidget).refresh();
+        } else if (this.whitelistWidget instanceof CropWhitelistWidget) {
+            ((CropWhitelistWidget) this.whitelistWidget).refresh();
         }
     }
 
@@ -191,12 +224,15 @@ public class ChainVeinScreen extends Screen {
         int centerX = this.width / 2;
         int topY = 40;
 
-        if (this.currentTab == Tab.WHITELIST) {
+        if (this.currentTab == Tab.BASIC) {
             this.searchBox.render(context, mouseX, mouseY, delta);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.allBlocks"), centerX - 210, topY + 55, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.whitelist"), centerX + 10, topY + 55, 0xFFFFFFFF);
+            String allText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.allBlocks" : "options.chainveinfabric.allCrops";
+            String whitelistText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.whitelist" : "options.chainveinfabric.cropWhitelist";
             
-            int labelX = centerX - this.textRenderer.getWidth(this.chainVeinLabel) - 20;
+            context.drawTextWithShadow(this.textRenderer, Text.translatable(allText), centerX - 210, topY + 55, 0xFFFFFFFF);
+            context.drawTextWithShadow(this.textRenderer, Text.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
+            
+            int labelX = centerX + 150 - this.textRenderer.getWidth(this.chainVeinLabel) - 10;
             int labelY = topY + (20 - this.textRenderer.fontHeight) / 2;
             context.drawTextWithShadow(this.textRenderer, this.chainVeinLabel, labelX, labelY, 0xFFFFFFFF);
         } else {
@@ -215,6 +251,130 @@ public class ChainVeinScreen extends Screen {
     public void close() {
         ChainveinfabricClient.CONFIG.save();
         super.close();
+    }
+
+    class CropWhitelistWidget extends EntryListWidget<CropWhitelistWidget.CropWhitelistEntry> {
+        public CropWhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
+            super(client, width, height, top, itemHeight);
+            this.refresh();
+        }
+
+        public void refresh() {
+            this.clearEntries();
+            ChainveinfabricClient.CONFIG.whitelistedCrops.stream()
+                    .map(id -> Registries.ITEM.get(Identifier.of(id)))
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(item -> Registries.ITEM.getId(item).toString()))
+                    .forEach(item -> this.addEntry(new CropWhitelistEntry(item)));
+        }
+
+        public int getRowWidth() { return 180; }
+        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
+        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.cropwhitelist.usage")); }
+
+        class CropWhitelistEntry extends EntryListWidget.Entry<CropWhitelistEntry> {
+            private final Identifier itemIdentifier;
+            private final Text itemDisplayName;
+            private final ButtonWidget removeButton;
+
+            public CropWhitelistEntry(net.minecraft.item.Item item) {
+                this.itemIdentifier = Registries.ITEM.getId(item);
+                this.itemDisplayName = item.getName();
+                this.removeButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.remove"),
+                        button -> {
+                            ChainveinfabricClient.CONFIG.whitelistedCrops.remove(this.itemIdentifier.toString());
+                            ChainveinfabricClient.CONFIG.save();
+                            ChainVeinScreen.this.refreshLists();
+                        }).dimensions(0, 0, 40, 20).build();
+            }
+
+            @Override
+            public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+                int x = this.getX(); int y = this.getY();
+                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
+                net.minecraft.item.Item item = Registries.ITEM.get(this.itemIdentifier);
+                if (item != null) {
+                    context.drawItem(item.getDefaultStack(), x + 2, y + 2);
+                }
+                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+                this.removeButton.setX(x + entryWidth - 42);
+                this.removeButton.setY(y + (entryHeight - 20) / 2);
+                this.removeButton.render(context, mouseX, mouseY, tickDelta);
+            }
+
+            @Override
+            public boolean mouseClicked(Click click, boolean doubled) {
+                if (this.removeButton.mouseClicked(click, doubled)) return true;
+                return super.mouseClicked(click, doubled);
+            }
+
+            public Text getNarration() { return Text.translatable("narrator.entry.item", this.itemDisplayName.getString()); }
+        }
+    }
+
+    class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
+        private final List<ItemEntry> allEntries;
+
+        public ItemListWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
+            super(client, width, height, top, itemHeight);
+            this.allEntries = Registries.ITEM.stream().map(ItemEntry::new).sorted(Comparator.comparing(entry -> entry.itemIdentifier.toString())).collect(Collectors.toList());
+            this.filter("");
+        }
+
+        private void updateEntries(List<ItemEntry> entries) { this.clearEntries(); entries.forEach(this::addEntry); }
+
+        public void filter(String search) {
+            List<ItemEntry> filteredEntries;
+            if (search.isEmpty()) { filteredEntries = this.allEntries; } else {
+                String lowerCaseSearch = search.toLowerCase(Locale.ROOT);
+                filteredEntries = this.allEntries.stream().filter(entry -> entry.itemIdentifier.toString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch) || entry.itemDisplayName.getString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch)).collect(Collectors.toList());
+            }
+            this.updateEntries(filteredEntries);
+            this.setScrollY(0);
+        }
+
+        public int getRowWidth() { return 180; }
+        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
+        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.allitems.usage")); }
+
+        class ItemEntry extends EntryListWidget.Entry<ItemEntry> {
+            private final Identifier itemIdentifier;
+            private final Text itemDisplayName;
+            private final ButtonWidget addButton;
+
+            public ItemEntry(net.minecraft.item.Item item) {
+                this.itemIdentifier = Registries.ITEM.getId(item);
+                this.itemDisplayName = item.getName();
+                this.addButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.add"),
+                        button -> {
+                            ChainveinfabricClient.CONFIG.whitelistedCrops.add(this.itemIdentifier.toString());
+                            ChainveinfabricClient.CONFIG.save();
+                            ChainVeinScreen.this.refreshLists();
+                        }).dimensions(0, 0, 40, 20).build();
+            }
+
+            @Override
+            public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+                int x = this.getX(); int y = this.getY();
+                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
+                net.minecraft.item.Item item = Registries.ITEM.get(this.itemIdentifier);
+                if (item != null) {
+                    context.drawItem(item.getDefaultStack(), x + 2, y + 2);
+                }
+                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+                this.addButton.setX(x + entryWidth - 42);
+                this.addButton.setY(y + (entryHeight - 20) / 2);
+                this.addButton.render(context, mouseX, mouseY, tickDelta);
+            }
+
+            @Override
+            public boolean mouseClicked(Click click, boolean doubled) {
+                if (this.addButton.mouseClicked(click, doubled)) return true;
+                return super.mouseClicked(click, doubled);
+            }
+
+            public Text getNarration() { return Text.translatable("narrator.entry.item", this.itemDisplayName.getString()); }
+        }
     }
 
     // --- Inner classes (WhitelistWidget and BlockListWidget) remain exactly as before ---
