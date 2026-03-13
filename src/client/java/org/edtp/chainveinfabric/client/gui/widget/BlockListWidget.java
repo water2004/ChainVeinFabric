@@ -21,11 +21,13 @@ public class BlockListWidget extends EntryListWidget<BlockListWidget.BlockEntry>
     private final List<BlockEntry> allEntries;
     private final TextRenderer textRenderer;
     private final Runnable onRefresh;
+    private final Set<String> whitelist;
 
-    public BlockListWidget(MinecraftClient client, int width, int height, int top, int itemHeight, TextRenderer textRenderer, Runnable onRefresh) {
+    public BlockListWidget(MinecraftClient client, int width, int height, int top, int itemHeight, TextRenderer textRenderer, Runnable onRefresh, Set<String> whitelist) {
         super(client, width, height, top, itemHeight);
         this.textRenderer = textRenderer;
         this.onRefresh = onRefresh;
+        this.whitelist = whitelist;
         this.allEntries = Registries.BLOCK.stream()
                 .map(BlockEntry::new)
                 .sorted(Comparator.comparing(entry -> entry.blockIdentifier.toString()))
@@ -63,7 +65,7 @@ public class BlockListWidget extends EntryListWidget<BlockListWidget.BlockEntry>
             this.blockDisplayName = block.getName();
             this.addButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.add"),
                     button -> {
-                        ChainveinfabricClient.CONFIG.whitelistedBlocks.add(this.blockIdentifier.toString());
+                        whitelist.add(this.blockIdentifier.toString());
                         ChainveinfabricClient.CONFIG.save();
                         onRefresh.run();
                     }).dimensions(0, 0, 40, 20).build();

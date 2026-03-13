@@ -19,17 +19,19 @@ import java.util.*;
 public class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEntry> {
     private final TextRenderer textRenderer;
     private final Runnable onRefresh;
+    private final Set<String> whitelist;
 
-    public WhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight, TextRenderer textRenderer, Runnable onRefresh) {
+    public WhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight, TextRenderer textRenderer, Runnable onRefresh, Set<String> whitelist) {
         super(client, width, height, top, itemHeight);
         this.textRenderer = textRenderer;
         this.onRefresh = onRefresh;
+        this.whitelist = whitelist;
         this.refresh();
     }
 
     public void refresh() {
         this.clearEntries();
-        ChainveinfabricClient.CONFIG.whitelistedBlocks.stream()
+        whitelist.stream()
                 .map(id -> Registries.BLOCK.get(Identifier.of(id)))
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
@@ -54,7 +56,7 @@ public class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEn
             this.blockDisplayName = block.getName();
             this.removeButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.remove"),
                     button -> {
-                        ChainveinfabricClient.CONFIG.whitelistedBlocks.remove(this.blockIdentifier.toString());
+                        whitelist.remove(this.blockIdentifier.toString());
                         ChainveinfabricClient.CONFIG.save();
                         onRefresh.run();
                     }).dimensions(0, 0, 40, 20).build();

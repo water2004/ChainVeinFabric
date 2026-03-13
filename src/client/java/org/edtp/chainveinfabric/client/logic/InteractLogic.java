@@ -50,6 +50,9 @@ public class InteractLogic {
         boolean isAxe = stack.getItem() instanceof AxeItem;
         if (!isWaxing && !isAxe) return;
 
+        String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+        if (!ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(blockId)) return;
+
         List<BlockPos> targets = ChainSearcher.findConnected(client, pos, (start, current) -> 
             client.world.getBlockState(current).isOf(state.getBlock())
         );
@@ -62,8 +65,16 @@ public class InteractLogic {
     private static void executeInteract(MinecraftClient client, BlockPos startPos, List<BlockPos> targets, ItemStack stack, String translationKey) {
         if (targets.isEmpty()) return;
 
-        int available = client.player.isCreative() ? ChainveinfabricClient.CONFIG.maxChainBlocks : stack.getCount();
-        int count = Math.min(targets.size(), available);
+        boolean isDamageable = stack.isDamageable();
+        int available = client.player.isCreative() ? ChainveinfabricClient.CONFIG.maxChainBlocks : (isDamageable ? ChainveinfabricClient.CONFIG.maxChainBlocks : stack.getCount());
+        
+        // 如果是可损耗物品且开启了工具保护
+        if (!client.player.isCreative() && isDamageable && ChainveinfabricClient.CONFIG.toolProtection) {
+            int remainingDurability = stack.getMaxDamage() - stack.getDamage();
+            available = Math.min(available, remainingDurability - 10);
+        }
+        
+        int count = Math.max(1, Math.min(targets.size(), available));
         List<BlockPos> finalSubList = targets.subList(0, count);
 
         if (ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID)) {

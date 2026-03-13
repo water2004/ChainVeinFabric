@@ -73,6 +73,7 @@ public class ChainVeinScreen extends Screen {
             mode -> switch (mode) {
                 case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
                 case CHAIN_PLANT -> Text.translatable("options.chainveinfabric.mode.plant");
+                case CHAIN_UTILITY -> Text.translatable("options.chainveinfabric.mode.utility");
             },
             value -> {
                 ChainveinfabricClient.CONFIG.mode = value;
@@ -98,16 +99,16 @@ public class ChainVeinScreen extends Screen {
         int listHeight = this.height - listTopY - 20;
 
         if (ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE) {
-            BlockListWidget bList = new BlockListWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
+            BlockListWidget bList = new BlockListWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists, ChainveinfabricClient.CONFIG.whitelistedBlocks);
             bList.setX(centerX - 210);
             this.allListWidget = bList;
             this.addDrawableChild(bList);
 
-            WhitelistWidget wList = new WhitelistWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
+            WhitelistWidget wList = new WhitelistWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists, ChainveinfabricClient.CONFIG.whitelistedBlocks);
             wList.setX(centerX + 10);
             this.whitelistWidget = wList;
             this.addDrawableChild(wList);
-        } else {
+        } else if (ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
             ItemListWidget iList = new ItemListWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
             iList.setX(centerX - 210);
             this.allListWidget = iList;
@@ -117,6 +118,16 @@ public class ChainVeinScreen extends Screen {
             cwList.setX(centerX + 10);
             this.whitelistWidget = cwList;
             this.addDrawableChild(cwList);
+        } else {
+            BlockListWidget bList = new BlockListWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists, ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks);
+            bList.setX(centerX - 210);
+            this.allListWidget = bList;
+            this.addDrawableChild(bList);
+
+            WhitelistWidget wList = new WhitelistWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists, ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks);
+            wList.setX(centerX + 10);
+            this.whitelistWidget = wList;
+            this.addDrawableChild(wList);
         }
         this.refreshLists();
     }
@@ -176,8 +187,12 @@ public class ChainVeinScreen extends Screen {
 
         if (currentTab == Tab.BASIC) {
             searchBox.render(context, mouseX, mouseY, delta);
-            String allText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.allBlocks" : "options.chainveinfabric.allCrops";
-            String whitelistText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.whitelist" : "options.chainveinfabric.cropWhitelist";
+            String allText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT ? "options.chainveinfabric.allCrops" : "options.chainveinfabric.allBlocks";
+            String whitelistText = switch (ChainveinfabricClient.CONFIG.mode) {
+                case CHAIN_MINE -> "options.chainveinfabric.whitelist";
+                case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
+                case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
+            };
             context.drawTextWithShadow(textRenderer, Text.translatable(allText), centerX - 210, topY + 55, 0xFFFFFFFF);
             context.drawTextWithShadow(textRenderer, Text.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
             int labelX = centerX + 150 - textRenderer.getWidth(chainVeinLabel) - 10;

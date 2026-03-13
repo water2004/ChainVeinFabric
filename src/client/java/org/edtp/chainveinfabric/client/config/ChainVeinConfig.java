@@ -17,7 +17,8 @@ public class ChainVeinConfig {
 
     public enum ChainMode {
         CHAIN_MINE,
-        CHAIN_PLANT
+        CHAIN_PLANT,
+        CHAIN_UTILITY
     }
 
     public boolean isChainVeinEnabled = false;
@@ -30,6 +31,7 @@ public class ChainVeinConfig {
     public boolean diagonalCorner = false;
     public Set<String> whitelistedBlocks = new HashSet<>();
     public Set<String> whitelistedCrops = new HashSet<>();
+    public Set<String> whitelistedUtilityBlocks = new HashSet<>();
 
     public static ChainVeinConfig load() {
         try (FileReader reader = new FileReader(CONFIG_PATH.toFile())) {

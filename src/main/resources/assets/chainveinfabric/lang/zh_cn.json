@@ -14,6 +14,8 @@
   "options.chainveinfabric.mode": "当前模式",
   "options.chainveinfabric.mode.mine": "连锁采集",
   "options.chainveinfabric.mode.plant": "连锁种植",
+  "options.chainveinfabric.mode.utility": "连锁打蜡/除锈/去皮",
+  "options.chainveinfabric.utilityWhitelist": "适用方块",
   "options.chainveinfabric.maxBlocks": "数量上限",
   "options.chainveinfabric.maxRadius": "搜索半径",
   "options.chainveinfabric.directToInventory": "直接进入背包",

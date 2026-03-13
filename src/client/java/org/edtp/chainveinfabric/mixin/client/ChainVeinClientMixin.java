@@ -24,6 +24,8 @@ public abstract class ChainVeinClientMixin {
 
     @Shadow @Final private MinecraftClient client;
 
+    private BlockState capturedState;
+
     @Inject(method = "breakBlock", at = @At("HEAD"))
     private void onBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (ClientChainHandler.isChainOperating() || 
@@ -37,6 +39,13 @@ public abstract class ChainVeinClientMixin {
         ClientChainHandler.performChainMine(client, pos, state);
     }
 
+    @Inject(method = "interactBlock", at = @At("HEAD"))
+    private void beforeInteractBlock(ClientPlayerEntity player, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
+        if (client.world != null) {
+            this.capturedState = client.world.getBlockState(hitResult.getBlockPos());
+        }
+    }
+
     @Inject(method = "interactBlock", at = @At("RETURN"))
     private void onInteractBlock(ClientPlayerEntity player, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
         ActionResult result = cir.getReturnValue();
@@ -44,17 +53,17 @@ public abstract class ChainVeinClientMixin {
         // 只有当点击操作成功（即成功放置了作物/发生了交互）时才触发连锁
         if (!result.isAccepted() || ClientChainHandler.isChainOperating() || 
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
-            client.world == null || client.player == null || hand != Hand.MAIN_HAND) {
+            client.world == null || client.player == null || hand != Hand.MAIN_HAND || capturedState == null) {
             return;
         }
 
         BlockPos pos = hitResult.getBlockPos();
-        BlockState state = client.world.getBlockState(pos);
         ItemStack stack = player.getStackInHand(hand);
         
         if (stack.isEmpty()) return;
 
-        // 执行连锁处理（种植、打蜡等）
-        ClientChainHandler.performChainInteract(client, pos, state, stack);
+        // 执行连锁处理（种植、打蜡等），使用捕获到的原始状态
+        ClientChainHandler.performChainInteract(client, pos, capturedState, stack);
+        this.capturedState = null;
     }
 }
