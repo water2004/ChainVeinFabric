@@ -51,10 +51,10 @@ public abstract class ChainVeinClientMixin {
         BlockState state = client.world.getBlockState(pos);
         ItemStack stack = player.getStackInHand(hand);
         
-        if (stack.isEmpty() || !(state.getBlock() instanceof FarmlandBlock)) {
+        if (stack.isEmpty()) {
             return;
         }
 
-        ClientChainHandler.performChainPlant(client, pos, stack);
+        ClientChainHandler.performChainInteract(client, pos, state, stack);
     }
 }

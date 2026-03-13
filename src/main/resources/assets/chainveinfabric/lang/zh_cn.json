@@ -30,5 +30,7 @@
   "hud.chainveinfabric.active": "连锁模式已开启",
   "message.chainveinfabric.broken": "连锁采集了 %d 个方块",
   "message.chainveinfabric.planted": "连锁种植了 %d 个作物",
+  "message.chainveinfabric.processed": "连锁处理了 %d 个方块",
   "message.chainveinfabric.protection": "连锁操作已停止：工具耐久不足！"
+
 }

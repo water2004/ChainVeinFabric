@@ -22,13 +22,13 @@ import java.util.List;
 public class Chainveinfabric implements ModInitializer {
 
     public static final Identifier MINE_PACKET_ID = Identifier.of("chainveinfabric", "mine");
-    public static final Identifier PLANT_PACKET_ID = Identifier.of("chainveinfabric", "plant");
+    public static final Identifier INTERACT_PACKET_ID = Identifier.of("chainveinfabric", "interact");
 
     @Override
     public void onInitialize() {
         // Register Payloads
         PayloadTypeRegistry.playC2S().register(ChainMinePayload.ID, ChainMinePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ChainPlantPayload.ID, ChainPlantPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(ChainInteractPayload.ID, ChainInteractPayload.CODEC);
         
         // Register Mine Receiver
         ServerPlayNetworking.registerGlobalReceiver(ChainMinePayload.ID, (payload, context) -> {
@@ -79,29 +79,26 @@ public class Chainveinfabric implements ModInitializer {
             });
         });
 
-        // Register Plant Receiver
-        ServerPlayNetworking.registerGlobalReceiver(ChainPlantPayload.ID, (payload, context) -> {
+        // Register Interact Receiver (Handles Planting, Waxing, Stripping, etc.)
+        ServerPlayNetworking.registerGlobalReceiver(ChainInteractPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
                 ServerPlayerEntity player = context.player();
                 ServerWorld world = (ServerWorld) player.getEntityWorld();
                 ItemStack stack = player.getMainHandStack();
                 
-                if (stack.isEmpty() || !player.isCreative() && stack.getCount() <= 0) return;
+                if (stack.isEmpty()) return;
 
                 for (BlockPos pos : payload.positions()) {
+                    // Safety: Distance Check
                     if (player.squaredDistanceTo(pos.toCenterPos()) > 100) continue;
                     if (!player.isCreative() && stack.isEmpty()) break;
 
-                    BlockState state = world.getBlockState(pos);
-                    // Check if it's farmland and empty above
-                    if (state.getBlock() instanceof net.minecraft.block.FarmlandBlock && world.getBlockState(pos.up()).isAir()) {
-                        // Use the item on the block
-                        net.minecraft.util.ActionResult result = stack.useOnBlock(new net.minecraft.item.ItemUsageContext(player, net.minecraft.util.Hand.MAIN_HAND, new net.minecraft.util.hit.BlockHitResult(pos.toCenterPos(), net.minecraft.util.math.Direction.UP, pos, false)));
-                        if (result.isAccepted() && !player.isCreative()) {
-                            // ItemUsageContext.useOnBlock might already consume the item if successful.
-                            // But for safety and consistency, we might need to handle it.
-                        }
-                    }
+                    // Simulate right-click interaction
+                    stack.useOnBlock(new net.minecraft.item.ItemUsageContext(
+                        player, 
+                        net.minecraft.util.Hand.MAIN_HAND, 
+                        new net.minecraft.util.hit.BlockHitResult(pos.toCenterPos(), net.minecraft.util.math.Direction.UP, pos, false)
+                    ));
                 }
             });
         });
@@ -119,11 +116,11 @@ public class Chainveinfabric implements ModInitializer {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 
-    public record ChainPlantPayload(List<BlockPos> positions) implements CustomPayload {
-        public static final CustomPayload.Id<ChainPlantPayload> ID = new CustomPayload.Id<>(PLANT_PACKET_ID);
-        public static final PacketCodec<RegistryByteBuf, ChainPlantPayload> CODEC = PacketCodec.tuple(
-                BlockPos.PACKET_CODEC.collect(PacketCodecs.toList()), ChainPlantPayload::positions,
-                ChainPlantPayload::new
+    public record ChainInteractPayload(List<BlockPos> positions) implements CustomPayload {
+        public static final CustomPayload.Id<ChainInteractPayload> ID = new CustomPayload.Id<>(INTERACT_PACKET_ID);
+        public static final PacketCodec<RegistryByteBuf, ChainInteractPayload> CODEC = PacketCodec.tuple(
+                BlockPos.PACKET_CODEC.collect(PacketCodecs.toList()), ChainInteractPayload::positions,
+                ChainInteractPayload::new
         );
 
         @Override
