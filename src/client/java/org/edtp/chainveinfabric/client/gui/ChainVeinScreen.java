@@ -1,30 +1,19 @@
 package org.edtp.chainveinfabric.client.gui;
 
-import net.minecraft.block.Block;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.registry.Registries;
+import net.minecraft.client.gui.Click;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
-import org.jspecify.annotations.Nullable;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.screen.narration.NarrationPart;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.MouseInput;
+import org.edtp.chainveinfabric.client.gui.widget.*;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Arrays;
 
 public class ChainVeinScreen extends Screen {
     private enum Tab {
@@ -32,11 +21,11 @@ public class ChainVeinScreen extends Screen {
     }
 
     private Tab currentTab = Tab.BASIC;
-
     private Text chainVeinLabel;
     private TextFieldWidget searchBox;
     private EntryListWidget<?> allListWidget;
     private EntryListWidget<?> whitelistWidget;
+    private DropdownWidget<ChainVeinConfig.ChainMode> modeDropdown;
 
     // Tab 2 elements
     private TextFieldWidget maxBlocksBox;
@@ -54,7 +43,6 @@ public class ChainVeinScreen extends Screen {
     protected void init() {
         super.init();
         this.chainVeinLabel = Text.translatable("options.chainveinfabric.chainVein");
-
         int centerX = this.width / 2;
         int topY = 40;
 
@@ -76,25 +64,11 @@ public class ChainVeinScreen extends Screen {
         }
     }
 
-    private DropdownWidget<ChainVeinConfig.ChainMode> modeDropdown;
-
-    @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
-        // Absolute Priority 1: Dropdown Menu (only in BASIC tab)
-        if (this.currentTab == Tab.BASIC && this.modeDropdown != null) {
-            if (this.modeDropdown.mouseClicked(click, doubled)) {
-                return true;
-            }
-        }
-        // Fallback to standard distribution
-        return super.mouseClicked(click, doubled);
-    }
-
     private void initBasicTab(int centerX, int topY) {
-        // Mode Dropdown (Added FIRST in init for priority)
+        // Dropdown added FIRST for click priority
         this.modeDropdown = new DropdownWidget<>(centerX - 210, topY, 150, 20, 
             Text.translatable("options.chainveinfabric.mode"),
-            java.util.Arrays.asList(ChainVeinConfig.ChainMode.values()),
+            Arrays.asList(ChainVeinConfig.ChainMode.values()),
             ChainveinfabricClient.CONFIG.mode,
             mode -> switch (mode) {
                 case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
@@ -102,187 +76,122 @@ public class ChainVeinScreen extends Screen {
             },
             value -> {
                 ChainveinfabricClient.CONFIG.mode = value;
-                this.clearAndInit(); // Refresh lists
-            }
+                this.clearAndInit();
+            },
+            this.textRenderer
         );
         this.addSelectableChild(this.modeDropdown);
 
-        // Chain Enabled Toggle
-        this.addDrawableChild(
-                CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.isChainVeinEnabled)
-                        .omitKeyText()
-                        .build(centerX + 150, topY, 60, 20, Text.empty(), (button, value) -> {
-                            ChainveinfabricClient.CONFIG.isChainVeinEnabled = value;
-                        }));
+        this.addDrawableChild(CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.isChainVeinEnabled)
+                .omitKeyText()
+                .build(centerX + 150, topY, 60, 20, Text.empty(), (button, value) -> {
+                    ChainveinfabricClient.CONFIG.isChainVeinEnabled = value;
+                }));
 
-        // Search Box
         this.searchBox = new TextFieldWidget(this.textRenderer, centerX - 210, topY + 30, 420, 20,
                 Text.translatable("options.chainveinfabric.search").copy().formatted(Formatting.GRAY));
-        this.searchBox.setMaxLength(256);
-        this.searchBox.setDrawsBackground(true);
-        this.searchBox.setChangedListener(this::onSearchBoxChanged);
+        this.searchBox.setChangedListener(text -> this.refreshLists());
         this.addSelectableChild(this.searchBox);
 
-        // Lists
         int listWidth = 200;
         int listTopY = topY + 65;
         int listHeight = this.height - listTopY - 20;
 
         if (ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE) {
-            BlockListWidget bList = new BlockListWidget(this.client, listWidth, listHeight, listTopY, 24);
+            BlockListWidget bList = new BlockListWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
             bList.setX(centerX - 210);
             this.allListWidget = bList;
             this.addDrawableChild(bList);
 
-            WhitelistWidget wList = new WhitelistWidget(this.client, listWidth, listHeight, listTopY, 24);
+            WhitelistWidget wList = new WhitelistWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
             wList.setX(centerX + 10);
             this.whitelistWidget = wList;
             this.addDrawableChild(wList);
         } else {
-            ItemListWidget iList = new ItemListWidget(this.client, listWidth, listHeight, listTopY, 24);
+            ItemListWidget iList = new ItemListWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
             iList.setX(centerX - 210);
             this.allListWidget = iList;
             this.addDrawableChild(iList);
 
-            CropWhitelistWidget cwList = new CropWhitelistWidget(this.client, listWidth, listHeight, listTopY, 24);
+            CropWhitelistWidget cwList = new CropWhitelistWidget(client, listWidth, listHeight, listTopY, 24, textRenderer, this::refreshLists);
             cwList.setX(centerX + 10);
             this.whitelistWidget = cwList;
             this.addDrawableChild(cwList);
         }
-
-        // Mode Dropdown (Added LAST for highest event priority)
-        this.modeDropdown = new DropdownWidget<>(centerX - 210, topY, 150, 20, 
-            Text.translatable("options.chainveinfabric.mode"),
-            java.util.Arrays.asList(ChainVeinConfig.ChainMode.values()),
-            ChainveinfabricClient.CONFIG.mode,
-            mode -> switch (mode) {
-                case CHAIN_MINE -> Text.translatable("options.chainveinfabric.mode.mine");
-                case CHAIN_PLANT -> Text.translatable("options.chainveinfabric.mode.plant");
-            },
-            value -> {
-                ChainveinfabricClient.CONFIG.mode = value;
-                this.clearAndInit(); // Refresh lists
-            }
-        );
-        this.addSelectableChild(this.modeDropdown);
-
         this.refreshLists();
     }
 
     private void initSettingsTab(int centerX, int topY) {
-        // Max Blocks Input
-        this.maxBlocksBox = new TextFieldWidget(this.textRenderer, centerX + 10, topY, 100, 20, Text.of(String.valueOf(ChainveinfabricClient.CONFIG.maxChainBlocks)));
+        this.maxBlocksBox = new TextFieldWidget(textRenderer, centerX + 10, topY, 100, 20, Text.empty());
         this.maxBlocksBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxChainBlocks));
         this.maxBlocksBox.setChangedListener(text -> {
-            try {
-                ChainveinfabricClient.CONFIG.maxChainBlocks = Integer.parseInt(text);
-            } catch (NumberFormatException ignored) {}
+            try { ChainveinfabricClient.CONFIG.maxChainBlocks = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
         });
         this.addSelectableChild(this.maxBlocksBox);
 
-        // Max Radius Input
-        this.maxRadiusBox = new TextFieldWidget(this.textRenderer, centerX + 10, topY + 30, 100, 20, Text.of(String.valueOf(ChainveinfabricClient.CONFIG.maxRadius)));
+        this.maxRadiusBox = new TextFieldWidget(textRenderer, centerX + 10, topY + 30, 100, 20, Text.empty());
         this.maxRadiusBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxRadius));
         this.maxRadiusBox.setChangedListener(text -> {
-            try {
-                ChainveinfabricClient.CONFIG.maxRadius = Integer.parseInt(text);
-            } catch (NumberFormatException ignored) {}
+            try { ChainveinfabricClient.CONFIG.maxRadius = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
         });
         this.addSelectableChild(this.maxRadiusBox);
 
-        // Direct to Inventory Toggle
         this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.directToInventory)
-                .omitKeyText()
-                .build(centerX + 10, topY + 60, 100, 20, Text.empty(), (button, value) -> {
-                    ChainveinfabricClient.CONFIG.directToInventory = value;
-                });
+                .omitKeyText().build(centerX + 10, topY + 60, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.directToInventory = v);
         this.addDrawableChild(this.directToInventoryButton);
 
-        // Tool Protection Toggle
         this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.toolProtection)
-                .omitKeyText()
-                .build(centerX + 10, topY + 90, 100, 20, Text.empty(), (button, value) -> {
-                    ChainveinfabricClient.CONFIG.toolProtection = value;
-                });
+                .omitKeyText().build(centerX + 10, topY + 90, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.toolProtection = v);
         this.addDrawableChild(this.toolProtectionButton);
 
-        // Diagonal Edge Toggle
         this.diagonalEdgeButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalEdge)
-                .omitKeyText()
-                .build(centerX + 10, topY + 120, 100, 20, Text.empty(), (button, value) -> {
-                    ChainveinfabricClient.CONFIG.diagonalEdge = value;
-                });
+                .omitKeyText().build(centerX + 10, topY + 120, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalEdge = v);
         this.addDrawableChild(this.diagonalEdgeButton);
 
-        // Diagonal Corner Toggle
         this.diagonalCornerButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalCorner)
-                .omitKeyText()
-                .build(centerX + 10, topY + 150, 100, 20, Text.empty(), (button, value) -> {
-                    ChainveinfabricClient.CONFIG.diagonalCorner = value;
-                });
+                .omitKeyText().build(centerX + 10, topY + 150, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalCorner = v);
         this.addDrawableChild(this.diagonalCornerButton);
     }
 
-    private void onSearchBoxChanged(String search) {
-        this.refreshLists();
-    }
-
     private void refreshLists() {
-        if (this.allListWidget instanceof BlockListWidget) {
-            ((BlockListWidget) this.allListWidget).filter(this.searchBox.getText());
-        } else if (this.allListWidget instanceof ItemListWidget) {
-            ((ItemListWidget) this.allListWidget).filter(this.searchBox.getText());
-        }
+        if (allListWidget instanceof BlockListWidget) ((BlockListWidget) allListWidget).filter(searchBox.getText());
+        else if (allListWidget instanceof ItemListWidget) ((ItemListWidget) allListWidget).filter(searchBox.getText());
 
-        if (this.whitelistWidget instanceof WhitelistWidget) {
-            ((WhitelistWidget) this.whitelistWidget).refresh();
-        } else if (this.whitelistWidget instanceof CropWhitelistWidget) {
-            ((CropWhitelistWidget) this.whitelistWidget).refresh();
-        }
+        if (whitelistWidget instanceof WhitelistWidget) ((WhitelistWidget) whitelistWidget).refresh();
+        else if (whitelistWidget instanceof CropWhitelistWidget) ((CropWhitelistWidget) whitelistWidget).refresh();
     }
 
     @Override
-    public void resize(int width, int height) {
-        String search = (this.searchBox != null) ? this.searchBox.getText() : "";
-        super.resize(width, height);
-        if (this.searchBox != null) this.searchBox.setText(search);
-        this.refreshLists();
+    public boolean mouseClicked(Click click, boolean doubled) {
+        if (currentTab == Tab.BASIC && modeDropdown != null && modeDropdown.mouseClicked(click, doubled)) return true;
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderInGameBackground(context);
         super.render(context, mouseX, mouseY, delta);
-
-        int centerX = this.width / 2;
+        int centerX = width / 2;
         int topY = 40;
 
-        if (this.currentTab == Tab.BASIC) {
-            this.searchBox.render(context, mouseX, mouseY, delta);
-
+        if (currentTab == Tab.BASIC) {
+            searchBox.render(context, mouseX, mouseY, delta);
             String allText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.allBlocks" : "options.chainveinfabric.allCrops";
             String whitelistText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_MINE ? "options.chainveinfabric.whitelist" : "options.chainveinfabric.cropWhitelist";
-            
-            context.drawTextWithShadow(this.textRenderer, Text.translatable(allText), centerX - 210, topY + 55, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
-            
-            int labelX = centerX + 150 - this.textRenderer.getWidth(this.chainVeinLabel) - 10;
-            int labelY = topY + (20 - this.textRenderer.fontHeight) / 2;
-            context.drawTextWithShadow(this.textRenderer, this.chainVeinLabel, labelX, labelY, 0xFFFFFFFF);
-
-            // Render dropdown ABSOLUTELY LAST to ensure it's on top of labels and everything else
-            if (this.modeDropdown != null) {
-                this.modeDropdown.render(context, mouseX, mouseY, delta);
-            }
+            context.drawTextWithShadow(textRenderer, Text.translatable(allText), centerX - 210, topY + 55, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
+            int labelX = centerX + 150 - textRenderer.getWidth(chainVeinLabel) - 10;
+            context.drawTextWithShadow(textRenderer, chainVeinLabel, labelX, topY + (20 - textRenderer.fontHeight) / 2, 0xFFFFFFFF);
+            if (modeDropdown != null) modeDropdown.render(context, mouseX, mouseY, delta);
         } else {
-            this.maxBlocksBox.render(context, mouseX, mouseY, delta);
-            this.maxRadiusBox.render(context, mouseX, mouseY, delta);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, topY + 5, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.maxRadius"), centerX - 120, topY + 35, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 65, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 95, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, topY + 125, 0xFFFFFFFF);
-            context.drawTextWithShadow(this.textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, topY + 155, 0xFFFFFFFF);
+            maxBlocksBox.render(context, mouseX, mouseY, delta);
+            maxRadiusBox.render(context, mouseX, mouseY, delta);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, topY + 5, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.maxRadius"), centerX - 120, topY + 35, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, topY + 65, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 95, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, topY + 125, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, topY + 155, 0xFFFFFFFF);
         }
     }
 
@@ -290,361 +199,5 @@ public class ChainVeinScreen extends Screen {
     public void close() {
         ChainveinfabricClient.CONFIG.save();
         super.close();
-    }
-
-    class DropdownWidget<T> extends net.minecraft.client.gui.widget.ClickableWidget {
-        private final List<T> values;
-        private final java.util.function.Function<T, Text> textGetter;
-        private final java.util.function.Consumer<T> onSelect;
-        private boolean expanded = false;
-        private T selected;
-
-        public DropdownWidget(int x, int y, int width, int height, Text message, List<T> values, T initialValue, java.util.function.Function<T, Text> textGetter, java.util.function.Consumer<T> onSelect) {
-            super(x, y, width, height, message);
-            this.values = values;
-            this.selected = initialValue;
-            this.textGetter = textGetter;
-            this.onSelect = onSelect;
-        }
-
-        @Override
-        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-            int x = getX();
-            int y = getY();
-            
-            // Main box background and border
-            context.fill(x, y, x + width, y + height, 0xFF000000);
-            drawRectBorder(context, x, y, width, height, 0xFFFFFFFF);
-            
-            context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
-            context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
-
-            if (expanded) {
-                int optionY = y + height;
-                for (T value : values) {
-                    boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height;
-                    context.fill(x, optionY, x + width, optionY + height, hovered ? 0xFF444444 : 0xFF222222);
-                    drawRectBorder(context, x, optionY, width, height, 0xFF888888);
-                    context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
-                    optionY += height;
-                }
-            }
-        }
-
-        private void drawRectBorder(DrawContext context, int x, int y, int width, int height, int color) {
-            context.fill(x, y, x + width, y + 1, color); // Top
-            context.fill(x, y + height - 1, x + width, y + height, color); // Bottom
-            context.fill(x, y, x + 1, y + height, color); // Left
-            context.fill(x + width - 1, y, x + width, y + height, color); // Right
-        }
-
-        @Override
-        public boolean mouseClicked(Click click, boolean doubled) {
-            if (!this.active || !this.visible) return false;
-
-            double mx = click.x();
-            double my = click.y();
-            int x = getX();
-            int y = getY();
-
-            if (expanded) {
-                // Check if any option is clicked
-                int optionY = y + height;
-                for (T value : values) {
-                    if (mx >= x && mx < x + width && my >= optionY && my < optionY + height) {
-                        this.selected = value;
-                        this.onSelect.accept(value);
-                        this.expanded = false;
-                        return true;
-                    }
-                    optionY += height;
-                }
-
-                // Check if main button is clicked to close
-                if (mx >= x && mx < x + width && my >= y && my < y + height) {
-                    this.expanded = false;
-                    return true;
-                }
-
-                // Clicked elsewhere while expanded: close and let other elements handle
-                this.expanded = false;
-                return false;
-            } else {
-                // Check if main button is clicked to open
-                if (mx >= x && mx < x + width && my >= y && my < y + height) {
-                    this.expanded = true;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private void handleAction(double mouseX, double mouseY) {
-            // Simplified: This logic is now handled directly in mouseClicked
-        }
-
-        @Override
-        public boolean isMouseOver(double mouseX, double mouseY) {
-            if (!this.visible) return false;
-            int x = getX();
-            int y = getY();
-            int currentHeight = expanded ? height + (values.size() * height) : height;
-            return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + currentHeight;
-        }
-
-        @Override
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-            builder.put(NarrationPart.TITLE, getMessage());
-        }
-    }
-
-    class CropWhitelistWidget extends EntryListWidget<CropWhitelistWidget.CropWhitelistEntry> {
-        public CropWhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
-            super(client, width, height, top, itemHeight);
-            this.refresh();
-        }
-
-        public void refresh() {
-            this.clearEntries();
-            ChainveinfabricClient.CONFIG.whitelistedCrops.stream()
-                    .map(id -> Registries.ITEM.get(Identifier.of(id)))
-                    .filter(Objects::nonNull)
-                    .sorted(Comparator.comparing(item -> Registries.ITEM.getId(item).toString()))
-                    .forEach(item -> this.addEntry(new CropWhitelistEntry(item)));
-        }
-
-        public int getRowWidth() { return 180; }
-        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.cropwhitelist.usage")); }
-
-        class CropWhitelistEntry extends EntryListWidget.Entry<CropWhitelistEntry> {
-            private final Identifier itemIdentifier;
-            private final Text itemDisplayName;
-            private final ButtonWidget removeButton;
-
-            public CropWhitelistEntry(net.minecraft.item.Item item) {
-                this.itemIdentifier = Registries.ITEM.getId(item);
-                this.itemDisplayName = item.getName();
-                this.removeButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.remove"),
-                        button -> {
-                            ChainveinfabricClient.CONFIG.whitelistedCrops.remove(this.itemIdentifier.toString());
-                            ChainveinfabricClient.CONFIG.save();
-                            ChainVeinScreen.this.refreshLists();
-                        }).dimensions(0, 0, 40, 20).build();
-            }
-
-            @Override
-            public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                int x = this.getX(); int y = this.getY();
-                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
-                net.minecraft.item.Item item = Registries.ITEM.get(this.itemIdentifier);
-                if (item != null) {
-                    context.drawItem(item.getDefaultStack(), x + 2, y + 2);
-                }
-                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
-                this.removeButton.setX(x + entryWidth - 42);
-                this.removeButton.setY(y + (entryHeight - 20) / 2);
-                this.removeButton.render(context, mouseX, mouseY, tickDelta);
-            }
-
-            @Override
-            public boolean mouseClicked(Click click, boolean doubled) {
-                if (this.removeButton.mouseClicked(click, doubled)) return true;
-                return super.mouseClicked(click, doubled);
-            }
-
-            public Text getNarration() { return Text.translatable("narrator.entry.item", this.itemDisplayName.getString()); }
-        }
-    }
-
-    class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
-        private final List<ItemEntry> allEntries;
-
-        public ItemListWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
-            super(client, width, height, top, itemHeight);
-            this.allEntries = Registries.ITEM.stream().map(ItemEntry::new).sorted(Comparator.comparing(entry -> entry.itemIdentifier.toString())).collect(Collectors.toList());
-            this.filter("");
-        }
-
-        private void updateEntries(List<ItemEntry> entries) { this.clearEntries(); entries.forEach(this::addEntry); }
-
-        public void filter(String search) {
-            List<ItemEntry> filteredEntries;
-            if (search.isEmpty()) { filteredEntries = this.allEntries; } else {
-                String lowerCaseSearch = search.toLowerCase(Locale.ROOT);
-                filteredEntries = this.allEntries.stream().filter(entry -> entry.itemIdentifier.toString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch) || entry.itemDisplayName.getString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch)).collect(Collectors.toList());
-            }
-            this.updateEntries(filteredEntries);
-            this.setScrollY(0);
-        }
-
-        public int getRowWidth() { return 180; }
-        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.allitems.usage")); }
-
-        class ItemEntry extends EntryListWidget.Entry<ItemEntry> {
-            private final Identifier itemIdentifier;
-            private final Text itemDisplayName;
-            private final ButtonWidget addButton;
-
-            public ItemEntry(net.minecraft.item.Item item) {
-                this.itemIdentifier = Registries.ITEM.getId(item);
-                this.itemDisplayName = item.getName();
-                this.addButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.add"),
-                        button -> {
-                            ChainveinfabricClient.CONFIG.whitelistedCrops.add(this.itemIdentifier.toString());
-                            ChainveinfabricClient.CONFIG.save();
-                            ChainVeinScreen.this.refreshLists();
-                        }).dimensions(0, 0, 40, 20).build();
-            }
-
-            @Override
-            public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                int x = this.getX(); int y = this.getY();
-                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
-                net.minecraft.item.Item item = Registries.ITEM.get(this.itemIdentifier);
-                if (item != null) {
-                    context.drawItem(item.getDefaultStack(), x + 2, y + 2);
-                }
-                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
-                this.addButton.setX(x + entryWidth - 42);
-                this.addButton.setY(y + (entryHeight - 20) / 2);
-                this.addButton.render(context, mouseX, mouseY, tickDelta);
-            }
-
-            @Override
-            public boolean mouseClicked(Click click, boolean doubled) {
-                if (this.addButton.mouseClicked(click, doubled)) return true;
-                return super.mouseClicked(click, doubled);
-            }
-
-            public Text getNarration() { return Text.translatable("narrator.entry.item", this.itemDisplayName.getString()); }
-        }
-    }
-
-    // --- Inner classes (WhitelistWidget and BlockListWidget) remain exactly as before ---
-    class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEntry> {
-        public WhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
-            super(client, width, height, top, itemHeight);
-            this.refresh();
-        }
-
-        public void refresh() {
-            this.clearEntries();
-            ChainveinfabricClient.CONFIG.whitelistedBlocks.stream()
-                    .map(id -> Registries.BLOCK.get(Identifier.of(id)))
-                    .filter(Objects::nonNull)
-                    .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
-                    .forEach(block -> this.addEntry(new WhitelistEntry(block)));
-        }
-
-        public int getRowWidth() { return 180; }
-        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.whitelist.usage")); }
-
-        class WhitelistEntry extends EntryListWidget.Entry<WhitelistEntry> {
-            private final Identifier blockIdentifier;
-            private final Text blockDisplayName;
-            private final ButtonWidget removeButton;
-
-            public WhitelistEntry(Block block) {
-                this.blockIdentifier = Registries.BLOCK.getId(block);
-                this.blockDisplayName = block.getName();
-                this.removeButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.remove"),
-                        button -> {
-                            ChainveinfabricClient.CONFIG.whitelistedBlocks.remove(this.blockIdentifier.toString());
-                            ChainveinfabricClient.CONFIG.save();
-                            ChainVeinScreen.this.refreshLists();
-                        }).dimensions(0, 0, 40, 20).build();
-            }
-
-            @Override
-            public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                int x = this.getX(); int y = this.getY();
-                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
-                Block block = Registries.BLOCK.get(this.blockIdentifier);
-                if (block != null && block.asItem() != null) {
-                    context.drawItem(block.asItem().getDefaultStack(), x + 2, y + 2);
-                }
-                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
-                this.removeButton.setX(x + entryWidth - 42);
-                this.removeButton.setY(y + (entryHeight - 20) / 2);
-                this.removeButton.render(context, mouseX, mouseY, tickDelta);
-            }
-
-            @Override
-            public boolean mouseClicked(Click click, boolean doubled) {
-                if (this.removeButton.mouseClicked(click, doubled)) return true;
-                return super.mouseClicked(click, doubled);
-            }
-
-            public Text getNarration() { return Text.translatable("narrator.entry.block", this.blockDisplayName.getString()); }
-        }
-    }
-
-    class BlockListWidget extends EntryListWidget<BlockListWidget.BlockEntry> {
-        private final List<BlockEntry> allEntries;
-
-        public BlockListWidget(MinecraftClient client, int width, int height, int top, int itemHeight) {
-            super(client, width, height, top, itemHeight);
-            this.allEntries = Registries.BLOCK.stream().map(BlockEntry::new).sorted(Comparator.comparing(entry -> entry.blockIdentifier.toString())).collect(Collectors.toList());
-            this.filter("");
-        }
-
-        private void updateEntries(List<BlockEntry> entries) { this.clearEntries(); entries.forEach(this::addEntry); }
-
-        public void filter(String search) {
-            List<BlockEntry> filteredEntries;
-            if (search.isEmpty()) { filteredEntries = this.allEntries; } else {
-                String lowerCaseSearch = search.toLowerCase(Locale.ROOT);
-                filteredEntries = this.allEntries.stream().filter(entry -> entry.blockIdentifier.toString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch) || entry.blockDisplayName.getString().toLowerCase(Locale.ROOT).contains(lowerCaseSearch)).collect(Collectors.toList());
-            }
-            this.updateEntries(filteredEntries);
-            this.setScrollY(0);
-        }
-
-        public int getRowWidth() { return 180; }
-        protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) { builder.put(NarrationPart.USAGE, Text.translatable("narration.allblocks.usage")); }
-
-        class BlockEntry extends EntryListWidget.Entry<BlockEntry> {
-            private final Identifier blockIdentifier;
-            private final Text blockDisplayName;
-            private final ButtonWidget addButton;
-
-            public BlockEntry(Block block) {
-                this.blockIdentifier = Registries.BLOCK.getId(block);
-                this.blockDisplayName = block.getName();
-                this.addButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.add"),
-                        button -> {
-                            ChainveinfabricClient.CONFIG.whitelistedBlocks.add(this.blockIdentifier.toString());
-                            ChainveinfabricClient.CONFIG.save();
-                            ChainVeinScreen.this.refreshLists();
-                        }).dimensions(0, 0, 40, 20).build();
-            }
-
-            @Override
-            public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                int x = this.getX(); int y = this.getY();
-                int entryWidth = this.getWidth(); int entryHeight = this.getHeight();
-                Block block = Registries.BLOCK.get(this.blockIdentifier);
-                if (block != null && block.asItem() != null) {
-                    context.drawItem(block.asItem().getDefaultStack(), x + 2, y + 2);
-                }
-                context.drawTextWithShadow(ChainVeinScreen.this.textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
-                this.addButton.setX(x + entryWidth - 42);
-                this.addButton.setY(y + (entryHeight - 20) / 2);
-                this.addButton.render(context, mouseX, mouseY, tickDelta);
-            }
-
-            @Override
-            public boolean mouseClicked(Click click, boolean doubled) {
-                if (this.addButton.mouseClicked(click, doubled)) return true;
-                return super.mouseClicked(click, doubled);
-            }
-
-            public Text getNarration() { return Text.translatable("narrator.entry.block", this.blockDisplayName.getString()); }
-        }
     }
 }
