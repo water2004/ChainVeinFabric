@@ -5,6 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.AxeItem;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.HoneycombItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -46,10 +47,11 @@ public class InteractLogic {
     }
 
     private static void handleUtility(MinecraftClient client, BlockPos pos, BlockState state, ItemStack stack) {
-        boolean isWaxing = stack.getItem() instanceof HoneycombItem;
-        boolean isAxe = stack.getItem() instanceof AxeItem;
-        if (!isWaxing && !isAxe) return;
+        // 排除掉方块类物品，防止意外触发“连锁放置”
+        if (stack.getItem() instanceof BlockItem) return;
 
+        // 既然已经走到了这里，说明 Mixin 已经验证了第一次交互是成功的 (result.isAccepted())
+        // 我们只需要检查该方块是否在“适用方块”名单中即可
         String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
         if (!ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(blockId)) return;
 

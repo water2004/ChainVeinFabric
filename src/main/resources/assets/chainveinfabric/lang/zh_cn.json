@@ -19,7 +19,7 @@
   "options.chainveinfabric.maxBlocks": "数量上限",
   "options.chainveinfabric.maxRadius": "搜索半径",
   "options.chainveinfabric.directToInventory": "直接进入背包",
-  "options.chainveinfabric.toolProtection": "工具保护 (耐久 > 10)",
+  "options.chainveinfabric.toolProtection": "工具保护",
   "options.chainveinfabric.diagonalEdge": "斜边方向 (12向)",
   "options.chainveinfabric.diagonalCorner": "斜角方向 (8向)",
   "narrator.entry.block": "方块: %s",

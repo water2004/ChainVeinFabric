@@ -1,9 +1,9 @@
 # ChainVeinFabric / 连锁采集 Fabric
 
-A modern, efficient, and configurable Chain Mining (Vein Mining) mod for Minecraft Fabric 1.21+.
+A modern, efficient, and configurable Chain Mining & Interaction mod for Minecraft Fabric 1.21+.
 Compatible with vanilla servers (client-side mode) and enhanced when installed on the server.
 
-一个适用于 Minecraft Fabric 1.21+ 的现代、高效且可高度配置的连锁采集模组。
+一个适用于 Minecraft Fabric 1.21+ 的现代、高效且可高度配置的连锁采集与交互模组。
 兼容原版服务器（客户端模式），并在服务端安装时提供增强功能。
 
 ---
@@ -12,69 +12,78 @@ Compatible with vanilla servers (client-side mode) and enhanced when installed o
 
 *   **Configurable Chain Mining**: Mine connected blocks of the same type automatically.
     *   **可配置的连锁采集**：自动采集相连的同类方块。
-*   **Visual Configuration GUI**: Press `V` to open a user-friendly configuration screen. No need to edit JSON files manually.
-    *   **可视化配置界面**：按 `V` 键打开友好的配置界面，无需手动编辑 JSON 文件。
-*   **Whitelist Management**: Easily search for blocks and add/remove them from the whitelist in-game.
-    *   **白名单管理**：在游戏中轻松搜索方块并将其添加/移除出白名单。
-*   **Server Optional**:
-    *   **Vanilla Server**: Works purely client-side! Items will drop at the block's location.
-    *   **Modded Server**: If installed on the server, supports **Direct to Inventory**.
-    *   **服务端可选**：
-        *   **原版服务器**：仅客户端即可工作！物品会在方块处掉落。
-        *   **模组服务器**：如果服务端也安装了本模组，支持**直接物品进背包**。
-*   **Tool Protection**: Automatically stops chain mining when tool durability is low (<= 10) to prevent breaking your tools.
-    *   **工具保护**：当工具耐久度低（<= 10）时自动停止连锁，防止工具损坏。
-*   **HUD & Feedback**: Distinct "CHAIN VEIN ACTIVE" HUD indicator and Action Bar statistics after mining.
-    *   **HUD 与反馈**：醒目的“连锁采集已开启” HUD 提示，以及采集后的动作栏统计信息。
+*   **Chain Planting**: Quickly plant seeds on compatible soil. Supports wheat, carrots, potatoes, etc.
+    *   **连锁种植**：在兼容的耕地上快速补种。支持小麦、胡萝卜、马铃薯等作物。
+*   **Chain Wax/Scrape/Strip**: Batch process blocks using tools or items. Supports waxing copper, scraping rust, stripping logs, and tilling soil.
+    *   **连锁打蜡/除锈/去皮**：使用工具或物品批量处理方块。支持铜块打蜡、除锈、原木去皮以及耕地。
+*   **Visual Configuration GUI**: Press `V` to open a user-friendly configuration screen.
+    *   **可视化配置界面**：按 `V` 键打开友好的配置界面。
+*   **Whitelist Management**: Per-mode whitelists for mining, crops, and utility interactions.
+    *   **白名单管理**：针对采集、作物和工具交互分别提供独立的白名单。
+*   **Tool Protection**: Automatically stops operations when tool durability is low (<= 10).
+    *   **工具保护**：当工具耐久度低（<= 10）时自动停止操作，防止工具损坏。
 
 ---
 
 ## 📸 Screenshots / 截图
 
-![alt text](screenshots/image.png)
-> *Description: Screenshot of the GUI (opened by 'V') showing the "Whitelist Management" tab with the search bar, the list of all blocks on the left, and the whitelist on the right.*
-> *描述：GUI界面（按 V 打开）截图，展示“白名单管理”标签页，包含搜索框、左侧的所有方块列表和右侧的白名单列表。*
+![Mining Config](screenshots/image.png)
+> *Description: Mining mode configuration with block whitelist.*
+> *描述：连锁采集模式下的方块白名单管理界面。*
 
-![alt text](screenshots/image-1.png)
-> *Description: Screenshot of the "General Settings" tab showing the "Max Chain Blocks" input, "Direct to Inventory" toggle, and "Tool Protection" toggle.*
-> *描述：“通用设置”标签页截图，展示“连锁采集上限”输入框、“直接进入背包”开关和“工具保护”开关。*
+![Chain Mine Result](screenshots/image-2.png)
+> *Description: Action Bar feedback after chain mining blocks.*
+> *描述：连锁采集后的动作栏反馈信息。*
 
-![alt text](screenshots/image-2.png)
-> *Description: Screenshot showing the "CHAIN VEIN ACTIVE" text on the HUD and the "Chain mined X blocks" message in the action bar.*
-> *描述：展示 HUD 上“连锁采集已开启”文字以及动作栏中“连锁采集了 X 个方块”提示的截图。*
+![Planting Config](screenshots/image-3.png)
+> *Description: Chain Planting configuration showing the item whitelist (seeds/crops).*
+> *描述：连锁种植模式配置界面，展示种子/作物白名单。*
+
+![Chain Planting](screenshots/image-4.png)
+> *Description: Chain planting carrots in a large area with a single click.*
+> *描述：一键在大范围内连锁种植胡萝卜。*
+
+![Utility Config](screenshots/image-5.png)
+> *Description: Chain Wax/Scrape/Strip configuration showing the "Applicable Blocks" whitelist.*
+> *描述：连锁打蜡/除锈/去皮模式配置界面，展示“适用方块”白名单。*
+
+![Chain Stripping](screenshots/image-6.png)
+> *Description: Stripping a whole stack of logs instantly using an axe.*
+> *描述：使用斧头瞬间连锁去皮整堆原木。*
 
 ---
 
 ## 🛠️ Usage / 使用说明
 
-1.  **Install**: Make sure you have [Fabric Loader](https://fabricmc.net/) and [Fabric API](https://curseforge.com/minecraft/mc-mods/fabric-api) installed. Drop this mod into your `mods` folder.
-    *   **安装**：确保已安装 Fabric Loader 和 Fabric API。将本模组放入 `mods` 文件夹。
-2.  **Open Config**: In-game, press **`V`** to open the configuration menu.
-    *   **打开配置**：游戏中按 **`V`** 键打开配置菜单。
-3.  **Setup Whitelist**:
-    *   Use the **Search Bar** to find blocks (e.g., "ore", "log").
-    *   Click **"Add"** on blocks you want to chain mine.
-    *   **设置白名单**：
-        *   使用**搜索框**查找方块（如 "ore", "log"）。
-        *   点击 **"添加" (Add)** 将想要连锁的方块加入白名单。
-4.  **Enable**: Go to the settings tab or toggle the switch in the GUI to enable Chain Vein.
-    *   **开启功能**：在设置页或界面中打开开关以启用连锁采集。
-5.  **Mine**: Hold your tool and break a whitelisted block.
-    *   **开始采集**：手持工具挖掘白名单内的方块即可。
+1.  **Open Config**: Press **`V`** to open the menu. Use the **Mode Dropdown** to switch between Mining, Planting, and Utility modes.
+    *   **打开配置**：按 **`V`** 键打开菜单。使用**模式下拉框**在采集、种植和交互模式间切换。
+2.  **Setup Whitelists**: 
+    *   **Mining**: Add blocks like `iron_ore` or `oak_log`.
+    *   **Planting**: Add items like `carrot` or `wheat_seeds`.
+    *   **Utility**: Add blocks you want to interact with, like `oak_log` (for stripping) or `grass_block` (for tilling).
+    *   **设置名单**：
+        *   **采集**：添加如 `iron_ore` 或 `oak_log` 等方块。
+        *   **种植**：添加如 `carrot` 或 `wheat_seeds` 等种子物品。
+        *   **交互**：添加想要交互的方块，如 `oak_log`（去皮）或 `grass_block`（耕地）。
+3.  **Perform**: 
+    *   **Mine**: Break a whitelisted block.
+    *   **Plant**: Right-click soil with seeds.
+    *   **Interact**: Right-click with tools (Axe/Hoe) or items (Honeycomb).
+    *   **执行**：
+        *   **采集**：挖掘白名单方块。
+        *   **种植**：手持种子右键耕地。
+        *   **交互**：手持工具（斧、锄）或物品（蜜脾）右键目标方块。
 
 ---
 
 ## ⚙️ Configuration Options / 配置选项
 
-All settings are saved per-player in the client's configuration folder.
-所有设置均保存在客户端的配置文件夹中，每个玩家独立。
-
-| Option (English) | 选项 (中文) | Description / 描述 | Default / 默认 |
-| :--- | :--- | :--- | :--- |
-| **Chain Mining** | **连锁采集** | Master switch for the mod. <br> 模组总开关。 | `False` (Off) |
-| **Max Chain Blocks** | **连锁采集上限** | Maximum number of blocks to break in one action. <br> 单次连锁破坏的最大方块数量。 | `64` |
-| **Direct to Inventory** | **直接进入背包** | Puts items directly into inventory (Requires Mod on Server). <br> 物品直接存入背包（需要服务端安装模组）。 | `False` (Off) |
-| **Tool Protection** | **工具保护** | Stops mining if tool durability is <= 10. <br> 工具耐久 <= 10 时停止挖掘。 | `False` (Off) |
+| Option / 选项 | Description / 描述 |
+| :--- | :--- |
+| **Chain Mode / 模式** | Toggle between Mine (挖掘), Plant (种植), and Wax/Scrape/Strip (交互). |
+| **Max Blocks / 数量上限** | Max blocks/crops per action. |
+| **Tool Protection / 工具保护** | Stops if durability <= 10. (Also works for honeycomb stacks). |
+| **Direct to Inv / 直接进包** | Requires Mod on Server. |
 
 ---
 

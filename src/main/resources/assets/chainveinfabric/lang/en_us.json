@@ -19,7 +19,7 @@
   "options.chainveinfabric.maxBlocks": "Max Blocks/Crops",
   "options.chainveinfabric.maxRadius": "Max Radius",
   "options.chainveinfabric.directToInventory": "Direct to Inventory",
-  "options.chainveinfabric.toolProtection": "Tool Protection (Durability > 10)",
+  "options.chainveinfabric.toolProtection": "Tool Protection",
   "options.chainveinfabric.diagonalEdge": "Diagonal (Edge)",
   "options.chainveinfabric.diagonalCorner": "Diagonal (Corner)",
   "narrator.entry.block": "Block: %s",
