@@ -38,10 +38,11 @@ public class Chainveinfabric implements ModInitializer {
                 ItemStack tool = player.getMainHandStack();
                 boolean isCreative = player.isCreative();
                 boolean directToInv = payload.directToInventory();
+                boolean startedWithEmptyHand = tool.isEmpty();
 
                 for (BlockPos pos : payload.positions()) {
                     if (player.squaredDistanceTo(pos.toCenterPos()) > 100) continue;
-                    if (!isCreative && tool.isEmpty()) break;
+                    if (!isCreative && !startedWithEmptyHand && tool.isEmpty()) break;
 
                     BlockState state = world.getBlockState(pos);
                     if (state.isAir()) continue;

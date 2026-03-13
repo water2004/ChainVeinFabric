@@ -31,15 +31,16 @@ public class MineLogic {
         boolean isCreative = client.player.isCreative();
         int toolDamage = tool.getDamage();
         int toolMaxDamage = tool.getMaxDamage();
+        boolean emptyHand = tool.isEmpty();
 
         List<BlockPos> finalBreakList = new ArrayList<>();
         for (BlockPos p : toBreak) {
-            if (!isCreative && toolProtection && tool.isDamageable()) {
-                if (toolMaxDamage - toolDamage <= 10) {
+            if (!isCreative && toolProtection && (tool.isDamageable() || emptyHand)) {
+                if (!emptyHand && toolMaxDamage - toolDamage <= 10) {
                     client.player.sendMessage(Text.translatable("message.chainveinfabric.protection"), true);
                     break;
                 }
-                toolDamage++;
+                toolDamage=tool.getDamage();
             }
             finalBreakList.add(p);
         }

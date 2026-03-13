@@ -29,8 +29,8 @@
   "narration.allitems.usage": "All available items",
   "hud.chainveinfabric.active": "CHAIN MODE ACTIVE",
   "message.chainveinfabric.broken": "Chain mined %d blocks",
-  \"message.chainveinfabric.planted\": \"Chain planted %d crops\",
-  \"message.chainveinfabric.processed\": \"Chain processed %d blocks\",
-  \"message.chainveinfabric.protection\": \"Chain operation stopped: Tool durability low!\"
+  "message.chainveinfabric.planted": "Chain planted %d crops",
+  "message.chainveinfabric.processed": "Chain processed %d blocks",
+  "message.chainveinfabric.protection": "Chain operation stopped: Tool durability low!"
 
 }
