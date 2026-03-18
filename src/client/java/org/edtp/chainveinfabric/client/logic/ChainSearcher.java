@@ -19,13 +19,13 @@ public class ChainSearcher {
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
         int maxRadiusSq = ChainveinfabricClient.CONFIG.maxRadius * ChainveinfabricClient.CONFIG.maxRadius;
 
+        // The start position itself should be added to the result if it matches
+        if (matcher.test(startPos, startPos)) {
+            result.add(startPos);
+        }
+
         while (!queue.isEmpty() && result.size() < maxBlocks) {
             BlockPos current = queue.poll();
-            
-            // 验证当前点是否符合条件（由具体的 Logic 提供规则）
-            if (matcher.test(startPos, current)) {
-                result.add(current);
-            }
 
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dy = -1; dy <= 1; dy++) {
@@ -38,14 +38,21 @@ public class ChainSearcher {
                         if (diffs == 3 && !ChainveinfabricClient.CONFIG.diagonalCorner) continue;
 
                         BlockPos neighbor = current.add(dx, dy, dz);
+                        
+                        if (visited.contains(neighbor)) continue;
+                        visited.add(neighbor);
+
                         if (neighbor.getSquaredDistance(startPos) > maxRadiusSq) continue;
 
-                        if (!visited.contains(neighbor)) {
-                            visited.add(neighbor);
+                        if (matcher.test(startPos, neighbor)) {
+                            result.add(neighbor);
                             queue.add(neighbor);
+                            if (result.size() >= maxBlocks) break;
                         }
                     }
+                    if (result.size() >= maxBlocks) break;
                 }
+                if (result.size() >= maxBlocks) break;
             }
         }
         return result;
