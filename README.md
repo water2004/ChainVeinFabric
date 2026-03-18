@@ -16,8 +16,12 @@ Compatible with vanilla servers (client-side mode) and enhanced when installed o
     *   **连锁种植**：在兼容的耕地上快速补种。支持小麦、胡萝卜、马铃薯等作物。
 *   **Chain Wax/Scrape/Strip**: Batch process blocks using tools or items. Supports waxing copper, scraping rust, stripping logs, and tilling soil.
     *   **连锁打蜡/除锈/去皮**：使用工具或物品批量处理方块。支持铜块打蜡、除锈、原木去皮以及耕地。
-*   **Visual Configuration GUI**: Press `V` to open a user-friendly configuration screen.
-    *   **可视化配置界面**：按 `V` 键打开友好的配置界面。
+*   **Adjacency Toggles**: Support for Face (6), Edge (12), and Corner (8) connections. Fixed non-contiguous block issues.
+    *   **连接方式切换**：支持面（6向）、棱（12向）和顶点（8向）连接。已修复非连续方块被错误采集的问题。
+*   **Anti-Kick Protection**: Set packet intervals for vanilla servers to prevent "Too many packets" kicks.
+    *   **防踢出保护**：针对原版服务器可设置自定义发包间隔，防止因操作过快被服务器踢出。
+*   **Visual Configuration GUI**: Press `V` to open a user-friendly configuration screen. Smart UI elements will enable/disable based on server environment.
+    *   **可视化配置界面**：按 `V` 键打开友好的配置界面。UI 元素会根据服务器环境自动启用或禁用。
 *   **Whitelist Management**: Per-mode whitelists for mining, crops, and utility interactions.
     *   **白名单管理**：针对采集、作物和工具交互分别提供独立的白名单。
 *   **Tool Protection**: Automatically stops operations when tool durability is low (<= 10).
@@ -82,25 +86,30 @@ Compatible with vanilla servers (client-side mode) and enhanced when installed o
 | :--- | :--- |
 | **Chain Mode / 模式** | Toggle between Mine (挖掘), Plant (种植), and Wax/Scrape/Strip (交互). |
 | **Max Blocks / 数量上限** | Max blocks/crops per action. |
-| **Tool Protection / 工具保护** | Stops if durability <= 10. (Also works for honeycomb stacks). |
-| **Direct to Inv / 直接进包** | Requires Mod on Server. |
+| **Diagonal Edge / 斜边方向** | Toggle 12-way edge adjacency. (斜边连接模式). |
+| **Diagonal Corner / 斜角方向** | Toggle 8-way corner adjacency. (斜角连接模式). |
+| **Packet Interval / 发包间隔** | Ms delay between packets on vanilla servers. (原版服务器发包间隔). |
+| **Tool Protection / 工具保护** | Stops if durability <= 10. |
+| **Direct to Inv / 直接进包** | Requires Mod on Server. Automatically disabled if not present. |
 
 ---
 
 ## 🤝 Compatibility / 兼容性机制
 
 This mod uses a smart networking system to determine how to break blocks:
-本模组使用智能网络系统来决定如何破坏方块：
+本模组使用智能网络系统来决定如何处理连锁操作：
 
 1.  **Vanilla Server (No Mod Installed)**:
-    *   The client performs the search (BFS) and sends standard packet requests to break blocks one by one.
-    *   Items drop on the ground.
-    *   **原版服务器（未安装模组）**：客户端进行计算，发送标准数据包逐个破坏方块。物品掉落在地上。
+    *   The client performs the search (BFS) and sends standard packet requests.
+    *   **Anti-Kick**: Use **Packet Interval** to slow down the process if needed.
+    *   **Direct to Inventory** is disabled.
+    *   **原版服务器（未安装模组）**：客户端进行 BFS 搜索计算，发送标准数据包。可以使用**发包间隔**来防止被踢出。不支持**直接进入背包**。
 
 2.  **Modded Server (Mod Installed)**:
-    *   The client sends a single packet with the list of blocks.
+    *   The client sends a single packet with the list of coordinates.
     *   The server breaks them efficiently and supports **Direct to Inventory**.
-    *   **模组服务器（已安装模组）**：客户端发送包含方块列表的数据包。服务端高效破坏方块并支持**直接进入背包**。
+    *   **Packet Interval** is not required and will be disabled in config GUI.
+    *   **模组服务器（已安装模组）**：客户端发送包含坐标列表的单一数据包。服务端高效执行并支持**直接进入背包**。无需设置**发包间隔**。
 
 ---
 
