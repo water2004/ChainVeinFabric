@@ -23,6 +23,8 @@
   "options.chainveinfabric.diagonalEdge": "Diagonal (Edge)",
   "options.chainveinfabric.diagonalCorner": "Diagonal (Corner)",
   "options.chainveinfabric.packetInterval": "Packet Interval (ms)",
+  "options.chainveinfabric.packetInterval.disabled": "Server has mod installed. Using custom protocol, no interval needed.",
+  "options.chainveinfabric.directToInventory.disabled": "Server does not have mod installed. This feature is unavailable.",
   "narrator.entry.block": "Block: %s",
   "narrator.entry.item": "Item: %s",
   "narration.list.usage": "Item/Block list",

@@ -7,8 +7,11 @@ import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.Click;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.widget.*;
@@ -134,6 +137,8 @@ public class ChainVeinScreen extends Screen {
     }
 
     private void initSettingsTab(int centerX, int topY) {
+        boolean isServerModPresent = ClientPlayNetworking.canSend(Chainveinfabric.ChainMinePayload.ID);
+
         this.maxBlocksBox = new TextFieldWidget(textRenderer, centerX + 10, topY, 100, 20, Text.empty());
         this.maxBlocksBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxChainBlocks));
         this.maxBlocksBox.setChangedListener(text -> {
@@ -150,6 +155,10 @@ public class ChainVeinScreen extends Screen {
 
         this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.directToInventory)
                 .omitKeyText().build(centerX + 10, topY + 60, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.directToInventory = v);
+        this.directToInventoryButton.active = isServerModPresent;
+        if (!isServerModPresent) {
+            this.directToInventoryButton.setTooltip(Tooltip.of(Text.translatable("options.chainveinfabric.directToInventory.disabled")));
+        }
         this.addDrawableChild(this.directToInventoryButton);
 
         this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.toolProtection)
@@ -166,6 +175,11 @@ public class ChainVeinScreen extends Screen {
 
         this.packetIntervalBox = new TextFieldWidget(textRenderer, centerX + 10, topY + 180, 100, 20, Text.empty());
         this.packetIntervalBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.packetInterval));
+        this.packetIntervalBox.setEditable(!isServerModPresent);
+        if (isServerModPresent) {
+            this.packetIntervalBox.setTooltip(Tooltip.of(Text.translatable("options.chainveinfabric.packetInterval.disabled")));
+            this.packetIntervalBox.setUneditableColor(0xFF808080);
+        }
         this.packetIntervalBox.setChangedListener(text -> {
             try { ChainveinfabricClient.CONFIG.packetInterval = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
         });

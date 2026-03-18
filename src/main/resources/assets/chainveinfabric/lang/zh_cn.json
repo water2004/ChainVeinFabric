@@ -23,6 +23,8 @@
   "options.chainveinfabric.diagonalEdge": "斜边方向 (12向)",
   "options.chainveinfabric.diagonalCorner": "斜角方向 (8向)",
   "options.chainveinfabric.packetInterval": "发包间隔 (ms)",
+  "options.chainveinfabric.packetInterval.disabled": "服务器已安装模组，使用专用协议，无需设置间隔",
+  "options.chainveinfabric.directToInventory.disabled": "服务器未安装模组，无法使用此功能",
   "narrator.entry.block": "方块: %s",
   "narrator.entry.item": "物品: %s",
   "narration.list.usage": "物品/方块列表",
