@@ -17,6 +17,7 @@ import net.minecraft.util.math.Direction;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 
 import java.util.List;
 
@@ -84,8 +85,10 @@ public class InteractLogic {
         } else {
             for (BlockPos p : finalSubList) {
                 if (p.equals(startPos)) continue;
-                client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, 
-                    new BlockHitResult(p.toCenterPos(), Direction.UP, p, false));
+                ClientChainHandler.addTask(() -> {
+                    client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, 
+                        new BlockHitResult(p.toCenterPos(), Direction.UP, p, false));
+                });
             }
         }
 

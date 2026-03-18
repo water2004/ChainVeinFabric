@@ -29,6 +29,7 @@ public class ChainVeinConfig {
     public boolean toolProtection = false;
     public boolean diagonalEdge = false;
     public boolean diagonalCorner = false;
+    public int packetInterval = 0;
     public Set<String> whitelistedBlocks = new HashSet<>();
     public Set<String> whitelistedCrops = new HashSet<>();
     public Set<String> whitelistedUtilityBlocks = new HashSet<>();

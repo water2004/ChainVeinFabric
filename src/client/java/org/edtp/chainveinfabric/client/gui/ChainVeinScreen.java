@@ -30,6 +30,7 @@ public class ChainVeinScreen extends Screen {
     // Tab 2 elements
     private TextFieldWidget maxBlocksBox;
     private TextFieldWidget maxRadiusBox;
+    private TextFieldWidget packetIntervalBox;
     private CyclingButtonWidget<Boolean> directToInventoryButton;
     private CyclingButtonWidget<Boolean> toolProtectionButton;
     private CyclingButtonWidget<Boolean> diagonalEdgeButton;
@@ -162,6 +163,13 @@ public class ChainVeinScreen extends Screen {
         this.diagonalCornerButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalCorner)
                 .omitKeyText().build(centerX + 10, topY + 150, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalCorner = v);
         this.addDrawableChild(this.diagonalCornerButton);
+
+        this.packetIntervalBox = new TextFieldWidget(textRenderer, centerX + 10, topY + 180, 100, 20, Text.empty());
+        this.packetIntervalBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.packetInterval));
+        this.packetIntervalBox.setChangedListener(text -> {
+            try { ChainveinfabricClient.CONFIG.packetInterval = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
+        });
+        this.addSelectableChild(this.packetIntervalBox);
     }
 
     private void refreshLists() {
@@ -207,6 +215,8 @@ public class ChainVeinScreen extends Screen {
             context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, topY + 95, 0xFFFFFFFF);
             context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, topY + 125, 0xFFFFFFFF);
             context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, topY + 155, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.packetInterval"), centerX - 120, topY + 185, 0xFFFFFFFF);
+            packetIntervalBox.render(context, mouseX, mouseY, delta);
         }
     }
 

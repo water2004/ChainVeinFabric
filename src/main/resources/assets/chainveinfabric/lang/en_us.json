@@ -22,6 +22,7 @@
   "options.chainveinfabric.toolProtection": "Tool Protection",
   "options.chainveinfabric.diagonalEdge": "Diagonal (Edge)",
   "options.chainveinfabric.diagonalCorner": "Diagonal (Corner)",
+  "options.chainveinfabric.packetInterval": "Packet Interval (ms)",
   "narrator.entry.block": "Block: %s",
   "narrator.entry.item": "Item: %s",
   "narration.list.usage": "Item/Block list",

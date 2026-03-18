@@ -11,6 +11,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,8 +53,10 @@ public class MineLogic {
         } else {
             for (BlockPos p : finalBreakList) {
                 if (p.equals(pos)) continue;
-                client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, p, Direction.UP));
-                client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, p, Direction.UP));
+                ClientChainHandler.addTask(() -> {
+                    client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, p, Direction.UP));
+                    client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, p, Direction.UP));
+                });
             }
         }
 

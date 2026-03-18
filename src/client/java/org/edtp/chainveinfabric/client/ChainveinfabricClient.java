@@ -12,6 +12,7 @@ import net.minecraft.util.Identifier;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig; // Corrected import
 import org.edtp.chainveinfabric.client.gui.ChainVeinScreen;
+import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 import org.lwjgl.glfw.GLFW;
 
 public class ChainveinfabricClient implements ClientModInitializer {
@@ -35,6 +36,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
             while (configKeyBinding.wasPressed()) {
                 client.setScreen(new ChainVeinScreen());
             }
+            ClientChainHandler.onTick(client);
         });
 
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
