@@ -54,6 +54,9 @@ public class ChainVeinScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        this.searchAlgorithmDropdown = null;
+        this.squarePointDropdown = null;
+        this.cuboidPointDropdown = null;
         this.chainVeinLabel = Text.translatable("options.chainveinfabric.chainVein");
         int centerX = this.width / 2;
         int topY = 40;
@@ -339,9 +342,6 @@ public class ChainVeinScreen extends Screen {
             context.drawTextWithShadow(textRenderer, chainVeinLabel, labelX, topY + (20 - textRenderer.fontHeight) / 2, 0xFFFFFFFF);
             if (modeDropdown != null) modeDropdown.render(context, mouseX, mouseY, delta);
         } else {
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.searchAlgorithm"), centerX - 120, topY + 5, 0xFFFFFFFF);
-            if (searchAlgorithmDropdown != null) searchAlgorithmDropdown.render(context, mouseX, mouseY, delta);
-
             int currentY = topY + 30;
             if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SPHERE) {
                 context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.sphereRadius"), centerX - 120, currentY + 5, 0xFFFFFFFF);
@@ -352,18 +352,19 @@ public class ChainVeinScreen extends Screen {
                 if (squareLengthBox != null) squareLengthBox.render(context, mouseX, mouseY, delta);
                 currentY += 30;
                 context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.miningPoint"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                if (squarePointDropdown != null) squarePointDropdown.render(context, mouseX, mouseY, delta);
+                // Dropdown render moved down
                 currentY += 30;
             } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.CUBOID) {
-                context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.cuboidL") + "/" +
+                String cuboidLabel = Text.translatable("options.chainveinfabric.cuboidL").getString() + "/" +
                         Text.translatable("options.chainveinfabric.cuboidW").getString() + "/" +
-                        Text.translatable("options.chainveinfabric.cuboidH").getString(), centerX - 120, currentY + 5, 0xFFFFFFFF);
+                        Text.translatable("options.chainveinfabric.cuboidH").getString();
+                context.drawTextWithShadow(textRenderer, Text.literal(cuboidLabel), centerX - 120, currentY + 5, 0xFFFFFFFF);
                 if (cuboidLBox != null) cuboidLBox.render(context, mouseX, mouseY, delta);
                 if (cuboidWBox != null) cuboidWBox.render(context, mouseX, mouseY, delta);
                 if (cuboidHBox != null) cuboidHBox.render(context, mouseX, mouseY, delta);
                 currentY += 30;
                 context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.miningPoint"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                if (cuboidPointDropdown != null) cuboidPointDropdown.render(context, mouseX, mouseY, delta);
+                // Dropdown render moved down
                 currentY += 30;
             }
 
@@ -394,6 +395,17 @@ public class ChainVeinScreen extends Screen {
 
             context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.packetInterval"), centerX - 120, currentY + 5, 0xFFFFFFFF);
             if (packetIntervalBox != null) packetIntervalBox.render(context, mouseX, mouseY, delta);
+
+            // RENDER DROPDOWNS LAST TO OVERLAY
+            // Draw in reverse order of Y position (Top-most drawn LAST)
+            if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SQUARE) {
+                if (squarePointDropdown != null) squarePointDropdown.render(context, mouseX, mouseY, delta);
+            } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.CUBOID) {
+                if (cuboidPointDropdown != null) cuboidPointDropdown.render(context, mouseX, mouseY, delta);
+            }
+            if (searchAlgorithmDropdown != null) searchAlgorithmDropdown.render(context, mouseX, mouseY, delta);
+
+            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.searchAlgorithm"), centerX - 120, topY + 5, 0xFFFFFFFF);
         }
     }
 
