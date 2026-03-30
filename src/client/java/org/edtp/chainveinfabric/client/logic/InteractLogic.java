@@ -69,15 +69,16 @@ public class InteractLogic {
         if (targets.isEmpty()) return;
 
         boolean isDamageable = stack.isDamageable();
-        int available = client.player.isCreative() ? ChainveinfabricClient.CONFIG.maxChainBlocks : (isDamageable ? ChainveinfabricClient.CONFIG.maxChainBlocks : stack.getCount());
+        int configLimit = ChainveinfabricClient.CONFIG.maxChainBlocks;
+        int available = client.player.isCreative() ? configLimit : (isDamageable ? configLimit : stack.getCount());
         
         // 如果是可损耗物品且开启了工具保护
         if (!client.player.isCreative() && isDamageable && ChainveinfabricClient.CONFIG.toolProtection) {
             int remainingDurability = stack.getMaxDamage() - stack.getDamage();
-            available = Math.min(available, remainingDurability - 10);
+            available = Math.min(available, Math.max(0, remainingDurability - 10));
         }
         
-        int count = Math.max(1, Math.min(targets.size(), available));
+        int count = Math.min(targets.size(), available);
         List<BlockPos> finalSubList = targets.subList(0, count);
 
         if (ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID)) {

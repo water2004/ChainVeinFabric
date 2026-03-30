@@ -28,22 +28,22 @@ public class MineLogic {
         if (toBreak.isEmpty()) return;
 
         ItemStack tool = client.player.getMainHandStack();
-        boolean toolProtection = ChainveinfabricClient.CONFIG.toolProtection;
         boolean isCreative = client.player.isCreative();
-        int toolDamage = tool.getDamage();
-        int toolMaxDamage = tool.getMaxDamage();
         boolean emptyHand = tool.isEmpty();
+        boolean toolProtection = ChainveinfabricClient.CONFIG.toolProtection;
+        int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
 
-        List<BlockPos> finalBreakList = new ArrayList<>();
-        for (BlockPos p : toBreak) {
-            if (!isCreative && toolProtection && (tool.isDamageable() || emptyHand)) {
-                if (!emptyHand && toolMaxDamage - toolDamage <= 10) {
-                    client.player.sendMessage(Text.translatable("message.chainveinfabric.protection"), true);
-                    break;
-                }
-                toolDamage=tool.getDamage();
+        if (!isCreative && toolProtection && !emptyHand && tool.isDamageable()) {
+            int remainingDurability = tool.getMaxDamage() - tool.getDamage();
+            maxBlocks = Math.min(maxBlocks, Math.max(0, remainingDurability - 10));
+        }
+
+        List<BlockPos> finalBreakList = toBreak;
+        if (toBreak.size() > maxBlocks) {
+            finalBreakList = toBreak.subList(0, maxBlocks);
+            if (!isCreative && toolProtection && !emptyHand) {
+                client.player.sendMessage(Text.translatable("message.chainveinfabric.protection"), true);
             }
-            finalBreakList.add(p);
         }
 
         if (finalBreakList.isEmpty()) return;
