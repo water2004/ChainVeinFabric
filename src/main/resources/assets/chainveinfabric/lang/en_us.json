@@ -36,6 +36,23 @@
   "message.chainveinfabric.broken": "Chain mined %d blocks",
   "message.chainveinfabric.planted": "Chain planted %d crops",
   "message.chainveinfabric.processed": "Chain processed %d blocks",
-  "message.chainveinfabric.protection": "Chain operation stopped: Tool durability low!"
+  "message.chainveinfabric.protection": "Chain operation stopped: Tool durability low!",
+  "options.chainveinfabric.searchAlgorithm": "Search Algorithm",
+  "options.chainveinfabric.searchAlgorithm.adjacent_same": "Adjacent Same",
+  "options.chainveinfabric.searchAlgorithm.adjacent_whitelist": "Adjacent Whitelist",
+  "options.chainveinfabric.searchAlgorithm.sphere": "Sphere",
+  "options.chainveinfabric.searchAlgorithm.square": "Square",
+  "options.chainveinfabric.searchAlgorithm.cuboid": "Cuboid",
+  "options.chainveinfabric.sphereRadius": "Sphere Radius",
+  "options.chainveinfabric.squareLength": "Side Length",
+  "options.chainveinfabric.miningPoint": "Mining Point",
+  "options.chainveinfabric.miningPoint.center": "Center",
+  "options.chainveinfabric.miningPoint.top_left": "Top-Left",
+  "options.chainveinfabric.miningPoint.top_right": "Top-Right",
+  "options.chainveinfabric.miningPoint.bottom_left": "Bottom-Left",
+  "options.chainveinfabric.miningPoint.bottom_right": "Bottom-Right",
+  "options.chainveinfabric.cuboidL": "Length (L)",
+  "options.chainveinfabric.cuboidW": "Width (W)",
+  "options.chainveinfabric.cuboidH": "Height (H)"
 
 }

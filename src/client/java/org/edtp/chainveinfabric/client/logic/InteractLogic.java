@@ -4,9 +4,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.AxeItem;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.HoneycombItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
@@ -34,12 +32,15 @@ public class InteractLogic {
         String itemId = Registries.ITEM.getId(stack.getItem()).toString();
         if (!ChainveinfabricClient.CONFIG.whitelistedCrops.contains(itemId)) return;
 
-        Block targetSoil = state.getBlock(); // 以当前交互成功的方块作为基准土壤
+        Block targetSoil = state.getBlock();
+        Direction face = Direction.UP;
+        if (client.crosshairTarget instanceof BlockHitResult hit) {
+            face = hit.getSide();
+        }
 
-        // 搜索连接的同类土壤，且上方必须是空气
-        List<BlockPos> targets = ChainSearcher.findConnected(client, pos, (start, current) -> 
-            client.world.getBlockState(current).isOf(targetSoil) && 
-            client.world.getBlockState(current.up()).isAir()
+        List<BlockPos> targets = ChainSearcher.search(client, pos, face, p -> 
+            client.world.getBlockState(p).isOf(targetSoil) && 
+            client.world.getBlockState(p.up()).isAir()
         );
 
         if (targets.size() <= 1) return;
@@ -48,17 +49,24 @@ public class InteractLogic {
     }
 
     private static void handleUtility(MinecraftClient client, BlockPos pos, BlockState state, ItemStack stack) {
-        // 排除掉方块类物品，防止意外触发“连锁放置”
         if (stack.getItem() instanceof BlockItem) return;
 
-        // 既然已经走到了这里，说明 Mixin 已经验证了第一次交互是成功的 (result.isAccepted())
-        // 我们只需要检查该方块是否在“适用方块”名单中即可
         String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
         if (!ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(blockId)) return;
 
-        List<BlockPos> targets = ChainSearcher.findConnected(client, pos, (start, current) -> 
-            client.world.getBlockState(current).isOf(state.getBlock())
-        );
+        Direction face = Direction.UP;
+        if (client.crosshairTarget instanceof BlockHitResult hit) {
+            face = hit.getSide();
+        }
+
+        List<BlockPos> targets = ChainSearcher.search(client, pos, face, p -> {
+            BlockState s = client.world.getBlockState(p);
+            String id = Registries.BLOCK.getId(s.getBlock()).toString();
+            if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
+                return s.isOf(state.getBlock());
+            }
+            return ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(id);
+        });
 
         if (targets.size() <= 1) return;
 
@@ -72,7 +80,6 @@ public class InteractLogic {
         int configLimit = ChainveinfabricClient.CONFIG.maxChainBlocks;
         int available = client.player.isCreative() ? configLimit : (isDamageable ? configLimit : stack.getCount());
         
-        // 如果是可损耗物品且开启了工具保护
         if (!client.player.isCreative() && isDamageable && ChainveinfabricClient.CONFIG.toolProtection) {
             int remainingDurability = stack.getMaxDamage() - stack.getDamage();
             available = Math.min(available, Math.max(0, remainingDurability - 10));

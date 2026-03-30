@@ -36,6 +36,23 @@
   "message.chainveinfabric.broken": "连锁采集了 %d 个方块",
   "message.chainveinfabric.planted": "连锁种植了 %d 个作物",
   "message.chainveinfabric.processed": "连锁处理了 %d 个方块",
-  "message.chainveinfabric.protection": "连锁操作已停止：工具耐久不足！"
+  "message.chainveinfabric.protection": "连锁操作已停止：工具耐久不足！",
+  "options.chainveinfabric.searchAlgorithm": "搜索算法",
+  "options.chainveinfabric.searchAlgorithm.adjacent_same": "相邻同种方块",
+  "options.chainveinfabric.searchAlgorithm.adjacent_whitelist": "相邻白名单方块",
+  "options.chainveinfabric.searchAlgorithm.sphere": "球形",
+  "options.chainveinfabric.searchAlgorithm.square": "平面正方形",
+  "options.chainveinfabric.searchAlgorithm.cuboid": "长方体",
+  "options.chainveinfabric.sphereRadius": "球体半径",
+  "options.chainveinfabric.squareLength": "边长",
+  "options.chainveinfabric.miningPoint": "挖掘点位置",
+  "options.chainveinfabric.miningPoint.center": "中心",
+  "options.chainveinfabric.miningPoint.top_left": "左上角",
+  "options.chainveinfabric.miningPoint.top_right": "右上角",
+  "options.chainveinfabric.miningPoint.bottom_left": "左下角",
+  "options.chainveinfabric.miningPoint.bottom_right": "右下角",
+  "options.chainveinfabric.cuboidL": "长度 (L)",
+  "options.chainveinfabric.cuboidW": "宽度 (W)",
+  "options.chainveinfabric.cuboidH": "高度 (H)"
 
 }

@@ -21,10 +21,34 @@ public class ChainVeinConfig {
         CHAIN_UTILITY
     }
 
+    public enum SearchAlgorithm {
+        ADJACENT_SAME,
+        ADJACENT_WHITELIST,
+        SPHERE,
+        SQUARE,
+        CUBOID
+    }
+
+    public enum MiningPoint {
+        CENTER,
+        TOP_LEFT,
+        TOP_RIGHT,
+        BOTTOM_LEFT,
+        BOTTOM_RIGHT
+    }
+
     public boolean isChainVeinEnabled = false;
     public ChainMode mode = ChainMode.CHAIN_MINE;
+    public SearchAlgorithm searchAlgorithm = SearchAlgorithm.ADJACENT_SAME;
     public int maxChainBlocks = 64;
     public int maxRadius = 6;
+    public int sphereRadius = 3;
+    public int squareLength = 3;
+    public MiningPoint squareMiningPoint = MiningPoint.CENTER;
+    public int cuboidL = 3;
+    public int cuboidW = 3;
+    public int cuboidH = 3;
+    public MiningPoint cuboidMiningPoint = MiningPoint.CENTER;
     public boolean directToInventory = false;
     public boolean toolProtection = false;
     public boolean diagonalEdge = false;
