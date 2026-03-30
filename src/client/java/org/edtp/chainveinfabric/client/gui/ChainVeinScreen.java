@@ -17,6 +17,8 @@ import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.widget.*;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
 
 public class ChainVeinScreen extends Screen {
     private enum Tab {
@@ -28,24 +30,8 @@ public class ChainVeinScreen extends Screen {
     private TextFieldWidget searchBox;
     private EntryListWidget<?> allListWidget;
     private EntryListWidget<?> whitelistWidget;
+    private SettingsListWidget settingsList;
     private DropdownWidget<ChainVeinConfig.ChainMode> modeDropdown;
-
-    // Tab 2 elements
-    private TextFieldWidget maxBlocksBox;
-    private TextFieldWidget maxRadiusBox;
-    private TextFieldWidget packetIntervalBox;
-    private CyclingButtonWidget<Boolean> directToInventoryButton;
-    private CyclingButtonWidget<Boolean> toolProtectionButton;
-    private CyclingButtonWidget<Boolean> diagonalEdgeButton;
-    private CyclingButtonWidget<Boolean> diagonalCornerButton;
-    private DropdownWidget<ChainVeinConfig.SearchAlgorithm> searchAlgorithmDropdown;
-    private TextFieldWidget sphereRadiusBox;
-    private TextFieldWidget squareLengthBox;
-    private DropdownWidget<ChainVeinConfig.MiningPoint> squarePointDropdown;
-    private TextFieldWidget cuboidLBox;
-    private TextFieldWidget cuboidWBox;
-    private TextFieldWidget cuboidHBox;
-    private DropdownWidget<ChainVeinConfig.MiningPoint> cuboidPointDropdown;
 
     public ChainVeinScreen() {
         super(Text.of("Chain Vein Config"));
@@ -54,9 +40,6 @@ public class ChainVeinScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        this.searchAlgorithmDropdown = null;
-        this.squarePointDropdown = null;
-        this.cuboidPointDropdown = null;
         this.chainVeinLabel = Text.translatable("options.chainveinfabric.chainVein");
         int centerX = this.width / 2;
         int topY = 40;
@@ -147,11 +130,33 @@ public class ChainVeinScreen extends Screen {
         this.refreshLists();
     }
 
+    private TextFieldWidget createNumBox(int width, int initialValue, Consumer<Integer> onUpdate) {
+        TextFieldWidget box = new TextFieldWidget(textRenderer, 0, 0, width, 20, Text.empty());
+        box.setText(String.valueOf(initialValue));
+        box.setChangedListener(text -> {
+            String filtered = text.replaceAll("[^0-9]", "");
+            if (!filtered.equals(text)) {
+                box.setText(filtered);
+                return;
+            }
+            if (!filtered.isEmpty()) {
+                try { onUpdate.accept(Integer.parseInt(filtered)); } catch (NumberFormatException ignored) {}
+            }
+        });
+        return box;
+    }
+
     private void initSettingsTab(int centerX, int topY) {
         boolean isServerModPresent = ClientPlayNetworking.canSend(Chainveinfabric.ChainMinePayload.ID);
+        int listWidth = 360;
+        int listHeight = this.height - topY - 30;
 
-        // Search Algorithm Dropdown
-        this.searchAlgorithmDropdown = new DropdownWidget<>(centerX + 10, topY, 150, 20,
+        settingsList = new SettingsListWidget(client, listWidth, listHeight, topY, 24, textRenderer);
+        settingsList.setX(centerX - 180);
+        this.addDrawableChild(settingsList);
+
+        // Algorithm
+        DropdownWidget<ChainVeinConfig.SearchAlgorithm> algoDropdown = new DropdownWidget<>(0, 0, 150, 20,
             Text.translatable("options.chainveinfabric.searchAlgorithm"),
             Arrays.asList(ChainVeinConfig.SearchAlgorithm.values()),
             ChainveinfabricClient.CONFIG.searchAlgorithm,
@@ -168,138 +173,88 @@ public class ChainVeinScreen extends Screen {
             },
             this.textRenderer
         );
-        this.addSelectableChild(this.searchAlgorithmDropdown);
+        settingsList.addControl(Text.translatable("options.chainveinfabric.searchAlgorithm"), algoDropdown);
 
-        int currentY = topY + 30;
-
-        // Dynamic Algorithm Settings
         if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SPHERE) {
-            this.sphereRadiusBox = new TextFieldWidget(textRenderer, centerX + 10, currentY, 100, 20, Text.empty());
-            this.sphereRadiusBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.sphereRadius));
-            this.sphereRadiusBox.setChangedListener(text -> {
-                try { ChainveinfabricClient.CONFIG.sphereRadius = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-            });
-            this.addSelectableChild(this.sphereRadiusBox);
-            currentY += 30;
+            settingsList.addControl(Text.translatable("options.chainveinfabric.sphereRadius"),
+                createNumBox(50, ChainveinfabricClient.CONFIG.sphereRadius, v -> ChainveinfabricClient.CONFIG.sphereRadius = v));
         } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SQUARE) {
-            this.squareLengthBox = new TextFieldWidget(textRenderer, centerX + 10, currentY, 100, 20, Text.empty());
-            this.squareLengthBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.squareLength));
-            this.squareLengthBox.setChangedListener(text -> {
-                try { ChainveinfabricClient.CONFIG.squareLength = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-            });
-            this.addSelectableChild(this.squareLengthBox);
-            currentY += 30;
+            settingsList.addControl(Text.translatable("options.chainveinfabric.squareLength"),
+                createNumBox(50, ChainveinfabricClient.CONFIG.squareLength, v -> ChainveinfabricClient.CONFIG.squareLength = v));
 
-            this.squarePointDropdown = new DropdownWidget<>(centerX + 10, currentY, 100, 20,
+            DropdownWidget<ChainVeinConfig.MiningPoint> squarePointDropdown = new DropdownWidget<>(0, 0, 150, 20,
                 Text.translatable("options.chainveinfabric.miningPoint"),
-                Arrays.asList(ChainVeinConfig.MiningPoint.values()),
+                Arrays.asList(ChainVeinConfig.MiningPoint.CENTER, ChainVeinConfig.MiningPoint.FRONT_TOP_LEFT, ChainVeinConfig.MiningPoint.FRONT_TOP_RIGHT, ChainVeinConfig.MiningPoint.FRONT_BOTTOM_LEFT, ChainVeinConfig.MiningPoint.FRONT_BOTTOM_RIGHT),
                 ChainveinfabricClient.CONFIG.squareMiningPoint,
                 p -> switch (p) {
                     case CENTER -> Text.translatable("options.chainveinfabric.miningPoint.center");
-                    case TOP_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.top_left");
-                    case TOP_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.top_right");
-                    case BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_left");
-                    case BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_right");
+                    case FRONT_TOP_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.top_left");
+                    case FRONT_TOP_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.top_right");
+                    case FRONT_BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_left");
+                    case FRONT_BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_right");
+                    default -> Text.literal(p.name());
                 },
                 v -> ChainveinfabricClient.CONFIG.squareMiningPoint = v,
                 this.textRenderer
             );
-            this.addSelectableChild(this.squarePointDropdown);
-            currentY += 30;
+            settingsList.addControl(Text.translatable("options.chainveinfabric.miningPoint"), squarePointDropdown);
         } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.CUBOID) {
-            this.cuboidLBox = new TextFieldWidget(textRenderer, centerX + 10, currentY, 50, 20, Text.empty());
-            this.cuboidLBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.cuboidL));
-            this.cuboidLBox.setChangedListener(text -> {
-                try { ChainveinfabricClient.CONFIG.cuboidL = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-            });
-            this.addSelectableChild(this.cuboidLBox);
+            TextFieldWidget cuboidLBox = createNumBox(40, ChainveinfabricClient.CONFIG.cuboidL, v -> ChainveinfabricClient.CONFIG.cuboidL = v);
+            TextFieldWidget cuboidWBox = createNumBox(40, ChainveinfabricClient.CONFIG.cuboidW, v -> ChainveinfabricClient.CONFIG.cuboidW = v);
+            TextFieldWidget cuboidHBox = createNumBox(40, ChainveinfabricClient.CONFIG.cuboidH, v -> ChainveinfabricClient.CONFIG.cuboidH = v);
+            settingsList.addMultiControl(Text.translatable("options.chainveinfabric.cuboidL").append("/").append(Text.translatable("options.chainveinfabric.cuboidW")).append("/").append(Text.translatable("options.chainveinfabric.cuboidH")), 
+                List.of(cuboidLBox, cuboidWBox, cuboidHBox));
 
-            this.cuboidWBox = new TextFieldWidget(textRenderer, centerX + 70, currentY, 50, 20, Text.empty());
-            this.cuboidWBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.cuboidW));
-            this.cuboidWBox.setChangedListener(text -> {
-                try { ChainveinfabricClient.CONFIG.cuboidW = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-            });
-            this.addSelectableChild(this.cuboidWBox);
-
-            this.cuboidHBox = new TextFieldWidget(textRenderer, centerX + 130, currentY, 50, 20, Text.empty());
-            this.cuboidHBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.cuboidH));
-            this.cuboidHBox.setChangedListener(text -> {
-                try { ChainveinfabricClient.CONFIG.cuboidH = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-            });
-            this.addSelectableChild(this.cuboidHBox);
-            currentY += 30;
-
-            this.cuboidPointDropdown = new DropdownWidget<>(centerX + 10, currentY, 100, 20,
+            DropdownWidget<ChainVeinConfig.MiningPoint> cuboidPointDropdown = new DropdownWidget<>(0, 0, 150, 20,
                 Text.translatable("options.chainveinfabric.miningPoint"),
                 Arrays.asList(ChainVeinConfig.MiningPoint.values()),
                 ChainveinfabricClient.CONFIG.cuboidMiningPoint,
                 p -> switch (p) {
                     case CENTER -> Text.translatable("options.chainveinfabric.miningPoint.center");
-                    case TOP_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.top_left");
-                    case TOP_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.top_right");
-                    case BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_left");
-                    case BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_right");
+                    case FRONT_TOP_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.front_top_left");
+                    case FRONT_TOP_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.front_top_right");
+                    case FRONT_BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.front_bottom_left");
+                    case FRONT_BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.front_bottom_right");
+                    case BACK_TOP_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.back_top_left");
+                    case BACK_TOP_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.back_top_right");
+                    case BACK_BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.back_bottom_left");
+                    case BACK_BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.back_bottom_right");
                 },
                 v -> ChainveinfabricClient.CONFIG.cuboidMiningPoint = v,
                 this.textRenderer
             );
-            this.addSelectableChild(this.cuboidPointDropdown);
-            currentY += 30;
+            settingsList.addControl(Text.translatable("options.chainveinfabric.miningPoint"), cuboidPointDropdown);
         }
 
-        currentY += 10; // Spacer
+        // Common settings
+        settingsList.addControl(Text.translatable("options.chainveinfabric.maxBlocks"),
+            createNumBox(50, ChainveinfabricClient.CONFIG.maxChainBlocks, v -> ChainveinfabricClient.CONFIG.maxChainBlocks = v));
 
-        this.maxBlocksBox = new TextFieldWidget(textRenderer, centerX + 10, currentY, 100, 20, Text.empty());
-        this.maxBlocksBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxChainBlocks));
-        this.maxBlocksBox.setChangedListener(text -> {
-            try { ChainveinfabricClient.CONFIG.maxChainBlocks = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-        });
-        this.addSelectableChild(this.maxBlocksBox);
-        currentY += 30;
+        settingsList.addControl(Text.translatable("options.chainveinfabric.maxRadius"),
+            createNumBox(50, ChainveinfabricClient.CONFIG.maxRadius, v -> ChainveinfabricClient.CONFIG.maxRadius = v));
 
-        this.maxRadiusBox = new TextFieldWidget(textRenderer, centerX + 10, currentY, 100, 20, Text.empty());
-        this.maxRadiusBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.maxRadius));
-        this.maxRadiusBox.setChangedListener(text -> {
-            try { ChainveinfabricClient.CONFIG.maxRadius = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-        });
-        this.addSelectableChild(this.maxRadiusBox);
-        currentY += 30;
-
-        this.directToInventoryButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.directToInventory)
-                .omitKeyText().build(centerX + 10, currentY, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.directToInventory = v);
-        this.directToInventoryButton.active = isServerModPresent;
+        CyclingButtonWidget<Boolean> directToInventoryButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.directToInventory)
+                .omitKeyText().build(0, 0, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.directToInventory = v);
+        directToInventoryButton.active = isServerModPresent;
         if (!isServerModPresent) {
-            this.directToInventoryButton.setTooltip(Tooltip.of(Text.translatable("options.chainveinfabric.directToInventory.disabled")));
+            directToInventoryButton.setTooltip(Tooltip.of(Text.translatable("options.chainveinfabric.directToInventory.disabled")));
         }
-        this.addDrawableChild(this.directToInventoryButton);
-        currentY += 30;
+        settingsList.addControl(Text.translatable("options.chainveinfabric.directToInventory"), directToInventoryButton);
 
-        this.toolProtectionButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.toolProtection)
-                .omitKeyText().build(centerX + 10, currentY, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.toolProtection = v);
-        this.addDrawableChild(this.toolProtectionButton);
-        currentY += 30;
+        CyclingButtonWidget<Boolean> toolProtectionButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.toolProtection)
+                .omitKeyText().build(0, 0, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.toolProtection = v);
+        settingsList.addControl(Text.translatable("options.chainveinfabric.toolProtection"), toolProtectionButton);
 
-        this.diagonalEdgeButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalEdge)
-                .omitKeyText().build(centerX + 10, currentY, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalEdge = v);
-        this.addDrawableChild(this.diagonalEdgeButton);
-        currentY += 30;
+        CyclingButtonWidget<Boolean> diagonalEdgeButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalEdge)
+                .omitKeyText().build(0, 0, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalEdge = v);
+        settingsList.addControl(Text.translatable("options.chainveinfabric.diagonalEdge"), diagonalEdgeButton);
 
-        this.diagonalCornerButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalCorner)
-                .omitKeyText().build(centerX + 10, currentY, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalCorner = v);
-        this.addDrawableChild(this.diagonalCornerButton);
-        currentY += 30;
+        CyclingButtonWidget<Boolean> diagonalCornerButton = CyclingButtonWidget.onOffBuilder(ChainveinfabricClient.CONFIG.diagonalCorner)
+                .omitKeyText().build(0, 0, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalCorner = v);
+        settingsList.addControl(Text.translatable("options.chainveinfabric.diagonalCorner"), diagonalCornerButton);
 
-        this.packetIntervalBox = new TextFieldWidget(textRenderer, centerX + 10, currentY, 100, 20, Text.empty());
-        this.packetIntervalBox.setText(String.valueOf(ChainveinfabricClient.CONFIG.packetInterval));
-        this.packetIntervalBox.setEditable(!isServerModPresent);
-        if (isServerModPresent) {
-            this.packetIntervalBox.setTooltip(Tooltip.of(Text.translatable("options.chainveinfabric.packetInterval.disabled")));
-            this.packetIntervalBox.setUneditableColor(0xFF808080);
-        }
-        this.packetIntervalBox.setChangedListener(text -> {
-            try { ChainveinfabricClient.CONFIG.packetInterval = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
-        });
-        this.addSelectableChild(this.packetIntervalBox);
+        settingsList.addControl(Text.translatable("options.chainveinfabric.packetInterval"),
+            createNumBox(50, ChainveinfabricClient.CONFIG.packetInterval, v -> ChainveinfabricClient.CONFIG.packetInterval = v));
     }
 
     private void refreshLists() {
@@ -313,11 +268,20 @@ public class ChainVeinScreen extends Screen {
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         if (currentTab == Tab.BASIC && modeDropdown != null && modeDropdown.mouseClicked(click, doubled)) return true;
-        if (currentTab == Tab.SETTINGS) {
-            if (searchAlgorithmDropdown != null && searchAlgorithmDropdown.mouseClicked(click, doubled)) return true;
-            if (squarePointDropdown != null && squarePointDropdown.mouseClicked(click, doubled)) return true;
-            if (cuboidPointDropdown != null && cuboidPointDropdown.mouseClicked(click, doubled)) return true;
+        
+        // Priority for expanded dropdown overlays in SETTINGS tab
+        if (currentTab == Tab.SETTINGS && settingsList != null) {
+            for (SettingsListWidget.SettingEntry entry : settingsList.children()) {
+                if (entry instanceof SettingsListWidget.ControlEntry) {
+                    for (var widget : ((SettingsListWidget.ControlEntry) entry).getWidgets()) {
+                        if (widget instanceof DropdownWidget && ((DropdownWidget<?>) widget).isMouseOverOverlay(click.x(), click.y())) {
+                            if (widget.mouseClicked(click, doubled)) return true;
+                        }
+                    }
+                }
+            }
         }
+        
         return super.mouseClicked(click, doubled);
     }
 
@@ -342,70 +306,18 @@ public class ChainVeinScreen extends Screen {
             context.drawTextWithShadow(textRenderer, chainVeinLabel, labelX, topY + (20 - textRenderer.fontHeight) / 2, 0xFFFFFFFF);
             if (modeDropdown != null) modeDropdown.render(context, mouseX, mouseY, delta);
         } else {
-            int currentY = topY + 30;
-            if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SPHERE) {
-                context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.sphereRadius"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                if (sphereRadiusBox != null) sphereRadiusBox.render(context, mouseX, mouseY, delta);
-                currentY += 30;
-            } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SQUARE) {
-                context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.squareLength"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                if (squareLengthBox != null) squareLengthBox.render(context, mouseX, mouseY, delta);
-                currentY += 30;
-                context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.miningPoint"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                // Dropdown render moved down
-                currentY += 30;
-            } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.CUBOID) {
-                String cuboidLabel = Text.translatable("options.chainveinfabric.cuboidL").getString() + "/" +
-                        Text.translatable("options.chainveinfabric.cuboidW").getString() + "/" +
-                        Text.translatable("options.chainveinfabric.cuboidH").getString();
-                context.drawTextWithShadow(textRenderer, Text.literal(cuboidLabel), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                if (cuboidLBox != null) cuboidLBox.render(context, mouseX, mouseY, delta);
-                if (cuboidWBox != null) cuboidWBox.render(context, mouseX, mouseY, delta);
-                if (cuboidHBox != null) cuboidHBox.render(context, mouseX, mouseY, delta);
-                currentY += 30;
-                context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.miningPoint"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-                // Dropdown render moved down
-                currentY += 30;
+            // Render Settings Tab (list is already drawn by super.render)
+            if (settingsList != null) {
+                for (SettingsListWidget.SettingEntry entry : settingsList.children()) {
+                    if (entry instanceof SettingsListWidget.ControlEntry) {
+                        for (var widget : ((SettingsListWidget.ControlEntry) entry).getWidgets()) {
+                            if (widget instanceof DropdownWidget) {
+                                ((DropdownWidget<?>) widget).renderOverlay(context, mouseX, mouseY, delta);
+                            }
+                        }
+                    }
+                }
             }
-
-            currentY += 10;
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.maxBlocks"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (maxBlocksBox != null) maxBlocksBox.render(context, mouseX, mouseY, delta);
-            currentY += 30;
-            
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.maxRadius"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (maxRadiusBox != null) maxRadiusBox.render(context, mouseX, mouseY, delta);
-            currentY += 30;
-
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.directToInventory"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (directToInventoryButton != null) directToInventoryButton.render(context, mouseX, mouseY, delta);
-            currentY += 30;
-
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.toolProtection"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (toolProtectionButton != null) toolProtectionButton.render(context, mouseX, mouseY, delta);
-            currentY += 30;
-
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.diagonalEdge"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (diagonalEdgeButton != null) diagonalEdgeButton.render(context, mouseX, mouseY, delta);
-            currentY += 30;
-
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.diagonalCorner"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (diagonalCornerButton != null) diagonalCornerButton.render(context, mouseX, mouseY, delta);
-            currentY += 30;
-
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.packetInterval"), centerX - 120, currentY + 5, 0xFFFFFFFF);
-            if (packetIntervalBox != null) packetIntervalBox.render(context, mouseX, mouseY, delta);
-
-            // RENDER DROPDOWNS LAST TO OVERLAY
-            // Draw in reverse order of Y position (Top-most drawn LAST)
-            if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.SQUARE) {
-                if (squarePointDropdown != null) squarePointDropdown.render(context, mouseX, mouseY, delta);
-            } else if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.CUBOID) {
-                if (cuboidPointDropdown != null) cuboidPointDropdown.render(context, mouseX, mouseY, delta);
-            }
-            if (searchAlgorithmDropdown != null) searchAlgorithmDropdown.render(context, mouseX, mouseY, delta);
-
-            context.drawTextWithShadow(textRenderer, Text.translatable("options.chainveinfabric.searchAlgorithm"), centerX - 120, topY + 5, 0xFFFFFFFF);
         }
     }
 

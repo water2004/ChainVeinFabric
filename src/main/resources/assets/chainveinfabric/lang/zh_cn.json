@@ -51,8 +51,15 @@
   "options.chainveinfabric.miningPoint.top_right": "右上角",
   "options.chainveinfabric.miningPoint.bottom_left": "左下角",
   "options.chainveinfabric.miningPoint.bottom_right": "右下角",
+  "options.chainveinfabric.miningPoint.front_top_left": "前左上",
+  "options.chainveinfabric.miningPoint.front_top_right": "前右上",
+  "options.chainveinfabric.miningPoint.front_bottom_left": "前左下",
+  "options.chainveinfabric.miningPoint.front_bottom_right": "前右下",
+  "options.chainveinfabric.miningPoint.back_top_left": "后左上",
+  "options.chainveinfabric.miningPoint.back_top_right": "后右上",
+  "options.chainveinfabric.miningPoint.back_bottom_left": "后左下",
+  "options.chainveinfabric.miningPoint.back_bottom_right": "后右下",
   "options.chainveinfabric.cuboidL": "长度 (L)",
   "options.chainveinfabric.cuboidW": "宽度 (W)",
   "options.chainveinfabric.cuboidH": "高度 (H)"
-
 }

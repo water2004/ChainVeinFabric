@@ -39,16 +39,20 @@ public class DropdownWidget<T> extends ClickableWidget {
         
         context.drawTextWithShadow(textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
         context.drawTextWithShadow(textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
+    }
 
-        if (expanded) {
-            int optionY = y + height;
-            for (T value : values) {
-                boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height;
-                context.fill(x, optionY, x + width, optionY + height, hovered ? 0xFF444444 : 0xFF222222);
-                drawRectBorder(context, x, optionY, width, height, 0xFF888888);
-                context.drawTextWithShadow(textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
-                optionY += height;
-            }
+    public void renderOverlay(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (!expanded) return;
+        
+        int x = getX();
+        int y = getY();
+        int optionY = y + height;
+        for (T value : values) {
+            boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height;
+            context.fill(x, optionY, x + width, optionY + height, hovered ? 0xFF444444 : 0xFF222222);
+            drawRectBorder(context, x, optionY, width, height, 0xFF888888);
+            context.drawTextWithShadow(textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
+            optionY += height;
         }
     }
 
@@ -57,6 +61,14 @@ public class DropdownWidget<T> extends ClickableWidget {
         context.fill(x, y + height - 1, x + width, y + height, color);
         context.fill(x, y, x + 1, y + height, color);
         context.fill(x + width - 1, y, x + width, y + height, color);
+    }
+
+    public boolean isMouseOverOverlay(double mouseX, double mouseY) {
+        if (!this.visible || !expanded) return false;
+        int x = getX();
+        int y = getY();
+        int overlayHeight = (values.size() * height);
+        return mouseX >= x && mouseX < x + width && mouseY >= y + height && mouseY < y + height + overlayHeight;
     }
 
     @Override
@@ -86,7 +98,7 @@ public class DropdownWidget<T> extends ClickableWidget {
             }
 
             this.expanded = false;
-            return false;
+            return false; // Clicked outside, closed but didn't consume click
         } else {
             if (mx >= x && mx < x + width && my >= y && my < y + height) {
                 this.expanded = true;

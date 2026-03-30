@@ -31,10 +31,14 @@ public class ChainVeinConfig {
 
     public enum MiningPoint {
         CENTER,
-        TOP_LEFT,
-        TOP_RIGHT,
-        BOTTOM_LEFT,
-        BOTTOM_RIGHT
+        FRONT_TOP_LEFT,
+        FRONT_TOP_RIGHT,
+        FRONT_BOTTOM_LEFT,
+        FRONT_BOTTOM_RIGHT,
+        BACK_TOP_LEFT,
+        BACK_TOP_RIGHT,
+        BACK_BOTTOM_LEFT,
+        BACK_BOTTOM_RIGHT
     }
 
     public boolean isChainVeinEnabled = false;
@@ -60,13 +64,28 @@ public class ChainVeinConfig {
 
     public static ChainVeinConfig load() {
         try (FileReader reader = new FileReader(CONFIG_PATH.toFile())) {
-            return GSON.fromJson(reader, ChainVeinConfig.class);
-        } catch (IOException e) {
+            ChainVeinConfig config = GSON.fromJson(reader, ChainVeinConfig.class);
+            if (config == null) return new ChainVeinConfig();
+            config.fixNulls();
+            return config;
+        } catch (Exception e) {
             // Config file doesn't exist or is invalid, create a new one with default values
             ChainVeinConfig config = new ChainVeinConfig();
-            config.save();
+            if (!CONFIG_PATH.toFile().exists()) {
+                config.save();
+            }
             return config;
         }
+    }
+
+    private void fixNulls() {
+        if (mode == null) mode = ChainMode.CHAIN_MINE;
+        if (searchAlgorithm == null) searchAlgorithm = SearchAlgorithm.ADJACENT_SAME;
+        if (squareMiningPoint == null) squareMiningPoint = MiningPoint.CENTER;
+        if (cuboidMiningPoint == null) cuboidMiningPoint = MiningPoint.CENTER;
+        if (whitelistedBlocks == null) whitelistedBlocks = new HashSet<>();
+        if (whitelistedCrops == null) whitelistedCrops = new HashSet<>();
+        if (whitelistedUtilityBlocks == null) whitelistedUtilityBlocks = new HashSet<>();
     }
 
     public void save() {

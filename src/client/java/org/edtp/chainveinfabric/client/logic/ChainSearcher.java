@@ -1,6 +1,5 @@
 package org.edtp.chainveinfabric.client.logic;
 
-import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.math.BlockPos;
@@ -12,74 +11,65 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class ChainSearcher {
-    
-    public static List<BlockPos> search(MinecraftClient client, BlockPos startPos, Direction face, Predicate<BlockPos> filter) {
+    public static List<BlockPos> search(MinecraftClient client, BlockPos start, Direction face, Predicate<BlockPos> filter) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        
         return switch (config.searchAlgorithm) {
-            case ADJACENT_SAME, ADJACENT_WHITELIST -> findConnected(client, startPos, filter);
-            case SPHERE -> findSphere(client, startPos, config.sphereRadius, filter);
-            case SQUARE -> findSquare(client, startPos, face, config.squareLength, config.squareMiningPoint, filter);
-            case CUBOID -> findCuboid(client, startPos, face, config.cuboidL, config.cuboidW, config.cuboidH, config.cuboidMiningPoint, filter);
+            case ADJACENT_SAME, ADJACENT_WHITELIST -> findConnected(client, start, face, filter);
+            case SPHERE -> findSphere(client, start, face, config.sphereRadius, filter);
+            case SQUARE -> findSquare(client, start, face, config.squareLength, config.squareMiningPoint, filter);
+            case CUBOID -> findCuboid(client, start, face, config.cuboidL, config.cuboidW, config.cuboidH, config.cuboidMiningPoint, filter);
         };
     }
 
-    private static List<BlockPos> findConnected(MinecraftClient client, BlockPos startPos, Predicate<BlockPos> matcher) {
-        Queue<BlockPos> queue = new LinkedList<>();
-        Set<BlockPos> visited = new HashSet<>();
+    private static List<BlockPos> findConnected(MinecraftClient client, BlockPos start, Direction face, Predicate<BlockPos> filter) {
         List<BlockPos> result = new ArrayList<>();
+        Set<BlockPos> visited = new HashSet<>();
+        Queue<BlockPos> queue = new LinkedList<>();
 
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
-        int maxRadiusSq = ChainveinfabricClient.CONFIG.maxRadius * ChainveinfabricClient.CONFIG.maxRadius;
+        int maxRadius = ChainveinfabricClient.CONFIG.maxRadius;
+        boolean diagonalEdge = ChainveinfabricClient.CONFIG.diagonalEdge;
+        boolean diagonalCorner = ChainveinfabricClient.CONFIG.diagonalCorner;
 
-        queue.add(startPos);
-        visited.add(startPos);
-        if (matcher.test(startPos)) {
-            result.add(startPos);
-        }
+        queue.add(start);
+        visited.add(start);
 
         while (!queue.isEmpty() && result.size() < maxBlocks) {
             BlockPos current = queue.poll();
+            if (filter.test(current)) {
+                result.add(current);
 
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dy = -1; dy <= 1; dy++) {
-                    for (int dz = -1; dz <= 1; dz++) {
-                        if (dx == 0 && dy == 0 && dz == 0) continue;
+                for (int x = -1; x <= 1; x++) {
+                    for (int y = -1; y <= 1; y++) {
+                        for (int z = -1; z <= 1; z++) {
+                            if (x == 0 && y == 0 && z == 0) continue;
 
-                        int diffs = (dx != 0 ? 1 : 0) + (dy != 0 ? 1 : 0) + (dz != 0 ? 1 : 0);
-                        if (diffs == 2 && !ChainveinfabricClient.CONFIG.diagonalEdge) continue;
-                        if (diffs == 3 && !ChainveinfabricClient.CONFIG.diagonalCorner) continue;
-
-                        BlockPos neighbor = current.add(dx, dy, dz);
-                        if (visited.contains(neighbor)) continue;
-                        visited.add(neighbor);
-
-                        if (neighbor.getSquaredDistance(startPos) > maxRadiusSq) continue;
-
-                        if (matcher.test(neighbor)) {
-                            result.add(neighbor);
-                            queue.add(neighbor);
-                            if (result.size() >= maxBlocks) break;
+                            int absSum = Math.abs(x) + Math.abs(y) + Math.abs(z);
+                            if (absSum == 1 || (diagonalEdge && absSum == 2) || (diagonalCorner && absSum == 3)) {
+                                BlockPos neighbor = current.add(x, y, z);
+                                if (!visited.contains(neighbor) && start.getManhattanDistance(neighbor) <= maxRadius) {
+                                    visited.add(neighbor);
+                                    queue.add(neighbor);
+                                }
+                            }
                         }
                     }
-                    if (result.size() >= maxBlocks) break;
                 }
-                if (result.size() >= maxBlocks) break;
             }
         }
         return result;
     }
 
-    private static List<BlockPos> findSphere(MinecraftClient client, BlockPos center, int radius, Predicate<BlockPos> filter) {
+    private static List<BlockPos> findSphere(MinecraftClient client, BlockPos start, Direction face, int radius, Predicate<BlockPos> filter) {
         List<BlockPos> result = new ArrayList<>();
-        int radiusSq = radius * radius;
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
+        double rSq = radius * radius;
 
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dy = -radius; dy <= radius; dy++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                        BlockPos pos = center.add(dx, dy, dz);
+        for (int x = -radius; x <= radius; x++) {
+            for (int y = -radius; y <= radius; y++) {
+                for (int z = -radius; z <= radius; z++) {
+                    if (x * x + y * y + z * z <= rSq) {
+                        BlockPos pos = start.add(x, y, z);
                         if (filter.test(pos)) {
                             result.add(pos);
                             if (result.size() >= maxBlocks) return result;
@@ -95,16 +85,19 @@ public class ChainSearcher {
         List<BlockPos> result = new ArrayList<>();
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
 
-        // Determine plane axes
-        Direction u = (face.getAxis() == Direction.Axis.Y) ? Direction.EAST : Direction.EAST;
-        if (face.getAxis() == Direction.Axis.X) u = Direction.SOUTH;
-        if (face.getAxis() == Direction.Axis.Z) u = Direction.EAST;
-        
-        Direction v = (face.getAxis() == Direction.Axis.Y) ? Direction.SOUTH : Direction.UP;
-        if (face.getAxis() == Direction.Axis.X) v = Direction.UP;
-        if (face.getAxis() == Direction.Axis.Z) v = Direction.UP;
+        // Perspective-aware axes: U (Right), V (Up)
+        Direction u, v;
+        switch (face) {
+            case UP -> { u = Direction.EAST; v = Direction.NORTH; }
+            case DOWN -> { u = Direction.EAST; v = Direction.SOUTH; }
+            case NORTH -> { u = Direction.EAST; v = Direction.UP; }
+            case SOUTH -> { u = Direction.WEST; v = Direction.UP; }
+            case WEST -> { u = Direction.SOUTH; v = Direction.UP; }
+            case EAST -> { u = Direction.NORTH; v = Direction.UP; }
+            default -> { u = Direction.EAST; v = Direction.UP; }
+        }
 
-        int[] offsets = getOffsets(length, length, point);
+        int[] offsets = getOffsets(length, length, 1, point);
 
         for (int i = 0; i < length; i++) {
             for (int j = 0; j < length; j++) {
@@ -122,21 +115,27 @@ public class ChainSearcher {
         List<BlockPos> result = new ArrayList<>();
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
 
+        // Perspective-aware axes: U (Right), V (Up), D (Depth/Into-face)
+        Direction u, v;
         Direction d = face.getOpposite();
-        Direction u = (face.getAxis() == Direction.Axis.Y) ? Direction.EAST : Direction.EAST;
-        if (face.getAxis() == Direction.Axis.X) u = Direction.SOUTH;
-        if (face.getAxis() == Direction.Axis.Z) u = Direction.EAST;
-        
-        Direction v = (face.getAxis() == Direction.Axis.Y) ? Direction.SOUTH : Direction.UP;
-        if (face.getAxis() == Direction.Axis.X) v = Direction.UP;
-        if (face.getAxis() == Direction.Axis.Z) v = Direction.UP;
+        switch (face) {
+            case UP -> { u = Direction.EAST; v = Direction.NORTH; }
+            case DOWN -> { u = Direction.EAST; v = Direction.SOUTH; }
+            case NORTH -> { u = Direction.EAST; v = Direction.UP; }
+            case SOUTH -> { u = Direction.WEST; v = Direction.UP; }
+            case WEST -> { u = Direction.SOUTH; v = Direction.UP; }
+            case EAST -> { u = Direction.NORTH; v = Direction.UP; }
+            default -> { u = Direction.EAST; v = Direction.UP; }
+        }
 
-        int[] offsets = getOffsets(l, w, point);
-        
+        int[] offsets = getOffsets(l, w, h, point);
+
         for (int k = 0; k < h; k++) {
             for (int i = 0; i < l; i++) {
                 for (int j = 0; j < w; j++) {
-                    BlockPos pos = start.offset(u, offsets[0] + i).offset(v, offsets[1] + j).offset(d, k);
+                    BlockPos pos = start.offset(u, offsets[0] + i)
+                                        .offset(v, offsets[1] + j)
+                                        .offset(d, offsets[2] + k);
                     if (filter.test(pos)) {
                         result.add(pos);
                         if (result.size() >= maxBlocks) return result;
@@ -147,13 +146,17 @@ public class ChainSearcher {
         return result;
     }
 
-    private static int[] getOffsets(int l, int w, ChainVeinConfig.MiningPoint point) {
+    private static int[] getOffsets(int l, int w, int h, ChainVeinConfig.MiningPoint point) {
         return switch (point) {
-            case CENTER -> new int[]{-l / 2, -w / 2};
-            case TOP_LEFT -> new int[]{0, 0};
-            case TOP_RIGHT -> new int[]{-l + 1, 0};
-            case BOTTOM_LEFT -> new int[]{0, -w + 1};
-            case BOTTOM_RIGHT -> new int[]{-l + 1, -w + 1};
+            case CENTER -> new int[]{-l / 2, -w / 2, 0};
+            case FRONT_TOP_LEFT -> new int[]{0, -w + 1, 0};
+            case FRONT_TOP_RIGHT -> new int[]{-l + 1, -w + 1, 0};
+            case FRONT_BOTTOM_LEFT -> new int[]{0, 0, 0};
+            case FRONT_BOTTOM_RIGHT -> new int[]{-l + 1, 0, 0};
+            case BACK_TOP_LEFT -> new int[]{0, -w + 1, -h + 1};
+            case BACK_TOP_RIGHT -> new int[]{-l + 1, -w + 1, -h + 1};
+            case BACK_BOTTOM_LEFT -> new int[]{0, 0, -h + 1};
+            case BACK_BOTTOM_RIGHT -> new int[]{-l + 1, 0, -h + 1};
         };
     }
 }
