@@ -184,14 +184,14 @@ public class ChainVeinScreen extends Screen {
 
             DropdownWidget<ChainVeinConfig.MiningPoint> squarePointDropdown = new DropdownWidget<>(0, 0, 150, 20,
                 Text.translatable("options.chainveinfabric.miningPoint"),
-                Arrays.asList(ChainVeinConfig.MiningPoint.CENTER, ChainVeinConfig.MiningPoint.FRONT_TOP_LEFT, ChainVeinConfig.MiningPoint.FRONT_TOP_RIGHT, ChainVeinConfig.MiningPoint.FRONT_BOTTOM_LEFT, ChainVeinConfig.MiningPoint.FRONT_BOTTOM_RIGHT),
+                Arrays.asList(ChainVeinConfig.MiningPoint.CENTER, ChainVeinConfig.MiningPoint.FRONT_TOP_LEFT, ChainVeinConfig.MiningPoint.FRONT_TOP_RIGHT, ChainVeinConfig.MiningPoint.BACK_BOTTOM_LEFT, ChainVeinConfig.MiningPoint.BACK_BOTTOM_RIGHT),
                 ChainveinfabricClient.CONFIG.squareMiningPoint,
                 p -> switch (p) {
                     case CENTER -> Text.translatable("options.chainveinfabric.miningPoint.center");
                     case FRONT_TOP_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.top_left");
                     case FRONT_TOP_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.top_right");
-                    case FRONT_BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_left");
-                    case FRONT_BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_right");
+                    case BACK_BOTTOM_LEFT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_left");
+                    case BACK_BOTTOM_RIGHT -> Text.translatable("options.chainveinfabric.miningPoint.bottom_right");
                     default -> Text.literal(p.name());
                 },
                 v -> ChainveinfabricClient.CONFIG.squareMiningPoint = v,

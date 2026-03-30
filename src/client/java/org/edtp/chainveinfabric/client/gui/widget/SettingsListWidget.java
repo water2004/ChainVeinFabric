@@ -7,7 +7,6 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.ParentElement;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
@@ -42,43 +41,8 @@ public class SettingsListWidget extends EntryListWidget<SettingsListWidget.Setti
     protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     }
 
-    public abstract class SettingEntry extends EntryListWidget.Entry<SettingEntry> implements ParentElement {
-        private Element focused;
-        private boolean dragging;
-
-        @Override
-        public List<? extends Element> children() {
-            return new ArrayList<>();
-        }
-
-        @Override
-        public boolean isDragging() {
-            return this.dragging;
-        }
-
-        @Override
-        public void setDragging(boolean dragging) {
-            this.dragging = dragging;
-        }
-
-        @Override
-        public Element getFocused() {
-            return this.focused;
-        }
-
-        @Override
-        public void setFocused(Element focused) {
-            this.focused = focused;
-        }
-        
-        public void unfocusAll() {
-            this.setFocused(null);
-            for (Element child : children()) {
-                if (child instanceof TextFieldWidget) {
-                    ((TextFieldWidget) child).setFocused(false);
-                }
-            }
-        }
+    public abstract class SettingEntry extends EntryListWidget.Entry<SettingEntry> {
+        public abstract void unfocusAll();
     }
 
     public class ControlEntry extends SettingEntry {
@@ -90,8 +54,7 @@ public class SettingsListWidget extends EntryListWidget<SettingsListWidget.Setti
             this.widgets = widgets;
         }
 
-        @Override
-        public List<? extends Element> children() {
+        public List<ClickableWidget> getWidgets() {
             return widgets;
         }
 
@@ -120,7 +83,6 @@ public class SettingsListWidget extends EntryListWidget<SettingsListWidget.Setti
             boolean clickedOnWidget = false;
             for (ClickableWidget widget : widgets) {
                 if (widget.mouseClicked(click, doubled)) {
-                    this.setFocused(widget);
                     if (widget instanceof TextFieldWidget) {
                         ((TextFieldWidget) widget).setFocused(true);
                     }
@@ -140,8 +102,13 @@ public class SettingsListWidget extends EntryListWidget<SettingsListWidget.Setti
             return false;
         }
 
-        public List<ClickableWidget> getWidgets() {
-            return widgets;
+        @Override
+        public void unfocusAll() {
+            for (ClickableWidget widget : widgets) {
+                if (widget instanceof TextFieldWidget) {
+                    ((TextFieldWidget) widget).setFocused(false);
+                }
+            }
         }
     }
 
