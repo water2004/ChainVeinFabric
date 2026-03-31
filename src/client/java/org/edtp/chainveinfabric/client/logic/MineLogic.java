@@ -35,6 +35,16 @@ public class MineLogic {
 
         ItemStack tool = client.player.getMainHandStack();
         boolean isCreative = client.player.isCreative();
+        
+        if (!isCreative) {
+            toBreak.removeIf(p -> {
+                BlockState s = client.world.getBlockState(p);
+                return s.getHardness(client.world, p) < 0.0F;
+            });
+        }
+
+        if (toBreak.isEmpty()) return;
+
         boolean emptyHand = tool.isEmpty();
         boolean isDamageable = tool.isDamageable();
         boolean toolProtection = ChainveinfabricClient.CONFIG.toolProtection;

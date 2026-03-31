@@ -16,12 +16,12 @@ Compatible with vanilla servers (client-side mode) and enhanced when installed o
     *   **连锁种植**：在兼容的耕地上快速补种。支持小麦、胡萝卜、马铃薯等作物。
 *   **Chain Wax/Scrape/Strip**: Batch process blocks using tools or items. Supports waxing copper, scraping rust, stripping logs, and tilling soil.
     *   **连锁打蜡/除锈/去皮**：使用工具或物品批量处理方块。支持铜块打蜡、除锈、原木去皮以及耕地。
-*   **Adjacency Toggles**: Support for Face (6), Edge (12), and Corner (8) connections. Fixed non-contiguous block issues.
-    *   **连接方式切换**：支持面（6向）、棱（12向）和顶点（8向）连接。已修复非连续方块被错误采集的问题。
+*   **Multiple Search Shapes & Modes**: Support for various search algorithms including Cube, Sphere, and Adjacency (Face, Edge, Corner connections).
+    *   **多种搜索算法与形状**：支持包括立方体、球体、以及相邻扩散（面、棱、顶点连接）在内的多种搜索模式。
 *   **Anti-Kick Protection**: Set packet intervals for vanilla servers to prevent "Too many packets" kicks.
     *   **防踢出保护**：针对原版服务器可设置自定义发包间隔，防止因操作过快被服务器踢出。
-*   **Visual Configuration GUI**: Press `V` to open a user-friendly configuration screen. Smart UI elements will enable/disable based on server environment.
-    *   **可视化配置界面**：按 `V` 键打开友好的配置界面。UI 元素会根据服务器环境自动启用或禁用。
+*   **Visual Configuration GUI**: Press `V` to open a user-friendly configurable, scrollable screen. Smart UI elements will enable/disable based on server environment.
+    *   **可视化配置界面**：按 `V` 键打开友好、支持滚动的配置界面。UI 元素会根据服务器环境自动启用或禁用。
 *   **Whitelist Management**: Per-mode whitelists for mining, crops, and utility interactions.
     *   **白名单管理**：针对采集、作物和工具交互分别提供独立的白名单。
 *   **Tool Protection**: Automatically stops operations when tool durability is low (<= 10).
