@@ -16,16 +16,18 @@ Compatible with vanilla servers (client-side mode) and enhanced when installed o
     *   **连锁种植**：在兼容的耕地上快速补种。支持小麦、胡萝卜、马铃薯等作物。
 *   **Chain Wax/Scrape/Strip**: Batch process blocks using tools or items. Supports waxing copper, scraping rust, stripping logs, and tilling soil.
     *   **连锁打蜡/除锈/去皮**：使用工具或物品批量处理方块。支持铜块打蜡、除锈、原木去皮以及耕地。
-*   **Multiple Search Shapes & Modes**: Support for various search algorithms including Cube, Sphere, and Adjacency (Face, Edge, Corner connections).
-    *   **多种搜索算法与形状**：支持包括立方体、球体、以及相邻扩散（面、棱、顶点连接）在内的多种搜索模式。
+*   **Multiple Search Shapes & Modes**: Support for various search algorithms including Cube, Sphere, and Adjacency (Face, Edge, Corner connections). Now supports directional limits (Horizontal, Vertical, Upward, Downward).
+    *   **多种搜索算法与形状**：支持包括立方体（Cube）、球形（Sphere），以及相邻扩散（面、棱、顶点连接）在内的多种搜索模式，并新增各维度的蔓延方向限制（水平、垂直、向上、向下）。
 *   **Anti-Kick Protection**: Set packet intervals for vanilla servers to prevent "Too many packets" kicks.
     *   **防踢出保护**：针对原版服务器可设置自定义发包间隔，防止因操作过快被服务器踢出。
 *   **Visual Configuration GUI**: Press `V` to open a user-friendly configurable, scrollable screen. Smart UI elements will enable/disable based on server environment.
     *   **可视化配置界面**：按 `V` 键打开友好、支持滚动的配置界面。UI 元素会根据服务器环境自动启用或禁用。
 *   **Whitelist Management**: Per-mode whitelists for mining, crops, and utility interactions.
     *   **白名单管理**：针对采集、作物和工具交互分别提供独立的白名单。
-*   **Tool Protection**: Automatically stops operations when tool durability is low (<= 10).
-    *   **工具保护**：当工具耐久度低（<= 10）时自动停止操作，防止工具损坏。
+*   **Tool Protection**: Smartly calculates remaining durability. Instead of failing when durability is low, it now limits the max chain amount to your remaining durability (minus a safety buffer of 10) to prevent breaking. Properly ignores empty hands and zero-durability items.
+    *   **工具保护**：智能计算剩余耐久。当耐久度低时非但不会直接失效，而是将最大连锁数量动态限制为剩余耐久值（保留10点），防止工具损坏损坏。对空手与无耐久物品会自动正确豁免判定。
+*   **Unbreakable Block Filter**: Automatically filters out unbreakable blocks (like Bedrock or Barriers) in survival mode, maintaining game balance even with incorrect whitelists.
+    *   **防破坏基岩保护**：生存模式下自动过滤不可破坏方块（如基岩、屏障等），防止错误配置白名单导致的平衡性问题。
 
 ---
 
