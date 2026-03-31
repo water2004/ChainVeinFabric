@@ -36,18 +36,26 @@ public class MineLogic {
         ItemStack tool = client.player.getMainHandStack();
         boolean isCreative = client.player.isCreative();
         boolean emptyHand = tool.isEmpty();
+        boolean isDamageable = tool.isDamageable();
         boolean toolProtection = ChainveinfabricClient.CONFIG.toolProtection;
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
+        maxBlocks = isCreative ? maxBlocks : (emptyHand || isDamageable ? maxBlocks : tool.getCount());
 
-        if (!isCreative && toolProtection && !emptyHand && tool.isDamageable()) {
+        boolean limitedByDurability = false;
+        
+        if (!isCreative && toolProtection && isDamageable) {
             int remainingDurability = tool.getMaxDamage() - tool.getDamage();
-            maxBlocks = Math.min(maxBlocks, Math.max(0, remainingDurability - 10));
+            int safeLimit = Math.max(0, remainingDurability - 10);
+            if (safeLimit < maxBlocks) {
+                maxBlocks = safeLimit;
+                limitedByDurability = true;
+            }
         }
 
         List<BlockPos> finalBreakList = toBreak;
         if (toBreak.size() > maxBlocks) {
             finalBreakList = toBreak.subList(0, maxBlocks);
-            if (!isCreative && toolProtection && !emptyHand) {
+            if (limitedByDurability) {
                 client.player.sendMessage(Text.translatable("message.chainveinfabric.protection"), true);
             }
         }

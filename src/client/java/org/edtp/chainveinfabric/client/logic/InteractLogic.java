@@ -76,17 +76,27 @@ public class InteractLogic {
     private static void executeInteract(MinecraftClient client, BlockPos startPos, List<BlockPos> targets, ItemStack stack, String translationKey) {
         if (targets.isEmpty()) return;
 
+        boolean isEmptyHand = stack.isEmpty();
         boolean isDamageable = stack.isDamageable();
         int configLimit = ChainveinfabricClient.CONFIG.maxChainBlocks;
-        int available = client.player.isCreative() ? configLimit : (isDamageable ? configLimit : stack.getCount());
+        int available = client.player.isCreative() ? configLimit : (isEmptyHand || isDamageable ? configLimit : stack.getCount());
+        boolean limitedByDurability = false;
         
         if (!client.player.isCreative() && isDamageable && ChainveinfabricClient.CONFIG.toolProtection) {
             int remainingDurability = stack.getMaxDamage() - stack.getDamage();
-            available = Math.min(available, Math.max(0, remainingDurability - 10));
+            int safeLimit = Math.max(0, remainingDurability - 10);
+            if (safeLimit < available) {
+                available = safeLimit;
+                limitedByDurability = true;
+            }
         }
         
         int count = Math.min(targets.size(), available);
         List<BlockPos> finalSubList = targets.subList(0, count);
+
+        if (limitedByDurability && targets.size() > available) {
+            client.player.sendMessage(Text.translatable("message.chainveinfabric.protection"), true);
+        }
 
         if (ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID)) {
             ClientPlayNetworking.send(new Chainveinfabric.ChainInteractPayload(finalSubList));
