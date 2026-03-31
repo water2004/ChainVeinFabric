@@ -79,12 +79,20 @@ public class SettingsListWidget extends EntryListWidget<SettingsListWidget.Setti
         }
 
         @Override
+        public void setFocused(boolean focused) {
+            if (!focused) {
+                unfocusAll();
+            }
+        }
+
+        @Override
         public boolean mouseClicked(Click click, boolean doubled) {
             boolean clickedOnWidget = false;
             for (ClickableWidget widget : widgets) {
                 if (widget.mouseClicked(click, doubled)) {
                     if (widget instanceof TextFieldWidget) {
                         ((TextFieldWidget) widget).setFocused(true);
+                        ((TextFieldWidget) widget).setCursorToEnd(false);
                     }
                     clickedOnWidget = true;
                 } else {
@@ -99,6 +107,44 @@ public class SettingsListWidget extends EntryListWidget<SettingsListWidget.Setti
                 return true;
             }
             
+            return false;
+        }
+
+        public List<? extends Element> children() {
+            return widgets;
+        }
+
+        public List<? extends net.minecraft.client.gui.Selectable> selectableChildren() {
+            return widgets;
+        }
+
+        @Override
+        public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
+            for (ClickableWidget widget : widgets) {
+                if (widget.keyPressed(input)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean charTyped(net.minecraft.client.input.CharInput input) {
+            for (ClickableWidget widget : widgets) {
+                if (widget.charTyped(input)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean keyReleased(net.minecraft.client.input.KeyInput input) {
+            for (ClickableWidget widget : widgets) {
+                if (widget.keyReleased(input)) {
+                    return true;
+                }
+            }
             return false;
         }
 

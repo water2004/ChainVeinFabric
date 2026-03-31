@@ -133,14 +133,12 @@ public class ChainVeinScreen extends Screen {
     private TextFieldWidget createNumBox(int width, int initialValue, Consumer<Integer> onUpdate) {
         TextFieldWidget box = new TextFieldWidget(textRenderer, 0, 0, width, 20, Text.empty());
         box.setText(String.valueOf(initialValue));
+        box.setTextPredicate(text -> text.isEmpty() || text.matches("^-?[0-9]*$"));
         box.setChangedListener(text -> {
-            String filtered = text.replaceAll("[^0-9]", "");
-            if (!filtered.equals(text)) {
-                box.setText(filtered);
-                return;
-            }
-            if (!filtered.isEmpty()) {
-                try { onUpdate.accept(Integer.parseInt(filtered)); } catch (NumberFormatException ignored) {}
+            if (!text.isEmpty() && !text.equals("-")) {
+                try { 
+                    onUpdate.accept(Integer.parseInt(text)); 
+                } catch (NumberFormatException ignored) {}
             }
         });
         return box;
@@ -304,7 +302,10 @@ public class ChainVeinScreen extends Screen {
             context.drawTextWithShadow(textRenderer, Text.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
             int labelX = centerX + 150 - textRenderer.getWidth(chainVeinLabel) - 10;
             context.drawTextWithShadow(textRenderer, chainVeinLabel, labelX, topY + (20 - textRenderer.fontHeight) / 2, 0xFFFFFFFF);
-            if (modeDropdown != null) modeDropdown.render(context, mouseX, mouseY, delta);
+            if (modeDropdown != null) {
+                modeDropdown.render(context, mouseX, mouseY, delta);
+                modeDropdown.renderOverlay(context, mouseX, mouseY, delta);
+            }
         } else {
             // Render Settings Tab (list is already drawn by super.render)
             if (settingsList != null) {
