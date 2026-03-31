@@ -251,8 +251,13 @@ public class ChainVeinScreen extends Screen {
                 .omitKeyText().build(0, 0, 100, 20, Text.empty(), (b, v) -> ChainveinfabricClient.CONFIG.diagonalCorner = v);
         settingsList.addControl(Text.translatable("options.chainveinfabric.diagonalCorner"), diagonalCornerButton);
 
-        settingsList.addControl(Text.translatable("options.chainveinfabric.packetInterval"),
-            createNumBox(50, ChainveinfabricClient.CONFIG.packetInterval, v -> ChainveinfabricClient.CONFIG.packetInterval = v));
+        TextFieldWidget packetIntervalBox = createNumBox(50, ChainveinfabricClient.CONFIG.packetInterval, v -> ChainveinfabricClient.CONFIG.packetInterval = v);
+        packetIntervalBox.active = !isServerModPresent;
+        packetIntervalBox.setEditable(!isServerModPresent);
+        if (isServerModPresent) {
+            packetIntervalBox.setTooltip(Tooltip.of(Text.translatable("options.chainveinfabric.packetInterval.disabled")));
+        }
+        settingsList.addControl(Text.translatable("options.chainveinfabric.packetInterval"), packetIntervalBox);
     }
 
     private void refreshLists() {
