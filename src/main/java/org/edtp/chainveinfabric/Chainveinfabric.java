@@ -26,8 +26,8 @@ public class Chainveinfabric implements ModInitializer {
     @Override
     public void onInitialize() {
         // Register Payloads
-        PayloadTypeRegistry.playC2S().register(ChainMinePayload.ID, ChainMinePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ChainInteractPayload.ID, ChainInteractPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ChainMinePayload.ID, ChainMinePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ChainInteractPayload.ID, ChainInteractPayload.CODEC);
         
         // Register Mine Receiver
         ServerPlayNetworking.registerGlobalReceiver(ChainMinePayload.ID, (payload, context) -> {
