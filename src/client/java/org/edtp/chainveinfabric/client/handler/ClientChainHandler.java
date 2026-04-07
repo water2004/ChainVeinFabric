@@ -1,15 +1,15 @@
 package org.edtp.chainveinfabric.client.handler;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.logic.InteractLogic;
 import org.edtp.chainveinfabric.client.logic.MineLogic;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class ClientChainHandler {
     private static boolean isChainOperating = false;
@@ -28,7 +28,7 @@ public class ClientChainHandler {
         packetQueue.add(task);
     }
 
-    public static void onTick(MinecraftClient client) {
+    public static void onTick(Minecraft client) {
         if (packetQueue.isEmpty()) {
             tickCounter = 0;
             return;
@@ -61,7 +61,7 @@ public class ClientChainHandler {
         }
     }
 
-    public static void performChainMine(MinecraftClient client, BlockPos pos, BlockState state) {
+    public static void performChainMine(Minecraft client, BlockPos pos, BlockState state) {
         isChainOperating = true;
         try {
             MineLogic.perform(client, pos, state);
@@ -70,7 +70,7 @@ public class ClientChainHandler {
         }
     }
 
-    public static void performChainInteract(MinecraftClient client, BlockPos pos, BlockState state, ItemStack stack) {
+    public static void performChainInteract(Minecraft client, BlockPos pos, BlockState state, ItemStack stack) {
         isChainOperating = true;
         try {
             InteractLogic.perform(client, pos, state, stack);

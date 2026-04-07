@@ -1,33 +1,41 @@
 package org.edtp.chainveinfabric.client.gui.widget;
 
-import net.minecraft.block.*;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.EntryListWidget;
-import net.minecraft.client.gui.Click;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+//import net.minecraft.block.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSelectionList;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.AttachedStemBlock;
+import net.minecraft.world.level.block.AzaleaBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.SaplingBlock;
+import net.minecraft.world.level.block.SeaPickleBlock;
+import net.minecraft.world.level.block.StemBlock;
+import net.minecraft.world.level.block.VegetationBlock;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
+public class ItemListWidget extends AbstractSelectionList<ItemListWidget.ItemEntry> {
     private final List<ItemEntry> allEntries;
-    private final TextRenderer textRenderer;
+    private final Font textRenderer;
     private final Runnable onRefresh;
 
-    public ItemListWidget(MinecraftClient client, int width, int height, int top, int itemHeight, TextRenderer textRenderer, Runnable onRefresh) {
+    public ItemListWidget(Minecraft client, int width, int height, int top, int itemHeight, Font textRenderer, Runnable onRefresh) {
         super(client, width, height, top, itemHeight);
         this.textRenderer = textRenderer;
         this.onRefresh = onRefresh;
-        this.allEntries = Registries.ITEM.stream()
+        this.allEntries = BuiltInRegistries.ITEM.stream()
                 .filter(this::isPlantable)
                 .map(ItemEntry::new)
                 .sorted(Comparator.comparing(entry -> entry.itemIdentifier.toString()))
@@ -44,7 +52,7 @@ public class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
 
         if (item instanceof BlockItem blockItem) {
             Block block = blockItem.getBlock();
-            return block instanceof PlantBlock || 
+            return block instanceof VegetationBlock || 
                    block instanceof CropBlock || 
                    block instanceof SaplingBlock || 
                    block instanceof StemBlock || 
@@ -64,51 +72,51 @@ public class ItemListWidget extends EntryListWidget<ItemListWidget.ItemEntry> {
                 this.addEntry(entry);
             }
         }
-        this.setScrollY(0);
+        this.setScrollAmount(0);
     }
 
     public int getRowWidth() { return 180; }
     protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
 
     @Override
-    protected void appendClickableNarrations(net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
-        builder.put(net.minecraft.client.gui.screen.narration.NarrationPart.USAGE, Text.translatable("narration.allitems.usage"));
+    protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput builder) {
+        builder.add(net.minecraft.client.gui.narration.NarratedElementType.USAGE, Component.translatable("narration.allitems.usage"));
     }
 
-    public class ItemEntry extends EntryListWidget.Entry<ItemEntry> {
+    public class ItemEntry extends AbstractSelectionList.Entry<ItemEntry> {
         public final Identifier itemIdentifier;
-        public final Text itemDisplayName;
-        private final ButtonWidget addButton;
+        public final Component itemDisplayName;
+        private final Button addButton;
 
         public ItemEntry(Item item) {
-            this.itemIdentifier = Registries.ITEM.getId(item);
+            this.itemIdentifier = BuiltInRegistries.ITEM.getKey(item);
             this.itemDisplayName = item.getName();
-            this.addButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.add"),
+            this.addButton = Button.builder(Component.translatable("options.chainveinfabric.add"),
                     button -> {
                         ChainveinfabricClient.CONFIG.whitelistedCrops.add(this.itemIdentifier.toString());
                         ChainveinfabricClient.CONFIG.save();
                         onRefresh.run();
-                    }).dimensions(0, 0, 40, 20).build();
+                    }).bounds(0, 0, 40, 20).build();
         }
 
         @Override
-        public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void renderContent(GuiGraphics context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             int x = getX();
             int y = getY();
             int entryWidth = getWidth();
             int entryHeight = getHeight();
-            Item item = Registries.ITEM.get(this.itemIdentifier);
+            Item item = BuiltInRegistries.ITEM.getValue(this.itemIdentifier);
             if (item != null) {
-                context.drawItem(item.getDefaultStack(), x + 2, y + 2);
+                context.renderItem(item.getDefaultInstance(), x + 2, y + 2);
             }
-            context.drawTextWithShadow(textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+            context.drawString(textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
             this.addButton.setX(x + entryWidth - 42);
             this.addButton.setY(y + (entryHeight - 20) / 2);
             this.addButton.render(context, mouseX, mouseY, tickDelta);
         }
 
         @Override
-        public boolean mouseClicked(Click click, boolean doubled) {
+        public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
             if (this.addButton.mouseClicked(click, doubled)) return true;
             return super.mouseClicked(click, doubled);
         }

@@ -1,26 +1,25 @@
 package org.edtp.chainveinfabric.client.gui.widget;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.screen.narration.NarrationPart;
-import net.minecraft.client.gui.Click;
-import net.minecraft.text.Text;
-
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
-public class DropdownWidget<T> extends ClickableWidget {
+public class DropdownWidget<T> extends AbstractWidget {
     private final List<T> values;
-    private final Function<T, Text> textGetter;
+    private final Function<T, Component> textGetter;
     private final Consumer<T> onSelect;
-    private final TextRenderer textRenderer;
+    private final Font textRenderer;
     private boolean expanded = false;
     private T selected;
 
-    public DropdownWidget(int x, int y, int width, int height, Text message, List<T> values, T initialValue, Function<T, Text> textGetter, Consumer<T> onSelect, TextRenderer textRenderer) {
+    public DropdownWidget(int x, int y, int width, int height, Component message, List<T> values, T initialValue, Function<T, Component> textGetter, Consumer<T> onSelect, Font textRenderer) {
         super(x, y, width, height, message);
         this.values = values;
         this.selected = initialValue;
@@ -30,18 +29,18 @@ public class DropdownWidget<T> extends ClickableWidget {
     }
 
     @Override
-    protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         
         context.fill(x, y, x + width, y + height, 0xFF000000);
         drawRectBorder(context, x, y, width, height, 0xFFFFFFFF);
         
-        context.drawTextWithShadow(textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
-        context.drawTextWithShadow(textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
+        context.drawString(textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
+        context.drawString(textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
     }
 
-    public void renderOverlay(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void renderOverlay(GuiGraphics context, int mouseX, int mouseY, float delta) {
         if (!expanded) return;
         
         int x = getX();
@@ -51,12 +50,12 @@ public class DropdownWidget<T> extends ClickableWidget {
             boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height;
             context.fill(x, optionY, x + width, optionY + height, hovered ? 0xFF444444 : 0xFF222222);
             drawRectBorder(context, x, optionY, width, height, 0xFF888888);
-            context.drawTextWithShadow(textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
+            context.drawString(textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
             optionY += height;
         }
     }
 
-    private void drawRectBorder(DrawContext context, int x, int y, int width, int height, int color) {
+    private void drawRectBorder(GuiGraphics context, int x, int y, int width, int height, int color) {
         context.fill(x, y, x + width, y + 1, color);
         context.fill(x, y + height - 1, x + width, y + height, color);
         context.fill(x, y, x + 1, y + height, color);
@@ -72,7 +71,7 @@ public class DropdownWidget<T> extends ClickableWidget {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         if (!this.active || !this.visible) return false;
 
         double mx = click.x();
@@ -119,7 +118,7 @@ public class DropdownWidget<T> extends ClickableWidget {
     }
 
     @Override
-    protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-        builder.put(NarrationPart.TITLE, getMessage());
+    protected void updateWidgetNarration(NarrationElementOutput builder) {
+        builder.add(NarratedElementType.TITLE, getMessage());
     }
 }

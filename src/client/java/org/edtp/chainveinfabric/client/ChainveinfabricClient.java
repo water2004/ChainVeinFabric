@@ -1,14 +1,14 @@
 package org.edtp.chainveinfabric.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig; // Corrected import
 import org.edtp.chainveinfabric.client.gui.ChainVeinScreen;
@@ -18,34 +18,34 @@ import org.lwjgl.glfw.GLFW;
 public class ChainveinfabricClient implements ClientModInitializer {
 
     public static ChainVeinConfig CONFIG;
-    private static final KeyBinding.Category CHAIN_VEIN_CATEGORY = KeyBinding.Category.create(Identifier.of("chainveinfabric", "general"));
-    private static KeyBinding configKeyBinding;
+    public static final KeyMapping.Category CHAIN_VEIN_CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("chainveinfabric", "general"));
+    private static KeyMapping configKeyBinding;
 
     @Override
     public void onInitializeClient() {
         CONFIG = ChainVeinConfig.load();
         
-        configKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        configKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.chainveinfabric.config",
-                InputUtil.Type.KEYSYM,
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_V,
                 CHAIN_VEIN_CATEGORY
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (configKeyBinding.wasPressed()) {
+            while (configKeyBinding.consumeClick()) {
                 client.setScreen(new ChainVeinScreen());
             }
             ClientChainHandler.onTick(client);
         });
 
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
-        HudElementRegistry.addLast(Identifier.of("chainveinfabric", "indicator"), (context, deltaTracker) -> {
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
             if (CONFIG != null && CONFIG.isChainVeinEnabled) {
-                Text activeText = Text.translatable("hud.chainveinfabric.active");
-                int width = context.getScaledWindowWidth();
-                context.drawCenteredTextWithShadow(
-                        MinecraftClient.getInstance().textRenderer,
+                Component activeText = Component.translatable("hud.chainveinfabric.active");
+                int width = context.guiWidth();
+                context.drawCenteredString(
+                        Minecraft.getInstance().font,
                         activeText,
                         width / 2,
                         5, // Small offset from top

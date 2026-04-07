@@ -1,24 +1,23 @@
 package org.edtp.chainveinfabric.client.logic;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3i;
-import net.minecraft.world.World;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 
 public class ChainSearcher {
 
-    public static List<BlockPos> search(MinecraftClient client, BlockPos pos, Direction side, Predicate<BlockPos> predicate) {
+    public static List<BlockPos> search(Minecraft client, BlockPos pos, Direction side, Predicate<BlockPos> predicate) {
         Set<BlockPos> result;
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        World world = client.world;
+        Level world = client.level;
 
         switch (config.searchAlgorithm) {
             case SPHERE -> result = findSphere(world, pos, config.sphereRadius, s -> predicate.test(s));
@@ -28,11 +27,11 @@ public class ChainSearcher {
         }
 
         return result.stream()
-                .sorted(Comparator.comparingDouble(p -> p.getSquaredDistance(pos)))
+                .sorted(Comparator.comparingDouble(p -> p.distSqr(pos)))
                 .collect(Collectors.toList());
     }
 
-    public static Set<BlockPos> findBlocks(World world, BlockPos startPos, int maxBlocks, int maxRadius, Predicate<BlockPos> predicate, boolean diagonalEdge, boolean diagonalCorner) {
+    public static Set<BlockPos> findBlocks(Level world, BlockPos startPos, int maxBlocks, int maxRadius, Predicate<BlockPos> predicate, boolean diagonalEdge, boolean diagonalCorner) {
         Set<BlockPos> result = new HashSet<>();
         Set<BlockPos> nextBorders = new HashSet<>();
         result.add(startPos);
@@ -50,7 +49,7 @@ public class ChainSearcher {
                             if (absSum == 2 && !diagonalEdge) continue;
                             if (absSum == 3 && !diagonalCorner) continue;
 
-                            BlockPos neighbor = pos.add(x, y, z);
+                            BlockPos neighbor = pos.offset(x, y, z);
                             if (!result.contains(neighbor) && predicate.test(neighbor)) {
                                 result.add(neighbor);
                                 nextBorders.add(neighbor);
@@ -65,14 +64,14 @@ public class ChainSearcher {
         return result;
     }
 
-    public static Set<BlockPos> findSphere(World world, BlockPos startPos, int radius, Predicate<BlockPos> predicate) {
+    public static Set<BlockPos> findSphere(Level world, BlockPos startPos, int radius, Predicate<BlockPos> predicate) {
         Set<BlockPos> result = new HashSet<>();
         int r2 = radius * radius;
         for (int x = -radius; x <= radius; x++) {
             for (int y = -radius; y <= radius; y++) {
                 for (int z = -radius; z <= radius; z++) {
                     if (x * x + y * y + z * z <= r2) {
-                        BlockPos pos = startPos.add(x, y, z);
+                        BlockPos pos = startPos.offset(x, y, z);
                         if (predicate.test(pos)) {
                             result.add(pos);
                         }
@@ -83,22 +82,22 @@ public class ChainSearcher {
         return result;
     }
 
-    public static Set<BlockPos> findSquare(World world, BlockPos startPos, int length, ChainVeinConfig.MiningPoint point, PlayerEntity player, Predicate<BlockPos> predicate) {
+    public static Set<BlockPos> findSquare(Level world, BlockPos startPos, int length, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate) {
         return findCuboidInternal(world, startPos, length, length, 1, point, player, predicate, true);
     }
 
-    public static Set<BlockPos> findCuboid(World world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, PlayerEntity player, Predicate<BlockPos> predicate) {
+    public static Set<BlockPos> findCuboid(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate) {
         return findCuboidInternal(world, startPos, l, w, h, point, player, predicate, false);
     }
 
-    private static Set<BlockPos> findCuboidInternal(World world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, PlayerEntity player, Predicate<BlockPos> predicate, boolean flat) {
+    private static Set<BlockPos> findCuboidInternal(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate, boolean flat) {
         Set<BlockPos> result = new HashSet<>();
         
         // Cardinal axes relative to player (W=Z-, S=Z+, A=X-, D=X+)
         // NOTE: Forward (W) is facing, and Back (S) is opposite.
-        Direction facing = player.getHorizontalFacing();
+        Direction facing = player.getDirection();
         Direction zAxis = facing; 
-        Direction xAxis = facing.rotateYClockwise(); // Right (D)
+        Direction xAxis = facing.getClockWise(); // Right (D)
         Direction yAxis = Direction.UP;
 
         int xMin, xMax, yMin, yMax, zMin, zMax;
@@ -150,9 +149,9 @@ public class ChainSearcher {
             for (int yi = yMin; yi <= yMax; yi++) {
                 for (int zi = zMin; zi <= zMax; zi++) {
                     BlockPos pos = startPos
-                            .offset(xAxis, xi)
-                            .offset(yAxis, yi)
-                            .offset(zAxis, zi);
+                            .relative(xAxis, xi)
+                            .relative(yAxis, yi)
+                            .relative(zAxis, zi);
                     
                     if (predicate.test(pos)) {
                         result.add(pos);

@@ -3,26 +3,25 @@ package org.edtp.chainveinfabric;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import java.util.List;
 
 public class Chainveinfabric implements ModInitializer {
 
-    public static final Identifier MINE_PACKET_ID = Identifier.of("chainveinfabric", "mine");
-    public static final Identifier INTERACT_PACKET_ID = Identifier.of("chainveinfabric", "interact");
+    public static final Identifier MINE_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "mine");
+    public static final Identifier INTERACT_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "interact");
 
     @Override
     public void onInitialize() {
@@ -33,46 +32,46 @@ public class Chainveinfabric implements ModInitializer {
         // Register Mine Receiver
         ServerPlayNetworking.registerGlobalReceiver(ChainMinePayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                ServerPlayerEntity player = context.player();
-                ServerWorld world = (ServerWorld) player.getEntityWorld();
-                ItemStack tool = player.getMainHandStack();
+                ServerPlayer player = context.player();
+                ServerLevel world = (ServerLevel) player.level();
+                ItemStack tool = player.getMainHandItem();
                 boolean isCreative = player.isCreative();
                 boolean directToInv = payload.directToInventory();
                 boolean startedWithEmptyHand = tool.isEmpty();
 
                 for (BlockPos pos : payload.positions()) {
-                    if (player.squaredDistanceTo(pos.toCenterPos()) > 100) continue;
+                    if (player.distanceToSqr(pos.getCenter()) > 100) continue;
                     if (!isCreative && !startedWithEmptyHand && tool.isEmpty()) break;
 
                     BlockState state = world.getBlockState(pos);
                     if (state.isAir()) continue;
 
                     BlockEntity blockEntity = world.getBlockEntity(pos);
-                    boolean canHarvest = player.canHarvest(state);
+                    boolean canHarvest = player.hasCorrectToolForDrops(state);
 
-                    state.getBlock().onBreak(world, pos, state, player);
+                    state.getBlock().playerWillDestroy(world, pos, state, player);
                     
                     boolean removed = world.removeBlock(pos, false);
                     if (removed) {
-                        state.getBlock().onBroken(world, pos, state);
+                        state.getBlock().destroy(world, pos, state);
                         
                         if (!isCreative) {
                             if (canHarvest) {
                                 if (directToInv) {
-                                    List<ItemStack> drops = Block.getDroppedStacks(state, world, pos, blockEntity, player, tool);
+                                    List<ItemStack> drops = Block.getDrops(state, world, pos, blockEntity, player, tool);
                                     for (ItemStack drop : drops) {
-                                        if (!player.getInventory().insertStack(drop)) {
-                                            Block.dropStack(world, pos, drop);
+                                        if (!player.getInventory().add(drop)) {
+                                            Block.popResource(world, pos, drop);
                                         }
                                     }
-                                    state.onStacksDropped(world, pos, tool, true);
+                                    state.spawnAfterBreak(world, pos, tool, true);
                                 } else {
-                                    Block.dropStacks(state, world, pos, blockEntity, player, tool);
+                                    Block.dropResources(state, world, pos, blockEntity, player, tool);
                                 }
                             }
-                            tool.postMine(world, state, pos, player);
+                            tool.mineBlock(world, state, pos, player);
                             if (tool.isEmpty()) {
-                                player.sendEquipmentBreakStatus(tool.getItem(), EquipmentSlot.MAINHAND);
+                                player.onEquippedItemBroken(tool.getItem(), EquipmentSlot.MAINHAND);
                             }
                         }
                     }
@@ -83,48 +82,48 @@ public class Chainveinfabric implements ModInitializer {
         // Register Interact Receiver (Handles Planting, Waxing, Stripping, etc.)
         ServerPlayNetworking.registerGlobalReceiver(ChainInteractPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                ServerPlayerEntity player = context.player();
-                ServerWorld world = (ServerWorld) player.getEntityWorld();
-                ItemStack stack = player.getMainHandStack();
+                ServerPlayer player = context.player();
+                ServerLevel world = (ServerLevel) player.level();
+                ItemStack stack = player.getMainHandItem();
                 
                 if (stack.isEmpty()) return;
 
                 for (BlockPos pos : payload.positions()) {
                     // Safety: Distance Check
-                    if (player.squaredDistanceTo(pos.toCenterPos()) > 100) continue;
+                    if (player.distanceToSqr(pos.getCenter()) > 100) continue;
                     if (!player.isCreative() && stack.isEmpty()) break;
 
                     // Simulate right-click interaction
-                    stack.useOnBlock(new net.minecraft.item.ItemUsageContext(
+                    stack.useOn(new net.minecraft.world.item.context.UseOnContext(
                         player, 
-                        net.minecraft.util.Hand.MAIN_HAND, 
-                        new net.minecraft.util.hit.BlockHitResult(pos.toCenterPos(), net.minecraft.util.math.Direction.UP, pos, false)
+                        net.minecraft.world.InteractionHand.MAIN_HAND, 
+                        new net.minecraft.world.phys.BlockHitResult(pos.getCenter(), net.minecraft.core.Direction.UP, pos, false)
                     ));
                 }
             });
         });
     }
 
-    public record ChainMinePayload(List<BlockPos> positions, boolean directToInventory) implements CustomPayload {
-        public static final CustomPayload.Id<ChainMinePayload> ID = new CustomPayload.Id<>(MINE_PACKET_ID);
-        public static final PacketCodec<RegistryByteBuf, ChainMinePayload> CODEC = PacketCodec.tuple(
-                BlockPos.PACKET_CODEC.collect(PacketCodecs.toList()), ChainMinePayload::positions,
-                PacketCodecs.BOOLEAN, ChainMinePayload::directToInventory,
+    public record ChainMinePayload(List<BlockPos> positions, boolean directToInventory) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<ChainMinePayload> ID = new CustomPacketPayload.Type<>(MINE_PACKET_ID);
+        public static final StreamCodec<RegistryFriendlyByteBuf, ChainMinePayload> CODEC = StreamCodec.composite(
+                BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list()), ChainMinePayload::positions,
+                ByteBufCodecs.BOOL, ChainMinePayload::directToInventory,
                 ChainMinePayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() { return ID; }
+        public Type<? extends CustomPacketPayload> type() { return ID; }
     }
 
-    public record ChainInteractPayload(List<BlockPos> positions) implements CustomPayload {
-        public static final CustomPayload.Id<ChainInteractPayload> ID = new CustomPayload.Id<>(INTERACT_PACKET_ID);
-        public static final PacketCodec<RegistryByteBuf, ChainInteractPayload> CODEC = PacketCodec.tuple(
-                BlockPos.PACKET_CODEC.collect(PacketCodecs.toList()), ChainInteractPayload::positions,
+    public record ChainInteractPayload(List<BlockPos> positions) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<ChainInteractPayload> ID = new CustomPacketPayload.Type<>(INTERACT_PACKET_ID);
+        public static final StreamCodec<RegistryFriendlyByteBuf, ChainInteractPayload> CODEC = StreamCodec.composite(
+                BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list()), ChainInteractPayload::positions,
                 ChainInteractPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() { return ID; }
+        public Type<? extends CustomPacketPayload> type() { return ID; }
     }
 }

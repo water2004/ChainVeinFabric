@@ -1,27 +1,25 @@
 package org.edtp.chainveinfabric.client.gui.widget;
 
-import net.minecraft.block.Block;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.EntryListWidget;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.screen.narration.NarrationPart;
-import net.minecraft.client.gui.Click;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 
 import java.util.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSelectionList;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Block;
 
-public class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEntry> {
-    private final TextRenderer textRenderer;
+public class WhitelistWidget extends AbstractSelectionList<WhitelistWidget.WhitelistEntry> {
+    private final Font textRenderer;
     private final Runnable onRefresh;
     private final Set<String> whitelist;
 
-    public WhitelistWidget(MinecraftClient client, int width, int height, int top, int itemHeight, TextRenderer textRenderer, Runnable onRefresh, Set<String> whitelist) {
+    public WhitelistWidget(Minecraft client, int width, int height, int top, int itemHeight, Font textRenderer, Runnable onRefresh, Set<String> whitelist) {
         super(client, width, height, top, itemHeight);
         this.textRenderer = textRenderer;
         this.onRefresh = onRefresh;
@@ -32,9 +30,9 @@ public class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEn
     public void refresh() {
         this.clearEntries();
         whitelist.stream()
-                .map(id -> Registries.BLOCK.get(Identifier.of(id)))
+                .map(id -> BuiltInRegistries.BLOCK.getValue(Identifier.parse(id)))
                 .filter(Objects::nonNull)
-                .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
+                .sorted(Comparator.comparing(block -> BuiltInRegistries.BLOCK.getKey(block).toString()))
                 .forEach(block -> this.addEntry(new WhitelistEntry(block)));
     }
 
@@ -42,44 +40,44 @@ public class WhitelistWidget extends EntryListWidget<WhitelistWidget.WhitelistEn
     protected int getScrollbarPositionX() { return this.getX() + this.width + 6; }
 
     @Override
-    protected void appendClickableNarrations(net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
-        builder.put(net.minecraft.client.gui.screen.narration.NarrationPart.USAGE, Text.translatable("narration.whitelist.usage"));
+    protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput builder) {
+        builder.add(net.minecraft.client.gui.narration.NarratedElementType.USAGE, Component.translatable("narration.whitelist.usage"));
     }
 
-    public class WhitelistEntry extends EntryListWidget.Entry<WhitelistEntry> {
+    public class WhitelistEntry extends AbstractSelectionList.Entry<WhitelistEntry> {
         private final Identifier blockIdentifier;
-        private final Text blockDisplayName;
-        private final ButtonWidget removeButton;
+        private final Component blockDisplayName;
+        private final Button removeButton;
 
         public WhitelistEntry(Block block) {
-            this.blockIdentifier = Registries.BLOCK.getId(block);
+            this.blockIdentifier = BuiltInRegistries.BLOCK.getKey(block);
             this.blockDisplayName = block.getName();
-            this.removeButton = ButtonWidget.builder(Text.translatable("options.chainveinfabric.remove"),
+            this.removeButton = Button.builder(Component.translatable("options.chainveinfabric.remove"),
                     button -> {
                         whitelist.remove(this.blockIdentifier.toString());
                         ChainveinfabricClient.CONFIG.save();
                         onRefresh.run();
-                    }).dimensions(0, 0, 40, 20).build();
+                    }).bounds(0, 0, 40, 20).build();
         }
 
         @Override
-        public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void renderContent(GuiGraphics context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             int x = getX();
             int y = getY();
             int entryWidth = getWidth();
             int entryHeight = getHeight();
-            Block block = Registries.BLOCK.get(this.blockIdentifier);
+            Block block = BuiltInRegistries.BLOCK.getValue(this.blockIdentifier);
             if (block != null && block.asItem() != null) {
-                context.drawItem(block.asItem().getDefaultStack(), x + 2, y + 2);
+                context.renderItem(block.asItem().getDefaultInstance(), x + 2, y + 2);
             }
-            context.drawTextWithShadow(textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+            context.drawString(textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
             this.removeButton.setX(x + entryWidth - 42);
             this.removeButton.setY(y + (entryHeight - 20) / 2);
             this.removeButton.render(context, mouseX, mouseY, tickDelta);
         }
 
         @Override
-        public boolean mouseClicked(Click click, boolean doubled) {
+        public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
             if (this.removeButton.mouseClicked(click, doubled)) return true;
             return super.mouseClicked(click, doubled);
         }

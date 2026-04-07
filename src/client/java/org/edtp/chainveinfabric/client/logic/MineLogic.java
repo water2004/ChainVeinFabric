@@ -1,13 +1,13 @@
 package org.edtp.chainveinfabric.client.logic;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
@@ -16,37 +16,37 @@ import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 import java.util.List;
 
 public class MineLogic {
-    public static void perform(MinecraftClient client, BlockPos pos, BlockState targetState) {
+    public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
         Direction face = Direction.UP;
-        if (client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit) {
-            face = hit.getSide();
+        if (client.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit) {
+            face = hit.getDirection();
         }
 
         List<BlockPos> toBreak = ChainSearcher.search(client, pos, face, p -> {
-            BlockState s = client.world.getBlockState(p);
-            String id = Registries.BLOCK.getId(s.getBlock()).toString();
+            BlockState s = client.level.getBlockState(p);
+            String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
             if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
-                return s.isOf(targetState.getBlock());
+                return s.is(targetState.getBlock());
             }
             return ChainveinfabricClient.CONFIG.whitelistedBlocks.contains(id);
         });
 
         if (toBreak.isEmpty()) return;
 
-        ItemStack tool = client.player.getMainHandStack();
+        ItemStack tool = client.player.getMainHandItem();
         boolean isCreative = client.player.isCreative();
         
         if (!isCreative) {
             toBreak.removeIf(p -> {
-                BlockState s = client.world.getBlockState(p);
-                return s.getHardness(client.world, p) < 0.0F;
+                BlockState s = client.level.getBlockState(p);
+                return s.getDestroySpeed(client.level, p) < 0.0F;
             });
         }
 
         if (toBreak.isEmpty()) return;
 
         boolean emptyHand = tool.isEmpty();
-        boolean isDamageable = tool.isDamageable();
+        boolean isDamageable = tool.isDamageableItem();
         boolean toolProtection = ChainveinfabricClient.CONFIG.toolProtection;
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
         maxBlocks = isCreative ? maxBlocks : (emptyHand || isDamageable ? maxBlocks : tool.getCount());
@@ -54,7 +54,7 @@ public class MineLogic {
         boolean limitedByDurability = false;
         
         if (!isCreative && toolProtection && isDamageable) {
-            int remainingDurability = tool.getMaxDamage() - tool.getDamage();
+            int remainingDurability = tool.getMaxDamage() - tool.getDamageValue();
             int safeLimit = Math.max(0, remainingDurability - 10);
             if (safeLimit < maxBlocks) {
                 maxBlocks = safeLimit;
@@ -66,7 +66,7 @@ public class MineLogic {
         if (toBreak.size() > maxBlocks) {
             finalBreakList = toBreak.subList(0, maxBlocks);
             if (limitedByDurability) {
-                client.player.sendMessage(Text.translatable("message.chainveinfabric.protection"), true);
+                client.player.displayClientMessage(Component.translatable("message.chainveinfabric.protection"), true);
             }
         }
 
@@ -78,14 +78,14 @@ public class MineLogic {
             for (BlockPos p : finalBreakList) {
                 if (p.equals(pos)) continue;
                 ClientChainHandler.addTask(() -> {
-                    client.getNetworkHandler().sendPacket(new net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket(net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, p, Direction.UP));
-                    client.getNetworkHandler().sendPacket(new net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket(net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, p, Direction.UP));
+                    client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundPlayerActionPacket(net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, p, Direction.UP));
+                    client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundPlayerActionPacket(net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, p, Direction.UP));
                 });
             }
         }
 
         if (finalBreakList.size() > 1) {
-            client.player.sendMessage(Text.translatable("message.chainveinfabric.broken", finalBreakList.size()), true);
+            client.player.displayClientMessage(Component.translatable("message.chainveinfabric.broken", finalBreakList.size()), true);
         }
     }
 }
