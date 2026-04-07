@@ -62,10 +62,15 @@ public class InteractLogic {
         List<BlockPos> targets = ChainSearcher.search(client, pos, face, p -> {
             BlockState s = client.level.getBlockState(p);
             String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
+            
+            if (!ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(id)) {
+                return false;
+            }
+            
             if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
                 return s.is(state.getBlock());
             }
-            return ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(id);
+            return true;
         });
 
         if (targets.size() <= 1) return;

@@ -25,10 +25,15 @@ public class MineLogic {
         List<BlockPos> toBreak = ChainSearcher.search(client, pos, face, p -> {
             BlockState s = client.level.getBlockState(p);
             String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
+            
+            if (!ChainveinfabricClient.CONFIG.whitelistedBlocks.contains(id)) {
+                return false;
+            }
+            
             if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
                 return s.is(targetState.getBlock());
             }
-            return ChainveinfabricClient.CONFIG.whitelistedBlocks.contains(id);
+            return true;
         });
 
         if (toBreak.isEmpty()) return;
