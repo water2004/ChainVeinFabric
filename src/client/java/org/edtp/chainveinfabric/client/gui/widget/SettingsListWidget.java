@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
@@ -58,13 +58,13 @@ public class SettingsListWidget extends AbstractSelectionList<SettingsListWidget
         }
 
         @Override
-        public void renderContent(GuiGraphics context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void extractContent(GuiGraphicsExtractor context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             int x = getX();
             int y = getY();
             int entryWidth = getWidth();
             int entryHeight = getHeight();
             
-            context.drawString(textRenderer, label, x, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+            context.text(textRenderer, label, x, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
             
             int currentX = x + entryWidth;
             for (int i = widgets.size() - 1; i >= 0; i--) {
@@ -72,7 +72,7 @@ public class SettingsListWidget extends AbstractSelectionList<SettingsListWidget
                 currentX -= widget.getWidth();
                 widget.setX(currentX);
                 widget.setY(y);
-                widget.render(context, mouseX, mouseY, tickDelta);
+                widget.extractRenderState(context, mouseX, mouseY, tickDelta);
                 currentX -= 5; // Gap
             }
         }

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -29,18 +29,18 @@ public class DropdownWidget<T> extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         
         context.fill(x, y, x + width, y + height, 0xFF000000);
         drawRectBorder(context, x, y, width, height, 0xFFFFFFFF);
         
-        context.drawString(textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
-        context.drawString(textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
+        context.text(textRenderer, textGetter.apply(selected), x + 5, y + (height - 8) / 2, 0xFFFFFFFF);
+        context.text(textRenderer, expanded ? "▲" : "▼", x + width - 15, y + (height - 8) / 2, 0xFFFFFFFF);
     }
 
-    public void renderOverlay(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    public void renderOverlay(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         if (!expanded) return;
         
         int x = getX();
@@ -50,12 +50,12 @@ public class DropdownWidget<T> extends AbstractWidget {
             boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= optionY && mouseY < optionY + height;
             context.fill(x, optionY, x + width, optionY + height, hovered ? 0xFF444444 : 0xFF222222);
             drawRectBorder(context, x, optionY, width, height, 0xFF888888);
-            context.drawString(textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
+            context.text(textRenderer, textGetter.apply(value), x + 5, optionY + (height - 8) / 2, 0xFFFFFFFF);
             optionY += height;
         }
     }
 
-    private void drawRectBorder(GuiGraphics context, int x, int y, int width, int height, int color) {
+    private void drawRectBorder(GuiGraphicsExtractor context, int x, int y, int width, int height, int color) {
         context.fill(x, y, x + width, y + 1, color);
         context.fill(x, y + height - 1, x + width, y + height, color);
         context.fill(x, y, x + 1, y + height, color);

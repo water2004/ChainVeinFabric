@@ -71,7 +71,7 @@ public class MineLogic {
         if (toBreak.size() > maxBlocks) {
             finalBreakList = toBreak.subList(0, maxBlocks);
             if (limitedByDurability) {
-                client.player.displayClientMessage(Component.translatable("message.chainveinfabric.protection"), true);
+                client.gui.setOverlayMessage(Component.translatable("message.chainveinfabric.protection"), false);
             }
         }
 
@@ -90,7 +90,7 @@ public class MineLogic {
         }
 
         if (finalBreakList.size() > 1) {
-            client.player.displayClientMessage(Component.translatable("message.chainveinfabric.broken", finalBreakList.size()), true);
+            client.gui.setOverlayMessage(Component.translatable("message.chainveinfabric.broken", finalBreakList.size()), false);
         }
     }
 }

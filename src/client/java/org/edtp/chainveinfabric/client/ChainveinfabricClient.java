@@ -3,7 +3,7 @@ package org.edtp.chainveinfabric.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -25,7 +25,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         CONFIG = ChainVeinConfig.load();
         
-        configKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        configKeyBinding = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.chainveinfabric.config",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_V,
@@ -44,7 +44,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
             if (CONFIG != null && CONFIG.isChainVeinEnabled) {
                 Component activeText = Component.translatable("hud.chainveinfabric.active");
                 int width = context.guiWidth();
-                context.drawCenteredString(
+                context.centeredText(
                         Minecraft.getInstance().font,
                         activeText,
                         width / 2,

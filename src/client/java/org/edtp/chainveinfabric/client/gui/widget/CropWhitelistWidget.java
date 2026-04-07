@@ -5,7 +5,7 @@ import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import java.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -49,7 +49,7 @@ public class CropWhitelistWidget extends AbstractSelectionList<CropWhitelistWidg
 
         public CropWhitelistEntry(Item item) {
             this.itemIdentifier = BuiltInRegistries.ITEM.getKey(item);
-            this.itemDisplayName = item.getName();
+            this.itemDisplayName = net.minecraft.network.chat.Component.translatable(item.getDescriptionId());
             this.removeButton = Button.builder(Component.translatable("options.chainveinfabric.remove"),
                     button -> {
                         ChainveinfabricClient.CONFIG.whitelistedCrops.remove(this.itemIdentifier.toString());
@@ -59,19 +59,19 @@ public class CropWhitelistWidget extends AbstractSelectionList<CropWhitelistWidg
         }
 
         @Override
-        public void renderContent(GuiGraphics context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void extractContent(GuiGraphicsExtractor context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             int x = getX();
             int y = getY();
             int entryWidth = getWidth();
             int entryHeight = getHeight();
             Item item = BuiltInRegistries.ITEM.getValue(this.itemIdentifier);
             if (item != null) {
-                context.renderItem(item.getDefaultInstance(), x + 2, y + 2);
+                context.item(item.getDefaultInstance(), x + 2, y + 2);
             }
-            context.drawString(textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+            context.text(textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
             this.removeButton.setX(x + entryWidth - 42);
             this.removeButton.setY(y + (entryHeight - 20) / 2);
-            this.removeButton.render(context, mouseX, mouseY, tickDelta);
+            this.removeButton.extractRenderState(context, mouseX, mouseY, tickDelta);
         }
 
         @Override

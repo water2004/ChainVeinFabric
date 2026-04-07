@@ -3,7 +3,7 @@ package org.edtp.chainveinfabric.client.gui.widget;
 //import net.minecraft.block.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -90,7 +90,7 @@ public class ItemListWidget extends AbstractSelectionList<ItemListWidget.ItemEnt
 
         public ItemEntry(Item item) {
             this.itemIdentifier = BuiltInRegistries.ITEM.getKey(item);
-            this.itemDisplayName = item.getName();
+            this.itemDisplayName = net.minecraft.network.chat.Component.translatable(item.getDescriptionId());
             this.addButton = Button.builder(Component.translatable("options.chainveinfabric.add"),
                     button -> {
                         ChainveinfabricClient.CONFIG.whitelistedCrops.add(this.itemIdentifier.toString());
@@ -100,19 +100,19 @@ public class ItemListWidget extends AbstractSelectionList<ItemListWidget.ItemEnt
         }
 
         @Override
-        public void renderContent(GuiGraphics context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void extractContent(GuiGraphicsExtractor context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             int x = getX();
             int y = getY();
             int entryWidth = getWidth();
             int entryHeight = getHeight();
             Item item = BuiltInRegistries.ITEM.getValue(this.itemIdentifier);
             if (item != null) {
-                context.renderItem(item.getDefaultInstance(), x + 2, y + 2);
+                context.item(item.getDefaultInstance(), x + 2, y + 2);
             }
-            context.drawString(textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+            context.text(textRenderer, this.itemDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
             this.addButton.setX(x + entryWidth - 42);
             this.addButton.setY(y + (entryHeight - 20) / 2);
-            this.addButton.render(context, mouseX, mouseY, tickDelta);
+            this.addButton.extractRenderState(context, mouseX, mouseY, tickDelta);
         }
 
         @Override

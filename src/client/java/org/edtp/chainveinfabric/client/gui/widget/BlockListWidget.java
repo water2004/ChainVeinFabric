@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -70,19 +70,19 @@ public class BlockListWidget extends AbstractSelectionList<BlockListWidget.Block
         }
 
         @Override
-        public void renderContent(GuiGraphics context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
+        public void extractContent(GuiGraphicsExtractor context, int mouseX, int mouseY, boolean hovered, float tickDelta) {
             int x = getX();
             int y = getY();
             int entryWidth = getWidth();
             int entryHeight = getHeight();
             Block block = BuiltInRegistries.BLOCK.getValue(this.blockIdentifier);
             if (block != null && block.asItem() != null) {
-                context.renderItem(block.asItem().getDefaultInstance(), x + 2, y + 2);
+                context.item(block.asItem().getDefaultInstance(), x + 2, y + 2);
             }
-            context.drawString(textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+            context.text(textRenderer, this.blockDisplayName, x + 24, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
             this.addButton.setX(x + entryWidth - 42);
             this.addButton.setY(y + (entryHeight - 20) / 2);
-            this.addButton.render(context, mouseX, mouseY, tickDelta);
+            this.addButton.extractRenderState(context, mouseX, mouseY, tickDelta);
         }
 
         @Override

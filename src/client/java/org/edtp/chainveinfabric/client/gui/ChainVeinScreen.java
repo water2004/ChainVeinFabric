@@ -2,7 +2,7 @@ package org.edtp.chainveinfabric.client.gui;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -133,7 +133,8 @@ public class ChainVeinScreen extends Screen {
     private EditBox createNumBox(int width, int initialValue, Consumer<Integer> onUpdate) {
         EditBox box = new EditBox(font, 0, 0, width, 20, Component.empty());
         box.setValue(String.valueOf(initialValue));
-        box.setFilter(text -> text.isEmpty() || text.matches("^-?[0-9]*$"));
+        // 移除旧版本 setFilter，如果需要过滤可使用 setResponder 做内容重置，此处可以直接不限制
+
         box.setResponder(text -> {
             if (!text.isEmpty() && !text.equals("-")) {
                 try { 
@@ -289,26 +290,26 @@ public class ChainVeinScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        this.renderTransparentBackground(context);
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        this.extractTransparentBackground(context);
+        super.extractRenderState(context, mouseX, mouseY, delta);
         int centerX = width / 2;
         int topY = 40;
 
         if (currentTab == Tab.BASIC) {
-            searchBox.render(context, mouseX, mouseY, delta);
+            searchBox.extractRenderState(context, mouseX, mouseY, delta);
             String allText = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT ? "options.chainveinfabric.allCrops" : "options.chainveinfabric.allBlocks";
             String whitelistText = switch (ChainveinfabricClient.CONFIG.mode) {
                 case CHAIN_MINE -> "options.chainveinfabric.whitelist";
                 case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
                 case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
             };
-            context.drawString(font, Component.translatable(allText), centerX - 210, topY + 55, 0xFFFFFFFF);
-            context.drawString(font, Component.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
+            context.text(font, Component.translatable(allText), centerX - 210, topY + 55, 0xFFFFFFFF);
+            context.text(font, Component.translatable(whitelistText), centerX + 10, topY + 55, 0xFFFFFFFF);
             int labelX = centerX + 150 - font.width(chainVeinLabel) - 10;
-            context.drawString(font, chainVeinLabel, labelX, topY + (20 - font.lineHeight) / 2, 0xFFFFFFFF);
+            context.text(font, chainVeinLabel, labelX, topY + (20 - font.lineHeight) / 2, 0xFFFFFFFF);
             if (modeDropdown != null) {
-                modeDropdown.render(context, mouseX, mouseY, delta);
+                modeDropdown.extractRenderState(context, mouseX, mouseY, delta);
                 modeDropdown.renderOverlay(context, mouseX, mouseY, delta);
             }
         } else {

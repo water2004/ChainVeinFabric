@@ -100,7 +100,7 @@ public class InteractLogic {
         List<BlockPos> finalSubList = targets.subList(0, count);
 
         if (limitedByDurability && targets.size() > available) {
-            client.player.displayClientMessage(Component.translatable("message.chainveinfabric.protection"), true);
+            client.gui.setOverlayMessage(Component.translatable("message.chainveinfabric.protection"), false);
         }
 
         if (ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID)) {
@@ -116,7 +116,7 @@ public class InteractLogic {
         }
 
         if (finalSubList.size() > 1) {
-            client.player.displayClientMessage(Component.translatable(translationKey, finalSubList.size()), true);
+            client.gui.setOverlayMessage(Component.translatable(translationKey, finalSubList.size()), false);
         }
     }
 }
