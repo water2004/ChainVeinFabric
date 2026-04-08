@@ -43,6 +43,13 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     public GuiChainVein() {
         super(10, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
         ConfigProxies.load(); // Load proxy values on launch
+        ConfigProxies.ALGO.setValueChangeCallback((config) -> {
+            boolean isAdvance = this.currentTab == Tab.SETTINGS;
+            if (isAdvance) {
+                this.reCreateListWidget();
+                this.initGui();
+            }
+        });
     }
 
     @Override
@@ -55,10 +62,36 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
     @Override
     public List<fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper> getConfigs() {
-        List<fi.dy.masa.malilib.config.IConfigBase> configs = Arrays.asList(
-            ConfigProxies.MODE, ConfigProxies.ALGO, ConfigProxies.MAX_BLOCKS, 
-            ConfigProxies.MAX_RADIUS, ConfigProxies.DIRECT_INV, ConfigProxies.TOOL_PROT
-        );
+        java.util.List<fi.dy.masa.malilib.config.IConfigBase> configs = new java.util.ArrayList<>();
+        configs.add(ConfigProxies.MODE);
+        configs.add(ConfigProxies.ALGO);
+        
+        switch ((ConfigProxies.MAlgo) ConfigProxies.ALGO.getOptionListValue()) {
+            case SPHERE:
+                configs.add(ConfigProxies.SPHERE_RADIUS);
+                break;
+            case SQUARE:
+                configs.add(ConfigProxies.SQUARE_LENGTH);
+                configs.add(ConfigProxies.SQUARE_POINT);
+                break;
+            case CUBOID:
+                configs.add(ConfigProxies.CUBOID_L);
+                configs.add(ConfigProxies.CUBOID_W);
+                configs.add(ConfigProxies.CUBOID_H);
+                configs.add(ConfigProxies.CUBOID_POINT);
+                break;
+            default:
+                break;
+        }
+
+        configs.add(ConfigProxies.MAX_BLOCKS);
+        configs.add(ConfigProxies.MAX_RADIUS);
+        configs.add(ConfigProxies.DIRECT_INV);
+        configs.add(ConfigProxies.TOOL_PROT);
+        configs.add(ConfigProxies.DIAG_EDGE);
+        configs.add(ConfigProxies.DIAG_CORNER);
+        configs.add(ConfigProxies.PACKET_INV);
+
         return fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper.createFor(configs);
     }
 
