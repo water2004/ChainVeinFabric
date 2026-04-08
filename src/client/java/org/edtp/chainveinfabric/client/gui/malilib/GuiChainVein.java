@@ -63,7 +63,6 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     @Override
     public List<fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper> getConfigs() {
         java.util.List<fi.dy.masa.malilib.config.IConfigBase> configs = new java.util.ArrayList<>();
-        configs.add(ConfigProxies.MODE);
         configs.add(ConfigProxies.ALGO);
         
         switch ((ConfigProxies.MAlgo) ConfigProxies.ALGO.getOptionListValue()) {

@@ -31,8 +31,6 @@ public class ConfigProxies {
         @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
         @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return CENTER; } }
     }
-
-    public static final ConfigOptionList MODE = new ConfigOptionList("options.chainveinfabric.mode", MMode.CHAIN_MINE, "");
     public static final ConfigOptionList ALGO = new ConfigOptionList("options.chainveinfabric.searchAlgorithm", MAlgo.ADJACENT_SAME, "");
     
     public static final ConfigInteger MAX_BLOCKS = new ConfigInteger("options.chainveinfabric.maxBlocks", 64, 1, 2048, "");
@@ -53,7 +51,6 @@ public class ConfigProxies {
     
     public static void load() {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        MODE.setOptionListValue(MMode.valueOf(config.mode.name()));
         ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
         MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
         MAX_RADIUS.setIntegerValue(config.maxRadius);
@@ -73,7 +70,6 @@ public class ConfigProxies {
     
     public static void save() {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        config.mode = ChainVeinConfig.ChainMode.valueOf(((MMode)MODE.getOptionListValue()).name());
         config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.valueOf(((MAlgo)ALGO.getOptionListValue()).name());
         config.maxChainBlocks = MAX_BLOCKS.getIntegerValue();
         config.maxRadius = MAX_RADIUS.getIntegerValue();
