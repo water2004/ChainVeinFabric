@@ -23,7 +23,14 @@ public class ConfigProxies {
         @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
         @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return ADJACENT_SAME; } }
     }
-    public enum MMiningPoint implements IConfigOptionListEntry {
+    public enum MSquareMiningPoint implements IConfigOptionListEntry {
+        CENTER, FRONT_TOP_LEFT, FRONT_TOP_RIGHT, BACK_BOTTOM_LEFT, BACK_BOTTOM_RIGHT;
+        @Override public String getStringValue() { return this.name(); }
+        @Override public String getDisplayName() { return StringUtils.translate("options.chainveinfabric.miningPoint." + this.name().toLowerCase()); }
+        @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
+        @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return CENTER; } }
+    }
+    public enum MCuboidMiningPoint implements IConfigOptionListEntry {
         CENTER, FRONT_TOP_LEFT, FRONT_TOP_RIGHT, FRONT_BOTTOM_LEFT, FRONT_BOTTOM_RIGHT,
         BACK_TOP_LEFT, BACK_TOP_RIGHT, BACK_BOTTOM_LEFT, BACK_BOTTOM_RIGHT;
         @Override public String getStringValue() { return this.name(); }
@@ -37,11 +44,11 @@ public class ConfigProxies {
     public static final ConfigInteger MAX_RADIUS = new ConfigInteger("options.chainveinfabric.maxRadius", 6, 1, 100, "");
     public static final ConfigInteger SPHERE_RADIUS = new ConfigInteger("options.chainveinfabric.sphereRadius", 3, 1, 100, "");
     public static final ConfigInteger SQUARE_LENGTH = new ConfigInteger("options.chainveinfabric.squareLength", 3, 1, 100, "");
-    public static final ConfigOptionList SQUARE_POINT = new ConfigOptionList("options.chainveinfabric.miningPoint", MMiningPoint.CENTER, "");
+    public static final ConfigOptionList SQUARE_POINT = new ConfigOptionList("options.chainveinfabric.miningPoint", MSquareMiningPoint.CENTER, "");
     public static final ConfigInteger CUBOID_L = new ConfigInteger("options.chainveinfabric.cuboidL", 3, 1, 100, "");
     public static final ConfigInteger CUBOID_W = new ConfigInteger("options.chainveinfabric.cuboidW", 3, 1, 100, "");
     public static final ConfigInteger CUBOID_H = new ConfigInteger("options.chainveinfabric.cuboidH", 3, 1, 100, "");
-    public static final ConfigOptionList CUBOID_POINT = new ConfigOptionList("options.chainveinfabric.miningPoint", MMiningPoint.CENTER, "");
+    public static final ConfigOptionList CUBOID_POINT = new ConfigOptionList("options.chainveinfabric.miningPoint", MCuboidMiningPoint.CENTER, "");
     
     public static final ConfigBoolean DIRECT_INV = new ConfigBoolean("options.chainveinfabric.directToInventory", false, "");
     public static final ConfigBoolean TOOL_PROT = new ConfigBoolean("options.chainveinfabric.toolProtection", false, "");
@@ -56,11 +63,19 @@ public class ConfigProxies {
         MAX_RADIUS.setIntegerValue(config.maxRadius);
         SPHERE_RADIUS.setIntegerValue(config.sphereRadius);
         SQUARE_LENGTH.setIntegerValue(config.squareLength);
-        SQUARE_POINT.setOptionListValue(MMiningPoint.valueOf(config.squareMiningPoint.name()));
+        try {
+            SQUARE_POINT.setOptionListValue(MSquareMiningPoint.valueOf(config.squareMiningPoint.name()));
+        } catch (Exception e) {
+            SQUARE_POINT.setOptionListValue(MSquareMiningPoint.CENTER);
+        }
         CUBOID_L.setIntegerValue(config.cuboidL);
         CUBOID_W.setIntegerValue(config.cuboidW);
         CUBOID_H.setIntegerValue(config.cuboidH);
-        CUBOID_POINT.setOptionListValue(MMiningPoint.valueOf(config.cuboidMiningPoint.name()));
+        try {
+            CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.valueOf(config.cuboidMiningPoint.name()));
+        } catch (Exception e) {
+            CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
+        }
         DIRECT_INV.setBooleanValue(config.directToInventory);
         TOOL_PROT.setBooleanValue(config.toolProtection);
         DIAG_EDGE.setBooleanValue(config.diagonalEdge);
@@ -75,11 +90,11 @@ public class ConfigProxies {
         config.maxRadius = MAX_RADIUS.getIntegerValue();
         config.sphereRadius = SPHERE_RADIUS.getIntegerValue();
         config.squareLength = SQUARE_LENGTH.getIntegerValue();
-        config.squareMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MMiningPoint)SQUARE_POINT.getOptionListValue()).name());
+        config.squareMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MSquareMiningPoint)SQUARE_POINT.getOptionListValue()).name());
         config.cuboidL = CUBOID_L.getIntegerValue();
         config.cuboidW = CUBOID_W.getIntegerValue();
         config.cuboidH = CUBOID_H.getIntegerValue();
-        config.cuboidMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MMiningPoint)CUBOID_POINT.getOptionListValue()).name());
+        config.cuboidMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MCuboidMiningPoint)CUBOID_POINT.getOptionListValue()).name());
         config.directToInventory = DIRECT_INV.getBooleanValue();
         config.toolProtection = TOOL_PROT.getBooleanValue();
         config.diagonalEdge = DIAG_EDGE.getBooleanValue();
