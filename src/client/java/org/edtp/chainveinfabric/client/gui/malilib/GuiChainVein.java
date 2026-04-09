@@ -36,6 +36,37 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     private enum Tab { BASIC, SETTINGS }
 
     private Tab currentTab = Tab.BASIC;
+    private final List<IDropdown> activeDropdowns = new ArrayList<>();
+    public static abstract class MyDropdown<T> extends fi.dy.masa.malilib.gui.widgets.WidgetDropDownList<T> implements IDropdown {
+        private long lastDrawn;
+        public MyDropdown(int x, int y, int width, int height, int maxHeight, int maxVisibleEntries, java.util.List<T> entries, fi.dy.masa.malilib.interfaces.IStringRetriever<T> stringRetriever) {
+            super(x, y, width, height, maxHeight, maxVisibleEntries, entries, stringRetriever);
+        }
+        @Override public boolean isMenuOpen() { return this.isOpen; }
+        @Override public void setLastDrawn(long t) { this.lastDrawn = t; }
+        @Override public long getLastDrawn() { return this.lastDrawn; }
+        @Override public boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) { return this.onMouseClicked(click, doubleClick); }
+        @Override public void render(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected) {
+            boolean wasOpen = this.isOpen;
+            this.isOpen = false;
+            super.render(ctx, mouseX, mouseY, selected);
+            this.isOpen = wasOpen;
+            this.setLastDrawn(System.currentTimeMillis());
+        }
+        @Override public void handleRender(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected) {
+            boolean wasOpen = this.isOpen;
+            this.isOpen = true;
+            super.render(ctx, mouseX, mouseY, selected);
+            this.isOpen = wasOpen;
+        }
+    }
+    public interface IDropdown {
+        boolean isMenuOpen();
+        void setLastDrawn(long time);
+        long getLastDrawn();
+        boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick);
+        void handleRender(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected);
+    }
     private WidgetChainList leftList;
     private WidgetChainList rightList;
     private WidgetSearchBar searchBar;
@@ -57,7 +88,93 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         if (this.currentTab == Tab.BASIC) {
             return null;
         }
-        return super.createListWidget(listX, listY);
+        return new fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions(listX, listY, 
+            this.getBrowserWidth(), this.getBrowserHeight(), this.getConfigWidth(), 0.f, this.useKeybindSearch(), this) {
+            
+            @Override
+            protected fi.dy.masa.malilib.gui.widgets.WidgetConfigOption createListEntryWidget(int x, int y, int listIndex, boolean isOdd, ConfigOptionWrapper wrapper) {
+                return new DropdownConfigOption(x, y, this.browserEntryWidth, this.browserEntryHeight,
+                    this.maxLabelWidth, this.configWidth, wrapper, listIndex, GuiChainVein.this, this);
+            }
+        };
+    }
+
+    private static class DropdownConfigOption extends fi.dy.masa.malilib.gui.widgets.WidgetConfigOption {
+        public DropdownConfigOption(int x, int y, int width, int height, int labelWidth, int configWidth,
+            fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper wrapper, int listIndex, 
+            fi.dy.masa.malilib.gui.interfaces.IKeybindConfigGui host, fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase<?, ?> parent) {
+            super(x, y, width, height, labelWidth, configWidth, wrapper, listIndex, host, parent);
+        }
+
+        @Override
+        protected void addConfigOption(int x, int y, int labelWidth, int configWidth, fi.dy.masa.malilib.config.IConfigBase config) {
+            if (config.getType() == fi.dy.masa.malilib.config.ConfigType.OPTION_LIST) {
+                fi.dy.masa.malilib.config.IConfigOptionList optionList = (fi.dy.masa.malilib.config.IConfigOptionList) config;
+                fi.dy.masa.malilib.config.IConfigResettable resettable = (fi.dy.masa.malilib.config.IConfigResettable) config;
+                
+                y += 1;
+                int configHeight = 20;
+
+                String configName = config.getConfigGuiDisplayName();
+                this.addLabel(x, y + 7, labelWidth, 8, 0xFFFFFFFF, configName);
+
+                String comment;
+                fi.dy.masa.malilib.gui.interfaces.IConfigInfoProvider infoProvider = this.host.getHoverInfoProvider();
+
+                if (infoProvider != null) {
+                    comment = infoProvider.getHoverInfo(config);
+                } else {
+                    comment = config.getComment();
+                }
+
+                if (comment != null) {
+                    this.addWidget(new fi.dy.masa.malilib.gui.widgets.WidgetHoverInfo(x, y + 5, labelWidth, 12, comment));
+                }
+
+                x += labelWidth + 10;
+                
+                java.util.List<fi.dy.masa.malilib.config.IConfigOptionListEntry> entries = new java.util.ArrayList<>();
+                fi.dy.masa.malilib.config.IConfigOptionListEntry current = optionList.getOptionListValue();
+                fi.dy.masa.malilib.config.IConfigOptionListEntry iter = current;
+                if (iter != null) {
+                    do {
+                        entries.add(iter);
+                        iter = iter.cycle(true);
+                    } while (iter != current && iter != null && entries.size() < 100);
+                }
+                
+                fi.dy.masa.malilib.gui.button.ButtonGeneric resetButton = this.createResetButton(x + configWidth + 2, y, resettable);
+                
+                MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry> dropdown = 
+                    new MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry>(
+                        x, y, configWidth, configHeight, 200, 5, entries,
+                        entry -> entry.getDisplayName()
+                    ) {
+                        @Override
+                        protected void setSelectedEntry(int index) {
+                            super.setSelectedEntry(index);
+                            if (this.getSelectedEntry() != null) {
+                                optionList.setOptionListValue(this.getSelectedEntry());
+                                resetButton.setEnabled(resettable.isModified());
+                            }
+                        }
+                    };
+                ((GuiChainVein)this.host).activeDropdowns.add(dropdown);
+                dropdown.setSelectedEntry(current);
+                
+                fi.dy.masa.malilib.gui.button.IButtonActionListener resetListener = (button, mouseButton) -> {
+                    resettable.resetToDefault();
+                    dropdown.setSelectedEntry(optionList.getOptionListValue());
+                    resetButton.setEnabled(resettable.isModified());
+                };
+                
+                this.addWidget(dropdown);
+                this.addButton(resetButton, resetListener);
+                
+            } else {
+                super.addConfigOption(x, y, labelWidth, configWidth, config);
+            }
+        }
     }
 
     @Override
@@ -124,16 +241,25 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     private void initBasicTab(int centerX, int topY) {
-        // Mode dropdown (using malilib cycle button from proxy config, or dropdown)
-        // Let's use ButtonGeneric to cycle mode, just like tweakeroo OptionList
-        ButtonGeneric modeBtn = new ButtonGeneric(centerX - 210, topY, 150, 20, getModeString());
-        this.addButton(modeBtn, (button, mb) -> {
-            ChainveinfabricClient.CONFIG.mode = ChainVeinConfig.ChainMode.values()[
-                (ChainveinfabricClient.CONFIG.mode.ordinal() + 1) % ChainVeinConfig.ChainMode.values().length];
-            ChainveinfabricClient.CONFIG.save();
-            button.setDisplayString(getModeString());
-            refreshLists();
-        });
+        // Mode dropdown (using malilib WidgetDropDownList)
+        List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
+        MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
+            centerX - 210, topY, 150, 20, 200, 5, modes, this::getModeString
+        ) {
+            @Override
+            protected void setSelectedEntry(int index) {
+                super.setSelectedEntry(index);
+                ChainVeinConfig.ChainMode selected = this.getSelectedEntry();
+                if (selected != null && ChainveinfabricClient.CONFIG.mode != selected) {
+                    ChainveinfabricClient.CONFIG.mode = selected;
+                    ChainveinfabricClient.CONFIG.save();
+                    refreshLists();
+                }
+            }
+        };
+        this.activeDropdowns.add(modeDropdown);
+        modeDropdown.setSelectedEntry(ChainveinfabricClient.CONFIG.mode);
+        this.addWidget(modeDropdown);
 
         // Toggle enabled
         ButtonGeneric toggleBtn = new ButtonGeneric(centerX + 150, topY, 60, 20, getToggleString());
@@ -162,7 +288,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    public void drawContents(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+    public void drawContents(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(ctx, mouseX, mouseY, partialTicks);
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
@@ -173,10 +299,26 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             this.drawString(ctx, "Available", this.width / 2 - 210, 105 - 12, 0xFFFFFF);
             this.drawString(ctx, "Whitelisted", this.width / 2 + 10, 105 - 12, 0xFFFFFF);
         }
+
+        // Post-render open dropdowns so they appear on top of all lists/content
+        for (IDropdown dd : this.activeDropdowns) {
+            if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
+                // Draw normally, our override injected inside handleRender automatically enforces isOpen=true.
+                boolean selected = ((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver(mouseX, mouseY);
+                dd.handleRender(ctx, mouseX, mouseY, selected);
+            }
+        }
     }
 
     @Override
     public boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) {
+        for (IDropdown dd : this.activeDropdowns) {
+            if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
+                if (((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver((int)click.x(), (int)click.y())) {
+                    return dd.handleMouseClicked(click, doubleClick);
+                }
+            }
+        }
         if (super.onMouseClicked(click, doubleClick)) return true;
         if (currentTab == Tab.BASIC) {
             if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
@@ -198,6 +340,13 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     
     @Override
     public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        for (IDropdown dd : this.activeDropdowns) {
+            if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
+                if (((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver((int)mouseX, (int)mouseY)) {
+                    return ((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+                }
+            }
+        }
         if (super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) return true;
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null && this.leftList.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) return true;
@@ -242,7 +391,11 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
     
     private String getModeString() {
-        return StringUtils.translate("options.chainveinfabric.mode." + ChainveinfabricClient.CONFIG.mode.name().toLowerCase().replace("chain_", ""));
+        return getModeString(ChainveinfabricClient.CONFIG.mode);
+    }
+    
+    private String getModeString(ChainVeinConfig.ChainMode mode) {
+        return StringUtils.translate("options.chainveinfabric.mode." + mode.name().toLowerCase().replace("chain_", ""));
     }
     
     private String getToggleString() {
