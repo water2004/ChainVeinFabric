@@ -45,7 +45,39 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         @Override public boolean isMenuOpen() { return this.isOpen; }
         @Override public void setLastDrawn(long t) { this.lastDrawn = t; }
         @Override public long getLastDrawn() { return this.lastDrawn; }
-        @Override public boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) { return this.onMouseClicked(click, doubleClick); }
+
+        @Override public boolean isMouseOver(int mouseX, int mouseY) {
+            if (this.isOpen) {
+                int visible = fi.dy.masa.malilib.util.MathUtils.min(this.maxVisibleEntries, this.filteredEntries.size());
+                int dropHeight = this.height + (visible * this.height) + 4;
+                return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + dropHeight;
+            }
+            return super.isMouseOver(mouseX, mouseY);
+        }
+
+        @Override public boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) {
+            double clickY = click.y();
+            if (this.isOpen && clickY > this.y + this.height) {
+                int visible = fi.dy.masa.malilib.util.MathUtils.min(this.maxVisibleEntries, this.filteredEntries.size());
+                int dropHeight = this.height + (visible * this.height) + 4;
+                
+                if (click.x() >= this.x && click.x() < this.x + this.width && clickY >= this.y && clickY < this.y + dropHeight) {
+                    if (click.x() < this.x + this.width - this.scrollbarWidth) {
+                        int relIndex = (int)((clickY - this.y - this.height - 1) / this.height);
+                        relIndex = fi.dy.masa.malilib.util.MathUtils.clamp(relIndex, 0, visible - 1);
+                        this.setSelectedEntry(this.scrollBar.getValue() + relIndex);
+                        this.isOpen = false;
+                        if (this.searchBar != null && this.searchBar.textField() != null) {
+                            this.searchBar.textField().setValue("");
+                        }
+                        this.updateFilteredEntries();
+                        return true;
+                    }
+                }
+            }
+            return this.onMouseClicked(click, doubleClick); 
+        }
+
         @Override public void render(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected) {
             boolean wasOpen = this.isOpen;
             this.isOpen = false;
