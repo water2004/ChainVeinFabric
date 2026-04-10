@@ -18,6 +18,9 @@
     ],
     "main": [
       "org.edtp.chainveinfabric.Chainveinfabric"
+    ],
+    "modmenu": [
+      "org.edtp.chainveinfabric.client.compat.modmenu.ModMenuImpl"
     ]
   },
   "mixins": [
