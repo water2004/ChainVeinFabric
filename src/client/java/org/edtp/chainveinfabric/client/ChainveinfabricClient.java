@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig; // Corrected import
-import org.edtp.chainveinfabric.client.gui.ChainVeinScreen;
+import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 import org.lwjgl.glfw.GLFW;
 
@@ -34,7 +34,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (configKeyBinding.consumeClick()) {
-                client.setScreen(new ChainVeinScreen());
+                client.setScreen(new GuiChainVein());
             }
             ClientChainHandler.onTick(client);
         });

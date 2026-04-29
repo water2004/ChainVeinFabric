@@ -18,6 +18,9 @@
     ],
     "main": [
       "org.edtp.chainveinfabric.Chainveinfabric"
+    ],
+    "modmenu": [
+      "org.edtp.chainveinfabric.client.compat.modmenu.ModMenuImpl"
     ]
   },
   "mixins": [
@@ -30,6 +33,7 @@
   "depends": {
     "fabricloader": ">=0.18.0",
     "fabric-api": "*",
-    "minecraft": "${minecraft_version}"
+    "minecraft": "${minecraft_version}",
+    "malilib": "*"
   }
 }
