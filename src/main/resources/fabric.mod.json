@@ -33,7 +33,7 @@
   "depends": {
     "fabricloader": ">=0.18.0",
     "fabric-api": "*",
-    "minecraft": "${minecraft_version}",
+    "minecraft": ">=${minecraft_version}",
     "malilib": "*"
   }
 }
