@@ -9,13 +9,6 @@ import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import fi.dy.masa.malilib.util.StringUtils;
 
 public class ConfigProxies {
-    public enum MMode implements IConfigOptionListEntry {
-        CHAIN_MINE, CHAIN_PLANT, CHAIN_UTILITY;
-        @Override public String getStringValue() { return this.name(); }
-        @Override public String getDisplayName() { return StringUtils.translate("options.chainveinfabric.mode." + this.name().toLowerCase().replace("chain_", "")); }
-        @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
-        @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return CHAIN_MINE; } }
-    }
     public enum MAlgo implements IConfigOptionListEntry {
         ADJACENT_SAME, ADJACENT_WHITELIST, SPHERE, SQUARE, CUBOID;
         @Override public String getStringValue() { return this.name(); }
@@ -39,7 +32,6 @@ public class ConfigProxies {
         @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return CENTER; } }
     }
 
-    public static final ConfigOptionList MODE = new ConfigOptionList("options.chainveinfabric.mode", MMode.CHAIN_MINE, "");
     public static final ConfigOptionList ALGO = new ConfigOptionList("options.chainveinfabric.searchAlgorithm", MAlgo.ADJACENT_SAME, "");
 
     public static final ConfigInteger MAX_BLOCKS = new ConfigInteger("options.chainveinfabric.maxBlocks", 64, 1, 2048, "");
@@ -81,7 +73,6 @@ public class ConfigProxies {
         loading = true;
         try {
             ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-            MODE.setOptionListValue(MMode.valueOf(config.mode.name()));
             ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
             MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
             MAX_RADIUS.setIntegerValue(config.maxRadius);
