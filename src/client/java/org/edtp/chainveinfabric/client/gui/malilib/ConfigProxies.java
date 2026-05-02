@@ -58,37 +58,60 @@ public class ConfigProxies {
     public static final ConfigBoolean DIAG_CORNER = new ConfigBoolean("options.chainveinfabric.diagonalCorner", false, "");
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
 
+    private static boolean loading = false;
+
+    static {
+        MAX_BLOCKS.setValueChangeCallback(c -> { if (!loading) save(); });
+        MAX_RADIUS.setValueChangeCallback(c -> { if (!loading) save(); });
+        SPHERE_RADIUS.setValueChangeCallback(c -> { if (!loading) save(); });
+        SQUARE_LENGTH.setValueChangeCallback(c -> { if (!loading) save(); });
+        SQUARE_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_L.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_W.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_H.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
+        DIRECT_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+        TOOL_PROT.setValueChangeCallback(c -> { if (!loading) save(); });
+        DIAG_EDGE.setValueChangeCallback(c -> { if (!loading) save(); });
+        DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
+        PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+    }
+
     public static void load() {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        MODE.setOptionListValue(MMode.valueOf(config.mode.name()));
-        ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
-        MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
-        MAX_RADIUS.setIntegerValue(config.maxRadius);
-        SPHERE_RADIUS.setIntegerValue(config.sphereRadius);
-        SQUARE_LENGTH.setIntegerValue(config.squareLength);
+        loading = true;
         try {
-            SQUARE_POINT.setOptionListValue(MSquareMiningPoint.valueOf(config.squareMiningPoint.name()));
-        } catch (Exception e) {
-            SQUARE_POINT.setOptionListValue(MSquareMiningPoint.CENTER);
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            MODE.setOptionListValue(MMode.valueOf(config.mode.name()));
+            ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
+            MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
+            MAX_RADIUS.setIntegerValue(config.maxRadius);
+            SPHERE_RADIUS.setIntegerValue(config.sphereRadius);
+            SQUARE_LENGTH.setIntegerValue(config.squareLength);
+            try {
+                SQUARE_POINT.setOptionListValue(MSquareMiningPoint.valueOf(config.squareMiningPoint.name()));
+            } catch (Exception e) {
+                SQUARE_POINT.setOptionListValue(MSquareMiningPoint.CENTER);
+            }
+            CUBOID_L.setIntegerValue(config.cuboidL);
+            CUBOID_W.setIntegerValue(config.cuboidW);
+            CUBOID_H.setIntegerValue(config.cuboidH);
+            try {
+                CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.valueOf(config.cuboidMiningPoint.name()));
+            } catch (Exception e) {
+                CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
+            }
+            DIRECT_INV.setBooleanValue(config.directToInventory);
+            TOOL_PROT.setBooleanValue(config.toolProtection);
+            DIAG_EDGE.setBooleanValue(config.diagonalEdge);
+            DIAG_CORNER.setBooleanValue(config.diagonalCorner);
+            PACKET_INV.setIntegerValue(config.packetInterval);
+        } finally {
+            loading = false;
         }
-        CUBOID_L.setIntegerValue(config.cuboidL);
-        CUBOID_W.setIntegerValue(config.cuboidW);
-        CUBOID_H.setIntegerValue(config.cuboidH);
-        try {
-            CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.valueOf(config.cuboidMiningPoint.name()));
-        } catch (Exception e) {
-            CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
-        }
-        DIRECT_INV.setBooleanValue(config.directToInventory);
-        TOOL_PROT.setBooleanValue(config.toolProtection);
-        DIAG_EDGE.setBooleanValue(config.diagonalEdge);
-        DIAG_CORNER.setBooleanValue(config.diagonalCorner);
-        PACKET_INV.setIntegerValue(config.packetInterval);
     }
 
     public static void save() {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        config.mode = ChainVeinConfig.ChainMode.valueOf(((MMode)MODE.getOptionListValue()).name());
         config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.valueOf(((MAlgo)ALGO.getOptionListValue()).name());
         config.maxChainBlocks = MAX_BLOCKS.getIntegerValue();
         config.maxRadius = MAX_RADIUS.getIntegerValue();

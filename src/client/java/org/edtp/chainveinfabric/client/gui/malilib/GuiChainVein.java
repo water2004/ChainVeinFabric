@@ -110,6 +110,7 @@ public class GuiChainVein extends GuiConfigsBase {
         super(10, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
         ConfigProxies.load();
         ConfigProxies.ALGO.setValueChangeCallback((config) -> {
+            ConfigProxies.save();
             if (this.currentTab == Tab.SETTINGS) {
                 this.reCreateListWidget();
                 this.initGui();
@@ -415,8 +416,8 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     public void onClose() {
-        ConfigProxies.save();
         super.onClose();
+        ConfigProxies.save();
     }
 
     public void refreshLists() {
