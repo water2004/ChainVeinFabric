@@ -141,7 +141,9 @@ public class BlockOutlineRenderer implements IRenderer {
 
                 for (Direction dir : Direction.values()) {
                     if (!result.contains(pos.relative(dir))) {
-                        addFaceEdges(buffer, minX, minY, minZ, maxX, maxY, maxZ, dir, color);
+                        addFaceEdges(buffer, result, pos,
+                                minX, minY, minZ, maxX, maxY, maxZ,
+                                dir, color);
                     }
                 }
             }
@@ -220,48 +222,63 @@ public class BlockOutlineRenderer implements IRenderer {
         };
     }
 
-    private void addFaceEdges(BufferBuilder buffer,
+    private void addFaceEdges(BufferBuilder buffer, Set<BlockPos> result, BlockPos pos,
                                float minX, float minY, float minZ,
                                float maxX, float maxY, float maxZ,
                                Direction face, Color4f color) {
+        // Each edge's "merge check" direction: the neighbor across that edge
+        // If that neighbor also has an exposed face in the same direction,
+        // skip the edge (it's an internal grid line of a merged surface).
         switch (face) {
             case DOWN -> {
-                line(buffer, minX, minY, minZ, maxX, minY, minZ, color);
-                line(buffer, maxX, minY, minZ, maxX, minY, maxZ, color);
-                line(buffer, maxX, minY, maxZ, minX, minY, maxZ, color);
-                line(buffer, minX, minY, maxZ, minX, minY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.NORTH))  line(buffer, minX, minY, minZ, maxX, minY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.EAST))   line(buffer, maxX, minY, minZ, maxX, minY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.SOUTH))  line(buffer, maxX, minY, maxZ, minX, minY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.WEST))   line(buffer, minX, minY, maxZ, minX, minY, minZ, color);
             }
             case UP -> {
-                line(buffer, minX, maxY, minZ, maxX, maxY, minZ, color);
-                line(buffer, maxX, maxY, minZ, maxX, maxY, maxZ, color);
-                line(buffer, maxX, maxY, maxZ, minX, maxY, maxZ, color);
-                line(buffer, minX, maxY, maxZ, minX, maxY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.NORTH))  line(buffer, minX, maxY, minZ, maxX, maxY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.EAST))   line(buffer, maxX, maxY, minZ, maxX, maxY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.SOUTH))  line(buffer, maxX, maxY, maxZ, minX, maxY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.WEST))   line(buffer, minX, maxY, maxZ, minX, maxY, minZ, color);
             }
             case NORTH -> {
-                line(buffer, minX, minY, minZ, maxX, minY, minZ, color);
-                line(buffer, maxX, minY, minZ, maxX, maxY, minZ, color);
-                line(buffer, maxX, maxY, minZ, minX, maxY, minZ, color);
-                line(buffer, minX, maxY, minZ, minX, minY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.DOWN))   line(buffer, minX, minY, minZ, maxX, minY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.EAST))   line(buffer, maxX, minY, minZ, maxX, maxY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.UP))     line(buffer, maxX, maxY, minZ, minX, maxY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.WEST))   line(buffer, minX, maxY, minZ, minX, minY, minZ, color);
             }
             case SOUTH -> {
-                line(buffer, minX, minY, maxZ, maxX, minY, maxZ, color);
-                line(buffer, maxX, minY, maxZ, maxX, maxY, maxZ, color);
-                line(buffer, maxX, maxY, maxZ, minX, maxY, maxZ, color);
-                line(buffer, minX, maxY, maxZ, minX, minY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.DOWN))   line(buffer, minX, minY, maxZ, maxX, minY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.EAST))   line(buffer, maxX, minY, maxZ, maxX, maxY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.UP))     line(buffer, maxX, maxY, maxZ, minX, maxY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.WEST))   line(buffer, minX, maxY, maxZ, minX, minY, maxZ, color);
             }
             case WEST -> {
-                line(buffer, minX, minY, minZ, minX, minY, maxZ, color);
-                line(buffer, minX, minY, maxZ, minX, maxY, maxZ, color);
-                line(buffer, minX, maxY, maxZ, minX, maxY, minZ, color);
-                line(buffer, minX, maxY, minZ, minX, minY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.DOWN))   line(buffer, minX, minY, minZ, minX, minY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.SOUTH))  line(buffer, minX, minY, maxZ, minX, maxY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.UP))     line(buffer, minX, maxY, maxZ, minX, maxY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.NORTH))  line(buffer, minX, maxY, minZ, minX, minY, minZ, color);
             }
             case EAST -> {
-                line(buffer, maxX, minY, minZ, maxX, minY, maxZ, color);
-                line(buffer, maxX, minY, maxZ, maxX, maxY, maxZ, color);
-                line(buffer, maxX, maxY, maxZ, maxX, maxY, minZ, color);
-                line(buffer, maxX, maxY, minZ, maxX, minY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.DOWN))   line(buffer, maxX, minY, minZ, maxX, minY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.SOUTH))  line(buffer, maxX, minY, maxZ, maxX, maxY, maxZ, color);
+                if (!shouldMerge(result, pos, face, Direction.UP))     line(buffer, maxX, maxY, maxZ, maxX, maxY, minZ, color);
+                if (!shouldMerge(result, pos, face, Direction.NORTH))  line(buffer, maxX, maxY, minZ, maxX, minY, minZ, color);
             }
         }
+    }
+
+    /**
+     * Checks whether an edge of an exposed face should be hidden (merged).
+     * The edge is internal to the outer surface if the adjacent block across
+     * the edge also has an exposed face in the same direction.
+     */
+    private boolean shouldMerge(Set<BlockPos> result, BlockPos pos,
+                                 Direction faceDir, Direction mergeDir) {
+        BlockPos neighbor = pos.relative(mergeDir);
+        return result.contains(neighbor)
+                && !result.contains(neighbor.relative(faceDir));
     }
 
     private void line(BufferBuilder buffer,
