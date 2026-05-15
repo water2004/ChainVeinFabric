@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import fi.dy.masa.malilib.event.RenderEventHandler;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -13,6 +14,7 @@ import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig; // Corrected import
 import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
+import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
 import org.lwjgl.glfw.GLFW;
 
 public class ChainveinfabricClient implements ClientModInitializer {
@@ -24,7 +26,9 @@ public class ChainveinfabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         CONFIG = ChainVeinConfig.load();
-        
+
+        RenderEventHandler.getInstance().registerWorldLastRenderer(new BlockOutlineRenderer());
+
         configKeyBinding = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.chainveinfabric.config",
                 InputConstants.Type.KEYSYM,

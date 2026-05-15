@@ -304,6 +304,14 @@ public class GuiChainVein extends GuiConfigsBase {
             button.setDisplayString(getToggleString());
         });
 
+        // Toggle outlines
+        ButtonGeneric outlineBtn = new ButtonGeneric(centerX - 50, topY, 50, 20, getOutlineToggleString());
+        this.addButton(outlineBtn, (button, mb) -> {
+            ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
+            ChainveinfabricClient.CONFIG.save();
+            button.setDisplayString(getOutlineToggleString());
+        });
+
         // Search Bar
         this.searchBar = new WidgetSearchBar(centerX - 210, topY + 30, 420, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
 
@@ -435,6 +443,10 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private String getToggleString() {
         return ChainveinfabricClient.CONFIG.isChainVeinEnabled ? "ON" : "OFF";
+    }
+
+    private String getOutlineToggleString() {
+        return ChainveinfabricClient.CONFIG.showBlockOutlines ? "OL:ON" : "OL:OFF";
     }
 
     private List<ItemStack> getLeftListData() {

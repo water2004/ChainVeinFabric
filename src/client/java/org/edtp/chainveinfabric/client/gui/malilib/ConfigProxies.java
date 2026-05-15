@@ -48,6 +48,7 @@ public class ConfigProxies {
     public static final ConfigBoolean TOOL_PROT = new ConfigBoolean("options.chainveinfabric.toolProtection", false, "");
     public static final ConfigBoolean DIAG_EDGE = new ConfigBoolean("options.chainveinfabric.diagonalEdge", false, "");
     public static final ConfigBoolean DIAG_CORNER = new ConfigBoolean("options.chainveinfabric.diagonalCorner", false, "");
+    public static final ConfigBoolean SHOW_OUTLINES = new ConfigBoolean("options.chainveinfabric.showBlockOutlines", false, "");
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
 
     private static boolean loading = false;
@@ -66,6 +67,7 @@ public class ConfigProxies {
         TOOL_PROT.setValueChangeCallback(c -> { if (!loading) save(); });
         DIAG_EDGE.setValueChangeCallback(c -> { if (!loading) save(); });
         DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
+        SHOW_OUTLINES.setValueChangeCallback(c -> { if (!loading) save(); });
         PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
     }
 
@@ -95,6 +97,7 @@ public class ConfigProxies {
             TOOL_PROT.setBooleanValue(config.toolProtection);
             DIAG_EDGE.setBooleanValue(config.diagonalEdge);
             DIAG_CORNER.setBooleanValue(config.diagonalCorner);
+            SHOW_OUTLINES.setBooleanValue(config.showBlockOutlines);
             PACKET_INV.setIntegerValue(config.packetInterval);
         } finally {
             loading = false;
@@ -117,6 +120,7 @@ public class ConfigProxies {
         config.toolProtection = TOOL_PROT.getBooleanValue();
         config.diagonalEdge = DIAG_EDGE.getBooleanValue();
         config.diagonalCorner = DIAG_CORNER.getBooleanValue();
+        config.showBlockOutlines = SHOW_OUTLINES.getBooleanValue();
         config.packetInterval = PACKET_INV.getIntegerValue();
         config.save();
     }
