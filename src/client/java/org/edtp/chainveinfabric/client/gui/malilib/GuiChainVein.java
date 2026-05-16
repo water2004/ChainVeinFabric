@@ -104,7 +104,8 @@ public class GuiChainVein extends GuiConfigsBase {
     private WidgetSearchBar searchBar;
 
     public GuiChainVein() {
-        super(10, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
+        super(20, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
+        this.setConfigWidth(108);
         ConfigProxies.load();
         ConfigProxies.ALGO.setValueChangeCallback((config) -> {
             ConfigProxies.save();
@@ -113,6 +114,11 @@ public class GuiChainVein extends GuiConfigsBase {
                 this.initGui();
             }
         });
+    }
+
+    @Override
+    protected int getBrowserWidth() {
+        return this.width - 40;
     }
 
     @Override
@@ -273,10 +279,16 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     private void initBasicTab(int centerX, int topY) {
+        final int pad = 10;
+        int leftX = centerX - 200;
+        int rightX = centerX + 5;
+        int rightToggleX = centerX + 140;
+        int outlineX = centerX - 25;
+
         // Mode dropdown
         List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
         MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-            centerX - 210, topY, 170, 20, 200, 5, modes, this::getModeString
+            leftX, topY, 170, 20, 200, 5, modes, this::getModeString
         ) {
             @Override
             protected void setSelectedEntry(int index) {
@@ -294,7 +306,7 @@ public class GuiChainVein extends GuiConfigsBase {
         this.addWidget(modeDropdown);
 
         // Toggle enabled
-        ButtonGeneric toggleBtn = new ButtonGeneric(centerX + 150, topY, 60, 20, getToggleString());
+        ButtonGeneric toggleBtn = new ButtonGeneric(rightToggleX, topY, 60, 20, getToggleString());
         this.addButton(toggleBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.isChainVeinEnabled = !ChainveinfabricClient.CONFIG.isChainVeinEnabled;
             ChainveinfabricClient.CONFIG.save();
@@ -302,7 +314,7 @@ public class GuiChainVein extends GuiConfigsBase {
         });
 
         // Toggle outlines
-        ButtonGeneric outlineBtn = new ButtonGeneric(centerX - 30, topY, 80, 20, getOutlineToggleString());
+        ButtonGeneric outlineBtn = new ButtonGeneric(outlineX, topY, 80, 20, getOutlineToggleString());
         this.addButton(outlineBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
             ChainveinfabricClient.CONFIG.save();
@@ -310,16 +322,16 @@ public class GuiChainVein extends GuiConfigsBase {
         });
 
         // Search Bar
-        this.searchBar = new WidgetSearchBar(centerX - 210, topY + 30, 420, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
+        this.searchBar = new WidgetSearchBar(leftX, topY + 30, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
 
         int listWidth = 200;
         int listTopY = topY + 65;
         int listHeight = this.height - listTopY - 20;
 
-        this.leftList = new WidgetChainList(centerX - 210, listTopY, listWidth, listHeight, null, false, this::getLeftListData, this);
+        this.leftList = new WidgetChainList(leftX, listTopY, listWidth, listHeight, null, false, this::getLeftListData, this);
         this.leftList.bindSearchBar(searchBar);
 
-        this.rightList = new WidgetChainList(centerX + 10, listTopY, listWidth, listHeight, null, true, this::getRightListData, this);
+        this.rightList = new WidgetChainList(rightX, listTopY, listWidth, listHeight, null, true, this::getRightListData, this);
 
         this.refreshLists();
     }
@@ -332,13 +344,13 @@ public class GuiChainVein extends GuiConfigsBase {
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
 
-            this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.width / 2 - 210, 105 - 12, 0xFFFFFF);
+            this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.width / 2 - 200, 105 - 12, 0xFFFFFF);
             String rightTitle = switch (ChainveinfabricClient.CONFIG.mode) {
                 case CHAIN_MINE -> "options.chainveinfabric.whitelist";
                 case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
                 case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
             };
-            this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 10, 105 - 12, 0xFFFFFF);
+            this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 5, 105 - 12, 0xFFFFFF);
         }
 
         // Post-render open dropdowns
