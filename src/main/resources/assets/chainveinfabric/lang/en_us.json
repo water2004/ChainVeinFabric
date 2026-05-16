@@ -62,5 +62,5 @@
   "options.chainveinfabric.cuboidL": "Length (L)",
   "options.chainveinfabric.cuboidW": "Width (W)",
   "options.chainveinfabric.cuboidH": "Height (H)",
-  "options.chainveinfabric.showBlockOutlines": "Show Block Outlines"
+  "options.chainveinfabric.showBlockOutlines": "Outlines"
 }

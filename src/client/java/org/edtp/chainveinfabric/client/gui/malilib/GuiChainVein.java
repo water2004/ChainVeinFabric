@@ -276,7 +276,7 @@ public class GuiChainVein extends GuiConfigsBase {
         // Mode dropdown
         List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
         MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-            centerX - 210, topY, 150, 20, 200, 5, modes, this::getModeString
+            centerX - 210, topY, 170, 20, 200, 5, modes, this::getModeString
         ) {
             @Override
             protected void setSelectedEntry(int index) {
@@ -302,7 +302,7 @@ public class GuiChainVein extends GuiConfigsBase {
         });
 
         // Toggle outlines
-        ButtonGeneric outlineBtn = new ButtonGeneric(centerX - 50, topY, 50, 20, getOutlineToggleString());
+        ButtonGeneric outlineBtn = new ButtonGeneric(centerX - 30, topY, 80, 20, getOutlineToggleString());
         this.addButton(outlineBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
             ChainveinfabricClient.CONFIG.save();
@@ -443,7 +443,8 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     private String getOutlineToggleString() {
-        return ChainveinfabricClient.CONFIG.showBlockOutlines ? "OL:ON" : "OL:OFF";
+        String state = ChainveinfabricClient.CONFIG.showBlockOutlines ? "ON" : "OFF";
+        return StringUtils.translate("options.chainveinfabric.showBlockOutlines") + ": " + state;
     }
 
     private List<ItemStack> getLeftListData() {

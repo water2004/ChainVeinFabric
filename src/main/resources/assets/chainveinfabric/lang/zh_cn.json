@@ -62,5 +62,5 @@
   "options.chainveinfabric.cuboidL": "长度 (L)",
   "options.chainveinfabric.cuboidW": "宽度 (W)",
   "options.chainveinfabric.cuboidH": "高度 (H)",
-  "options.chainveinfabric.showBlockOutlines": "显示方块描边"
+  "options.chainveinfabric.showBlockOutlines": "显示描边"
 }
