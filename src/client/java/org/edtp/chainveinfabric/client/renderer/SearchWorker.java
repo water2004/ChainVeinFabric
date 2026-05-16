@@ -49,11 +49,6 @@ public class SearchWorker implements Runnable {
         this.thread.start();
     }
 
-    public void shutdown() {
-        this.running = false;
-        LockSupport.unpark(this.thread);
-    }
-
     public OutlineData getCurrentData() {
         return this.currentData;
     }

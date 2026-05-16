@@ -10,9 +10,6 @@
   "icon": "assets/icon.png",
   "environment": "*",
   "entrypoints": {
-    "fabric-datagen": [
-      "org.edtp.chainveinfabric.client.ChainveinfabricDataGenerator"
-    ],
     "client": [
       "org.edtp.chainveinfabric.client.ChainveinfabricClient"
     ],

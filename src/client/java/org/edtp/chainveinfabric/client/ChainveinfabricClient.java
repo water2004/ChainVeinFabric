@@ -15,7 +15,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
