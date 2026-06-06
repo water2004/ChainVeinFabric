@@ -2,10 +2,12 @@ package org.edtp.chainveinfabric.client.renderer;
 
 import java.util.function.Supplier;
 
+import com.mojang.blaze3d.buffers.BufferUsage;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.FogParameters;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -33,14 +35,15 @@ public class BlockOutlineRenderer implements IRenderer {
 
     @Override
     public void onRenderWorldLastAdvanced(RenderTarget fb, Matrix4f posMatrix, Matrix4f projMatrix,
-                                          Frustum frustum, Camera camera, RenderBuffers buffers,
+                                          Frustum frustum, Camera camera, FogParameters fog, RenderBuffers buffers,
                                           ProfilerFiller profiler) {
         OutlineData data = this.worker.getCurrentData();
         if (data == null || data.lines().isEmpty()) return;
 
         try (RenderContext ctx = new RenderContext(
                 () -> "chainveinfabric:block_outlines",
-                MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_NO_DEPTH_NO_CULL)) {
+                MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_NO_DEPTH_NO_CULL,
+                BufferUsage.STATIC_WRITE)) {
 
             ctx.lineWidth(LINE_WIDTH);
             BufferBuilder buffer = ctx.getBuilder();

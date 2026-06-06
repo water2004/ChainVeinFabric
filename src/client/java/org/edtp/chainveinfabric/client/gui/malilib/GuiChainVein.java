@@ -77,17 +77,17 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             return this.onMouseClicked(mouseX, mouseY, mouseButton); 
         }
 
-        @Override public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
+        @Override public void render(int mouseX, int mouseY, boolean selected, GuiGraphics ctx) {
             boolean wasOpen = this.isOpen;
             this.isOpen = false;
-            super.render(ctx, mouseX, mouseY, selected);
+            super.render(mouseX, mouseY, selected, ctx);
             this.isOpen = wasOpen;
             this.setLastDrawn(System.currentTimeMillis());
         }
         @Override public void handleRender(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
             boolean wasOpen = this.isOpen;
             this.isOpen = true;
-            super.render(ctx, mouseX, mouseY, selected);
+            super.render(mouseX, mouseY, selected, ctx);
             this.isOpen = wasOpen;
         }
     }
@@ -343,7 +343,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
-            if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
+            if (this.searchBar != null) this.searchBar.render(mouseX, mouseY, false, ctx);
             
             this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.width / 2 - 200, 105 - 12, 0xFFFFFF);
             String rightTitle = switch (ChainveinfabricClient.CONFIG.mode) {

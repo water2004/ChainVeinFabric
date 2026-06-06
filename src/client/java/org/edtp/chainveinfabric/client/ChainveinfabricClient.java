@@ -5,14 +5,13 @@ import fi.dy.masa.malilib.event.RenderEventHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
@@ -57,8 +56,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
             onOutlineTick(client);
         });
 
-        // Use modern HudElementRegistry instead of deprecated HudRenderCallback
-        HudElementRegistry.addLast(ResourceLocation.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
+        HudRenderCallback.EVENT.register((context, deltaTracker) -> {
             if (CONFIG != null && CONFIG.isChainVeinEnabled) {
                 Component activeText = Component.translatable("hud.chainveinfabric.active");
                 int width = context.guiWidth();
