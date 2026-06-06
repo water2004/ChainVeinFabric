@@ -411,7 +411,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
     @Override
     public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        if (super.onKeyTyped(keyCode, scanCode, modifiers)) return true;
+        if (currentTab != Tab.BASIC && super.onKeyTyped(keyCode, scanCode, modifiers)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onKeyTyped(keyCode, scanCode, modifiers)) {
                 this.leftList.refreshEntries();
@@ -423,7 +423,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     
     @Override
     public boolean onCharTyped(char charIn, int modifiers) {
-        if (super.onCharTyped(charIn, modifiers)) return true;
+        if (currentTab != Tab.BASIC && super.onCharTyped(charIn, modifiers)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onCharTyped(charIn, modifiers)) {
                 this.leftList.refreshEntries();
@@ -435,7 +435,9 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
     @Override
     public void removed() {
-        super.removed();
+        if (this.getListWidget() != null) {
+            super.removed();
+        }
         ConfigProxies.save();
     }
 
