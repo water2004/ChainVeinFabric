@@ -10,10 +10,8 @@ import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Camera;
-import net.minecraft.client.renderer.CoreShaders;
-import net.minecraft.client.renderer.FogParameters;
-import net.minecraft.client.renderer.culling.Frustum;
-import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -35,13 +33,13 @@ public class BlockOutlineRenderer implements IRenderer {
     }
 
     @Override
-    public void onRenderWorldLastAdvanced(Matrix4f posMatrix, Matrix4f projMatrix, Frustum frustum,
-                                          Camera camera, FogParameters fog, ProfilerFiller profiler) {
+    public void onRenderWorldLast(Matrix4f posMatrix, Matrix4f projMatrix) {
         OutlineData data = this.worker.getCurrentData();
         if (data == null || data.lines().isEmpty()) return;
 
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         RenderSystem.lineWidth(LINE_WIDTH);
-        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
         RenderUtils.setupBlend();
 
         Tesselator tessellator = Tesselator.getInstance();

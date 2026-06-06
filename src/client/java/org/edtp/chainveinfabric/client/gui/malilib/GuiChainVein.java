@@ -498,10 +498,10 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             if (identifier == null) continue;
             
             if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
-                Item item = BuiltInRegistries.ITEM.getValue(identifier);
+                Item item = BuiltInRegistries.ITEM.get(identifier);
                 if (item != null && item != Items.AIR) list.add(new ItemStack(item));
             } else {
-                Block block = BuiltInRegistries.BLOCK.getValue(identifier);
+                Block block = BuiltInRegistries.BLOCK.get(identifier);
                 if (block != null && block.asItem() != Items.AIR) list.add(new ItemStack(block.asItem()));
             }
         }
