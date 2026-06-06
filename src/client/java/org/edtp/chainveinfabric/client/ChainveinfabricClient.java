@@ -12,7 +12,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
@@ -26,7 +26,7 @@ import org.lwjgl.glfw.GLFW;
 public class ChainveinfabricClient implements ClientModInitializer {
 
     public static ChainVeinConfig CONFIG;
-    public static final KeyMapping.Category CHAIN_VEIN_CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("chainveinfabric", "general"));
+    public static final KeyMapping.Category CHAIN_VEIN_CATEGORY = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("chainveinfabric", "general"));
     private static KeyMapping configKeyBinding;
 
     private static BlockPos outlineLastTarget = null;
@@ -58,7 +58,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
         });
 
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
+        HudElementRegistry.addLast(ResourceLocation.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
             if (CONFIG != null && CONFIG.isChainVeinEnabled) {
                 Component activeText = Component.translatable("hud.chainveinfabric.active");
                 int width = context.guiWidth();

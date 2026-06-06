@@ -8,7 +8,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -20,8 +20,8 @@ import java.util.List;
 
 public class Chainveinfabric implements ModInitializer {
 
-    public static final Identifier MINE_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "mine");
-    public static final Identifier INTERACT_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "interact");
+    public static final ResourceLocation MINE_PACKET_ID = ResourceLocation.fromNamespaceAndPath("chainveinfabric", "mine");
+    public static final ResourceLocation INTERACT_PACKET_ID = ResourceLocation.fromNamespaceAndPath("chainveinfabric", "interact");
 
     @Override
     public void onInitialize() {

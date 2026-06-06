@@ -6,10 +6,10 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
-import fi.dy.masa.malilib.render.GuiContext;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -48,7 +48,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
         @Override public boolean isMouseOver(int mouseX, int mouseY) {
             if (this.isOpen) {
-                int visible = fi.dy.masa.malilib.util.MathUtils.min(this.maxVisibleEntries, this.filteredEntries.size());
+                int visible = Math.min(this.maxVisibleEntries, this.filteredEntries.size());
                 int dropHeight = this.height + (visible * this.height) + 4;
                 return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + dropHeight;
             }
@@ -58,7 +58,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         @Override public boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) {
             double clickY = click.y();
             if (this.isOpen && clickY > this.y + this.height) {
-                int visible = fi.dy.masa.malilib.util.MathUtils.min(this.maxVisibleEntries, this.filteredEntries.size());
+                int visible = Math.min(this.maxVisibleEntries, this.filteredEntries.size());
                 int dropHeight = this.height + (visible * this.height) + 4;
                 
                 if (click.x() >= this.x && click.x() < this.x + this.width && clickY >= this.y && clickY < this.y + dropHeight) {
@@ -67,8 +67,8 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
                         relIndex = fi.dy.masa.malilib.util.MathUtils.clamp(relIndex, 0, visible - 1);
                         this.setSelectedEntry(this.scrollBar.getValue() + relIndex);
                         this.isOpen = false;
-                        if (this.searchBar != null && this.searchBar.textField() != null) {
-                            this.searchBar.textField().setValue("");
+                        if (this.searchBar != null && this.searchBar.getTextField() != null) {
+                            this.searchBar.getTextField().setValue("");
                         }
                         this.updateFilteredEntries();
                         return true;
@@ -78,14 +78,14 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             return this.onMouseClicked(click, doubleClick); 
         }
 
-        @Override public void render(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected) {
+        @Override public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
             boolean wasOpen = this.isOpen;
             this.isOpen = false;
             super.render(ctx, mouseX, mouseY, selected);
             this.isOpen = wasOpen;
             this.setLastDrawn(System.currentTimeMillis());
         }
-        @Override public void handleRender(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected) {
+        @Override public void handleRender(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
             boolean wasOpen = this.isOpen;
             this.isOpen = true;
             super.render(ctx, mouseX, mouseY, selected);
@@ -97,7 +97,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         void setLastDrawn(long time);
         long getLastDrawn();
         boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick);
-        void handleRender(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, boolean selected);
+        void handleRender(GuiGraphics ctx, int mouseX, int mouseY, boolean selected);
     }
     private WidgetChainList leftList;
     private WidgetChainList rightList;
@@ -339,7 +339,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    public void drawContents(fi.dy.masa.malilib.render.GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+    public void drawContents(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(ctx, mouseX, mouseY, partialTicks);
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
@@ -495,7 +495,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         
         List<ItemStack> list = new ArrayList<>();
         for (String id : whitelist) {
-            Identifier identifier = Identifier.tryParse(id);
+            ResourceLocation identifier = ResourceLocation.tryParse(id);
             if (identifier == null) continue;
             
             if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {

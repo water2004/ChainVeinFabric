@@ -42,6 +42,7 @@ public class BlockOutlineRenderer implements IRenderer {
                 () -> "chainveinfabric:block_outlines",
                 MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_NO_DEPTH_NO_CULL)) {
 
+            ctx.lineWidth(LINE_WIDTH);
             BufferBuilder buffer = ctx.getBuilder();
             Vec3 camPos = RenderUtils.camPos();
             float cx = (float) camPos.x;
@@ -50,11 +51,9 @@ public class BlockOutlineRenderer implements IRenderer {
 
             for (LineSegment segment : data.lines()) {
                 buffer.addVertex(segment.x1() - cx, segment.y1() - cy, segment.z1() - cz)
-                    .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a)
-                    .setLineWidth(LINE_WIDTH);
+                    .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a);
                 buffer.addVertex(segment.x2() - cx, segment.y2() - cy, segment.z2() - cz)
-                    .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a)
-                    .setLineWidth(LINE_WIDTH);
+                    .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a);
             }
 
             MeshData meshData = buffer.build();

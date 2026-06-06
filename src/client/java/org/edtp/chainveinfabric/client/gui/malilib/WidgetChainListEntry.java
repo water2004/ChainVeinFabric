@@ -4,9 +4,9 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
-import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 
 public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
@@ -33,7 +33,7 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
     }
 
     @Override
-    public void render(GuiContext ctx, int mouseX, int mouseY, boolean selected) {
+    public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
         if (selected || this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x70FFFFFF);
         } else if (this.isOdd) {

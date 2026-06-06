@@ -57,7 +57,7 @@ public class WidgetChainList extends WidgetListBase<ItemStack, WidgetChainListEn
 
         String key;
         if (config.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
-            net.minecraft.resources.Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+            net.minecraft.resources.ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
             if (id == net.minecraft.core.registries.BuiltInRegistries.ITEM.getDefaultKey()) {
                 id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(net.minecraft.world.level.block.Block.byItem(stack.getItem()));
             }
