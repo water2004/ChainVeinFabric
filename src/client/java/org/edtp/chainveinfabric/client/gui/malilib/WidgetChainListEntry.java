@@ -54,8 +54,8 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
     }
 
     @Override
-    public boolean canSelectAt(net.minecraft.client.input.MouseButtonEvent click) {
-        return super.canSelectAt(click) && click.x() < this.buttonsStartX;
+    public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
+        return super.canSelectAt(mouseX, mouseY, mouseButton) && mouseX < this.buttonsStartX;
     }
 
     private static class ButtonListener implements IButtonActionListener {

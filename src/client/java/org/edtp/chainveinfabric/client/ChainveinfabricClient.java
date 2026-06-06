@@ -26,7 +26,7 @@ import org.lwjgl.glfw.GLFW;
 public class ChainveinfabricClient implements ClientModInitializer {
 
     public static ChainVeinConfig CONFIG;
-    public static final KeyMapping.Category CHAIN_VEIN_CATEGORY = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("chainveinfabric", "general"));
+    public static final String CHAIN_VEIN_CATEGORY = "key.category.chainveinfabric.general";
     private static KeyMapping configKeyBinding;
 
     private static BlockPos outlineLastTarget = null;

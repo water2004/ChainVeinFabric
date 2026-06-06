@@ -55,15 +55,14 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             return super.isMouseOver(mouseX, mouseY);
         }
 
-        @Override public boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) {
-            double clickY = click.y();
-            if (this.isOpen && clickY > this.y + this.height) {
+        @Override public boolean handleMouseClicked(int mouseX, int mouseY, int mouseButton) {
+            if (this.isOpen && mouseY > this.y + this.height) {
                 int visible = Math.min(this.maxVisibleEntries, this.filteredEntries.size());
                 int dropHeight = this.height + (visible * this.height) + 4;
                 
-                if (click.x() >= this.x && click.x() < this.x + this.width && clickY >= this.y && clickY < this.y + dropHeight) {
-                    if (click.x() < this.x + this.width - this.scrollbarWidth) {
-                        int relIndex = (int)((clickY - this.y - this.height - 1) / this.height);
+                if (mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + dropHeight) {
+                    if (mouseX < this.x + this.width - this.scrollbarWidth) {
+                        int relIndex = (mouseY - this.y - this.height - 1) / this.height;
                         relIndex = fi.dy.masa.malilib.util.MathUtils.clamp(relIndex, 0, visible - 1);
                         this.setSelectedEntry(this.scrollBar.getValue() + relIndex);
                         this.isOpen = false;
@@ -75,7 +74,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
                     }
                 }
             }
-            return this.onMouseClicked(click, doubleClick); 
+            return this.onMouseClicked(mouseX, mouseY, mouseButton); 
         }
 
         @Override public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
@@ -96,7 +95,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         boolean isMenuOpen();
         void setLastDrawn(long time);
         long getLastDrawn();
-        boolean handleMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick);
+        boolean handleMouseClicked(int mouseX, int mouseY, int mouseButton);
         void handleRender(GuiGraphics ctx, int mouseX, int mouseY, boolean selected);
     }
     private WidgetChainList leftList;
@@ -145,7 +144,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         }
 
         @Override
-        protected void addConfigOption(int x, int y, int labelWidth, int configWidth, fi.dy.masa.malilib.config.IConfigBase config) {
+        protected void addConfigOption(int x, int y, float zLevel, int labelWidth, int configWidth, fi.dy.masa.malilib.config.IConfigBase config) {
             if (config.getType() == fi.dy.masa.malilib.config.ConfigType.OPTION_LIST) {
                 fi.dy.masa.malilib.config.IConfigOptionList optionList = (fi.dy.masa.malilib.config.IConfigOptionList) config;
                 fi.dy.masa.malilib.config.IConfigResettable resettable = (fi.dy.masa.malilib.config.IConfigResettable) config;
@@ -210,7 +209,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
                 this.addButton(resetButton, resetListener);
                 
             } else {
-                super.addConfigOption(x, y, labelWidth, configWidth, config);
+                super.addConfigOption(x, y, zLevel, labelWidth, configWidth, config);
             }
         }
     }
@@ -366,38 +365,38 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    public boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubleClick) {
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
         for (IDropdown dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
-                if (((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver((int)click.x(), (int)click.y())) {
-                    return dd.handleMouseClicked(click, doubleClick);
+                if (((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver(mouseX, mouseY)) {
+                    return dd.handleMouseClicked(mouseX, mouseY, mouseButton);
                 }
             }
         }
-        if (super.onMouseClicked(click, doubleClick)) return true;
+        if (super.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
         if (currentTab == Tab.BASIC) {
-            if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
-            if (this.leftList != null && this.leftList.onMouseClicked(click, doubleClick)) return true;
-            if (this.rightList != null && this.rightList.onMouseClicked(click, doubleClick)) return true;
+            if (this.searchBar != null && this.searchBar.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+            if (this.leftList != null && this.leftList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+            if (this.rightList != null && this.rightList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
         }
         return false;
     }
     
     @Override
-    public boolean onMouseReleased(net.minecraft.client.input.MouseButtonEvent click) {
-        if (super.onMouseReleased(click)) return true;
+    public boolean onMouseReleased(int mouseX, int mouseY, int mouseButton) {
+        if (super.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
         if (currentTab == Tab.BASIC) {
-             if (this.leftList != null && this.leftList.onMouseReleased(click)) return true;
-             if (this.rightList != null && this.rightList.onMouseReleased(click)) return true;
+             if (this.leftList != null && this.leftList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
+             if (this.rightList != null && this.rightList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
         }
         return false;
     }
     
     @Override
-    public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         for (IDropdown dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
-                if (((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver((int)mouseX, (int)mouseY)) {
+                if (((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver(mouseX, mouseY)) {
                     return ((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
                 }
             }
@@ -411,10 +410,10 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    public boolean onKeyTyped(net.minecraft.client.input.KeyEvent key) {
-        if (super.onKeyTyped(key)) return true;
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        if (super.onKeyTyped(keyCode, scanCode, modifiers)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
-            if (this.searchBar.onKeyTyped(key)) {
+            if (this.searchBar.onKeyTyped(keyCode, scanCode, modifiers)) {
                 this.leftList.refreshEntries();
                 return true;
             }
@@ -423,10 +422,10 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
     
     @Override
-    public boolean onCharTyped(net.minecraft.client.input.CharacterEvent character) {
-        if (super.onCharTyped(character)) return true;
+    public boolean onCharTyped(char charIn, int modifiers) {
+        if (super.onCharTyped(charIn, modifiers)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
-            if (this.searchBar.onCharTyped(character)) {
+            if (this.searchBar.onCharTyped(charIn, modifiers)) {
                 this.leftList.refreshEntries();
                 return true;
             }
