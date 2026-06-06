@@ -412,7 +412,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
     @Override
     public boolean onKeyTyped(net.minecraft.client.input.KeyEvent key) {
-        if (super.onKeyTyped(key)) return true;
+        if (currentTab != Tab.BASIC && super.onKeyTyped(key)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onKeyTyped(key)) {
                 this.leftList.refreshEntries();
@@ -424,7 +424,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     
     @Override
     public boolean onCharTyped(net.minecraft.client.input.CharacterEvent character) {
-        if (super.onCharTyped(character)) return true;
+        if (currentTab != Tab.BASIC && super.onCharTyped(character)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onCharTyped(character)) {
                 this.leftList.refreshEntries();
@@ -436,7 +436,9 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
     @Override
     public void removed() {
-        super.removed();
+        if (this.getListWidget() != null) {
+            super.removed();
+        }
         ConfigProxies.save();
     }
 
