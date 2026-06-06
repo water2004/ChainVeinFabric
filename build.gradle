@@ -46,7 +46,7 @@ dependencies {
     // mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version}:${project.malilib_version}"
+	modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_minecraft_version}:${project.malilib_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
 }
