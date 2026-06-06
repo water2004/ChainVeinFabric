@@ -83,19 +83,26 @@ public class ChainSearcher {
     }
 
     public static Set<BlockPos> findSquare(Level world, BlockPos startPos, int length, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate) {
-        return findCuboidInternal(world, startPos, length, length, 1, point, player, predicate, true);
+        return findSquare(world, startPos, length, point, player.getDirection(), predicate);
+    }
+
+    public static Set<BlockPos> findSquare(Level world, BlockPos startPos, int length, ChainVeinConfig.MiningPoint point, Direction facing, Predicate<BlockPos> predicate) {
+        return findCuboidInternal(world, startPos, length, length, 1, point, facing, predicate, true);
     }
 
     public static Set<BlockPos> findCuboid(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate) {
-        return findCuboidInternal(world, startPos, l, w, h, point, player, predicate, false);
+        return findCuboid(world, startPos, l, w, h, point, player.getDirection(), predicate);
     }
 
-    private static Set<BlockPos> findCuboidInternal(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate, boolean flat) {
+    public static Set<BlockPos> findCuboid(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Direction facing, Predicate<BlockPos> predicate) {
+        return findCuboidInternal(world, startPos, l, w, h, point, facing, predicate, false);
+    }
+
+    private static Set<BlockPos> findCuboidInternal(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Direction facing, Predicate<BlockPos> predicate, boolean flat) {
         Set<BlockPos> result = new HashSet<>();
         
         // Cardinal axes relative to player (W=Z-, S=Z+, A=X-, D=X+)
         // NOTE: Forward (W) is facing, and Back (S) is opposite.
-        Direction facing = player.getDirection();
         Direction zAxis = facing; 
         Direction xAxis = facing.getClockWise(); // Right (D)
         Direction yAxis = Direction.UP;

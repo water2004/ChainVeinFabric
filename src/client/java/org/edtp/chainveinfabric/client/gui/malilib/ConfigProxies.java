@@ -9,13 +9,6 @@ import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import fi.dy.masa.malilib.util.StringUtils;
 
 public class ConfigProxies {
-    public enum MMode implements IConfigOptionListEntry {
-        CHAIN_MINE, CHAIN_PLANT, CHAIN_UTILITY;
-        @Override public String getStringValue() { return this.name(); }
-        @Override public String getDisplayName() { return StringUtils.translate("options.chainveinfabric.mode." + this.name().toLowerCase().replace("chain_", "")); }
-        @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
-        @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return CHAIN_MINE; } }
-    }
     public enum MAlgo implements IConfigOptionListEntry {
         ADJACENT_SAME, ADJACENT_WHITELIST, SPHERE, SQUARE, CUBOID;
         @Override public String getStringValue() { return this.name(); }
@@ -54,33 +47,60 @@ public class ConfigProxies {
     public static final ConfigBoolean TOOL_PROT = new ConfigBoolean("options.chainveinfabric.toolProtection", false, "");
     public static final ConfigBoolean DIAG_EDGE = new ConfigBoolean("options.chainveinfabric.diagonalEdge", false, "");
     public static final ConfigBoolean DIAG_CORNER = new ConfigBoolean("options.chainveinfabric.diagonalCorner", false, "");
+    public static final ConfigBoolean SHOW_OUTLINES = new ConfigBoolean("options.chainveinfabric.showBlockOutlines", false, "");
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
-    
+
+    private static boolean loading = false;
+
+    static {
+        MAX_BLOCKS.setValueChangeCallback(c -> { if (!loading) save(); });
+        MAX_RADIUS.setValueChangeCallback(c -> { if (!loading) save(); });
+        SPHERE_RADIUS.setValueChangeCallback(c -> { if (!loading) save(); });
+        SQUARE_LENGTH.setValueChangeCallback(c -> { if (!loading) save(); });
+        SQUARE_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_L.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_W.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_H.setValueChangeCallback(c -> { if (!loading) save(); });
+        CUBOID_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
+        DIRECT_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+        TOOL_PROT.setValueChangeCallback(c -> { if (!loading) save(); });
+        DIAG_EDGE.setValueChangeCallback(c -> { if (!loading) save(); });
+        DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
+        SHOW_OUTLINES.setValueChangeCallback(c -> { if (!loading) save(); });
+        PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+    }
+
     public static void load() {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
-        MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
-        MAX_RADIUS.setIntegerValue(config.maxRadius);
-        SPHERE_RADIUS.setIntegerValue(config.sphereRadius);
-        SQUARE_LENGTH.setIntegerValue(config.squareLength);
+        loading = true;
         try {
-            SQUARE_POINT.setOptionListValue(MSquareMiningPoint.valueOf(config.squareMiningPoint.name()));
-        } catch (Exception e) {
-            SQUARE_POINT.setOptionListValue(MSquareMiningPoint.CENTER);
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
+            MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
+            MAX_RADIUS.setIntegerValue(config.maxRadius);
+            SPHERE_RADIUS.setIntegerValue(config.sphereRadius);
+            SQUARE_LENGTH.setIntegerValue(config.squareLength);
+            try {
+                SQUARE_POINT.setOptionListValue(MSquareMiningPoint.valueOf(config.squareMiningPoint.name()));
+            } catch (Exception e) {
+                SQUARE_POINT.setOptionListValue(MSquareMiningPoint.CENTER);
+            }
+            CUBOID_L.setIntegerValue(config.cuboidL);
+            CUBOID_W.setIntegerValue(config.cuboidW);
+            CUBOID_H.setIntegerValue(config.cuboidH);
+            try {
+                CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.valueOf(config.cuboidMiningPoint.name()));
+            } catch (Exception e) {
+                CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
+            }
+            DIRECT_INV.setBooleanValue(config.directToInventory);
+            TOOL_PROT.setBooleanValue(config.toolProtection);
+            DIAG_EDGE.setBooleanValue(config.diagonalEdge);
+            DIAG_CORNER.setBooleanValue(config.diagonalCorner);
+            SHOW_OUTLINES.setBooleanValue(config.showBlockOutlines);
+            PACKET_INV.setIntegerValue(config.packetInterval);
+        } finally {
+            loading = false;
         }
-        CUBOID_L.setIntegerValue(config.cuboidL);
-        CUBOID_W.setIntegerValue(config.cuboidW);
-        CUBOID_H.setIntegerValue(config.cuboidH);
-        try {
-            CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.valueOf(config.cuboidMiningPoint.name()));
-        } catch (Exception e) {
-            CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
-        }
-        DIRECT_INV.setBooleanValue(config.directToInventory);
-        TOOL_PROT.setBooleanValue(config.toolProtection);
-        DIAG_EDGE.setBooleanValue(config.diagonalEdge);
-        DIAG_CORNER.setBooleanValue(config.diagonalCorner);
-        PACKET_INV.setIntegerValue(config.packetInterval);
     }
     
     public static void save() {
@@ -99,6 +119,7 @@ public class ConfigProxies {
         config.toolProtection = TOOL_PROT.getBooleanValue();
         config.diagonalEdge = DIAG_EDGE.getBooleanValue();
         config.diagonalCorner = DIAG_CORNER.getBooleanValue();
+        config.showBlockOutlines = SHOW_OUTLINES.getBooleanValue();
         config.packetInterval = PACKET_INV.getIntegerValue();
         config.save();
     }

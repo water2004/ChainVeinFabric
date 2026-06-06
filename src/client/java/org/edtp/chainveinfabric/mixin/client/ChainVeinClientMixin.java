@@ -50,8 +50,8 @@ public abstract class ChainVeinClientMixin {
     private void onInteractBlock(LocalPlayer player, InteractionHand hand, BlockHitResult hitResult, CallbackInfoReturnable<InteractionResult> cir) {
         InteractionResult result = cir.getReturnValue();
         
-        // 只有当点击操作成功（即成功放置了作物/发生了交互）时才触发连锁
-        if (!result.consumesAction() || ClientChainHandler.isChainOperating() || 
+        // Allow PASS: items like bone meal can still produce a valid server-side action.
+        if (result == InteractionResult.FAIL || ClientChainHandler.isChainOperating() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
             minecraft.level == null || minecraft.player == null || hand != InteractionHand.MAIN_HAND || capturedState == null) {
             return;

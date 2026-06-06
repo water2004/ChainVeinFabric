@@ -53,15 +53,20 @@ public class WidgetChainList extends WidgetListBase<ItemStack, WidgetChainListEn
     }
 
     public void onButtonAction(ItemStack stack, boolean removing) {
-        // Find identifier
-        net.minecraft.resources.Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (id == net.minecraft.core.registries.BuiltInRegistries.ITEM.getDefaultKey()) {
-            id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(net.minecraft.world.level.block.Block.byItem(stack.getItem()));
-        }
-        
-        String key = id.toString();
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        
+
+        String key;
+        if (config.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
+            net.minecraft.resources.Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+            if (id == net.minecraft.core.registries.BuiltInRegistries.ITEM.getDefaultKey()) {
+                id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(net.minecraft.world.level.block.Block.byItem(stack.getItem()));
+            }
+            key = id.toString();
+        } else {
+            net.minecraft.world.level.block.Block block = net.minecraft.world.level.block.Block.byItem(stack.getItem());
+            key = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).toString();
+        }
+
         java.util.Set<String> targetSet;
         if (config.mode == ChainVeinConfig.ChainMode.CHAIN_MINE) targetSet = config.whitelistedBlocks;
         else if (config.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) targetSet = config.whitelistedCrops;

@@ -61,5 +61,6 @@
   "options.chainveinfabric.miningPoint.back_bottom_right": "Back Bottom Right",
   "options.chainveinfabric.cuboidL": "Length (L)",
   "options.chainveinfabric.cuboidW": "Width (W)",
-  "options.chainveinfabric.cuboidH": "Height (H)"
+  "options.chainveinfabric.cuboidH": "Height (H)",
+  "options.chainveinfabric.showBlockOutlines": "Outlines"
 }

@@ -20,10 +20,6 @@ public class ClientChainHandler {
         return isChainOperating;
     }
 
-    public static void setChainOperating(boolean value) {
-        isChainOperating = value;
-    }
-
     public static void addTask(Runnable task) {
         packetQueue.add(task);
     }

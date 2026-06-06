@@ -88,17 +88,22 @@ public class Chainveinfabric implements ModInitializer {
                 
                 if (stack.isEmpty()) return;
 
+                boolean isCreative = player.isCreative();
+
                 for (BlockPos pos : payload.positions()) {
                     // Safety: Distance Check
                     if (player.distanceToSqr(pos.getCenter()) > 100) continue;
-                    if (!player.isCreative() && stack.isEmpty()) break;
+                    if (!isCreative && stack.isEmpty()) break;
 
-                    // Simulate right-click interaction
+                    int oldCount = stack.getCount();
                     stack.useOn(new net.minecraft.world.item.context.UseOnContext(
                         player, 
                         net.minecraft.world.InteractionHand.MAIN_HAND, 
                         new net.minecraft.world.phys.BlockHitResult(pos.getCenter(), net.minecraft.core.Direction.UP, pos, false)
                     ));
+                    if (isCreative) {
+                        stack.setCount(oldCount);
+                    }
                 }
             });
         });
