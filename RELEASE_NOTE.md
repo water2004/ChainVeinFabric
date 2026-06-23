@@ -1,15 +1,13 @@
-## ChainVeinFabric v2.1.2-26.1
+## ChainVeinFabric v2.1.3-26.2
 
 ### 变更 / Changes
 
-- GUI 左右两侧增加留白，修复因 MC 渲染问题导致的边缘显示不全
-- 高级设置中配置控件宽度缩减，不再撑满屏幕
-- 模式下拉菜单加宽，容纳完整中文标签
-- 描边按钮使用翻译文本替代硬编码 "OL" 前缀
-- 清理死代码
+- 迁移至 Minecraft 26.2 / Fabric API 0.153.0+26.2 / MaLiLib 0.29.1
+- 修复连锁采集模式下无法将作物方块加入白名单的问题
+- 修复骨粉等客户端返回 PASS 的物品无法触发连锁的问题
+- 修复自定义包处理器在创造模式下消耗物品的问题
 
-- Added padding on both sides of the GUI to fix edge clipping caused by MC rendering bug
-- Reduced config control width in Advanced settings tab
-- Widened mode dropdown to fit full translated labels
-- Outline toggle button now uses translated text instead of hardcoded "OL" prefix
-- Cleaned up dead code
+- Migrated to Minecraft 26.2 / Fabric API 0.153.0+26.2 / MaLiLib 0.29.1
+- Fixed crop blocks not being addable to whitelist in Chain Mine mode
+- Fixed items like bone meal (which return PASS on client) not triggering chain actions
+- Fixed items being consumed in Creative mode when using the custom packet handler

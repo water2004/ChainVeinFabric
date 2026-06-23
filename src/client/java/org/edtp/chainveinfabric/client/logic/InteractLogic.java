@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
@@ -100,7 +101,7 @@ public class InteractLogic {
         List<BlockPos> finalSubList = targets.subList(0, count);
 
         if (limitedByDurability && targets.size() > available) {
-            client.gui.setOverlayMessage(Component.translatable("message.chainveinfabric.protection"), false);
+            client.gui.hud.setOverlayMessage(Component.translatable("message.chainveinfabric.protection"), false);
         }
 
         if (ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID)) {
@@ -110,13 +111,13 @@ public class InteractLogic {
                 if (p.equals(startPos)) continue;
                 ClientChainHandler.addTask(() -> {
                     client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND, 
-                        new BlockHitResult(p.getCenter(), Direction.UP, p, false));
+                        new BlockHitResult(Vec3.atCenterOf(p), Direction.UP, p, false));
                 });
             }
         }
 
         if (finalSubList.size() > 1) {
-            client.gui.setOverlayMessage(Component.translatable(translationKey, finalSubList.size()), false);
+            client.gui.hud.setOverlayMessage(Component.translatable(translationKey, finalSubList.size()), false);
         }
     }
 }

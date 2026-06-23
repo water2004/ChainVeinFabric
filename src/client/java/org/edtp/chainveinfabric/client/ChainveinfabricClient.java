@@ -52,7 +52,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (configKeyBinding.consumeClick()) {
-                client.setScreen(new GuiChainVein());
+                client.gui.setScreen(new GuiChainVein());
             }
             ClientChainHandler.onTick(client);
             onOutlineTick(client);

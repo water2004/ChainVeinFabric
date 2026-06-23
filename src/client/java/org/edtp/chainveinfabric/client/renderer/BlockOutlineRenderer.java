@@ -49,7 +49,8 @@ public class BlockOutlineRenderer implements IRenderer {
 
         try (RenderContext ctx = new RenderContext(
                 () -> "chainveinfabric:block_outlines",
-                MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_NO_DEPTH_NO_CULL)) {
+                MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_NO_DEPTH_NO_CULL,
+                0)) {
 
             BufferBuilder buffer = ctx.getBuilder();
             Vec3 camPos = RenderUtils.camPos();

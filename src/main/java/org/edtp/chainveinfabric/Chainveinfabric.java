@@ -16,6 +16,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+
 import java.util.List;
 
 public class Chainveinfabric implements ModInitializer {
@@ -40,7 +42,7 @@ public class Chainveinfabric implements ModInitializer {
                 boolean startedWithEmptyHand = tool.isEmpty();
 
                 for (BlockPos pos : payload.positions()) {
-                    if (player.distanceToSqr(pos.getCenter()) > 100) continue;
+                    if (player.distanceToSqr(Vec3.atCenterOf(pos)) > 100) continue;
                     if (!isCreative && !startedWithEmptyHand && tool.isEmpty()) break;
 
                     BlockState state = world.getBlockState(pos);
@@ -92,7 +94,7 @@ public class Chainveinfabric implements ModInitializer {
 
                 for (BlockPos pos : payload.positions()) {
                     // Safety: Distance Check
-                    if (player.distanceToSqr(pos.getCenter()) > 100) continue;
+                    if (player.distanceToSqr(Vec3.atCenterOf(pos)) > 100) continue;
                     if (!isCreative && stack.isEmpty()) break;
 
                     // Replicate vanilla creative protection (ServerPlayerGameMode.useItemOn)
@@ -100,7 +102,7 @@ public class Chainveinfabric implements ModInitializer {
                     stack.useOn(new net.minecraft.world.item.context.UseOnContext(
                         player,
                         net.minecraft.world.InteractionHand.MAIN_HAND,
-                        new net.minecraft.world.phys.BlockHitResult(pos.getCenter(), net.minecraft.core.Direction.UP, pos, false)
+                        new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(pos), net.minecraft.core.Direction.UP, pos, false)
                     ));
                     if (isCreative) {
                         stack.setCount(oldCount);
