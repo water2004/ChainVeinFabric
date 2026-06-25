@@ -61,7 +61,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 String messageKey = ChainveinfabricClient.CONFIG.isChainVeinEnabled
                         ? "message.chainveinfabric.enabled"
                         : "message.chainveinfabric.disabled";
-                client.gui.hud.setOverlayMessage(Component.translatable(messageKey), false);
+                client.gui.setOverlayMessage(Component.translatable(messageKey), false);
             }
 
             return true;
