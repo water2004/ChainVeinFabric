@@ -1,12 +1,9 @@
 package org.edtp.chainveinfabric.client;
 
-import com.mojang.blaze3d.platform.InputConstants;
-import fi.dy.masa.malilib.event.RenderEventHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import fi.dy.masa.malilib.event.RenderEventHandler;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -16,19 +13,19 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
-import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
+import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
+import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
 import org.edtp.chainveinfabric.client.renderer.ConfigSnapshot;
 import org.edtp.chainveinfabric.client.renderer.SearchWorker;
-import org.lwjgl.glfw.GLFW;
+import fi.dy.masa.malilib.event.InputEventHandler;
 
 public class ChainveinfabricClient implements ClientModInitializer {
 
     public static ChainVeinConfig CONFIG;
-    public static final KeyMapping.Category CHAIN_VEIN_CATEGORY = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("chainveinfabric", "general"));
-    private static KeyMapping configKeyBinding;
 
+    // Outline preview state
     private static BlockPos outlineLastTarget = null;
     private static long outlineLastConfigHash = 0;
     private static int outlineGeneration = 0;
@@ -37,22 +34,15 @@ public class ChainveinfabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         CONFIG = ChainVeinConfig.load();
+        ConfigProxies.load();
+        InputEventHandler.getKeybindManager().registerKeybindProvider(ChainVeinInputHandler.getInstance());
+        InputEventHandler.getKeybindManager().updateUsedKeys();
 
         outlineWorker = new SearchWorker();
         outlineWorker.start();
         RenderEventHandler.getInstance().registerWorldLastRenderer(new BlockOutlineRenderer(outlineWorker));
-        
-        configKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "key.chainveinfabric.config",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_V,
-                CHAIN_VEIN_CATEGORY
-        ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (configKeyBinding.consumeClick()) {
-                client.setScreen(new GuiChainVein());
-            }
             ClientChainHandler.onTick(client);
             onOutlineTick(client);
         });
@@ -101,7 +91,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
         }
 
         long configHash = computeOutlineConfigHash(CONFIG);
-        boolean configChanged = configHash != outlineLastConfigHash;
+        boolean configChanged = (configHash != outlineLastConfigHash);
         boolean targetChanged = !target.equals(outlineLastTarget);
 
         if (!configChanged && !targetChanged) return;
