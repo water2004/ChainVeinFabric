@@ -34,14 +34,8 @@ public class GuiChainVein extends GuiConfigsBase {
     private Tab currentTab = Tab.BASIC;
     private final List<IDropdown> activeDropdowns = new ArrayList<>();
     private ChainVeinConfig.ChainMode presetWhitelistMode = ChainVeinConfig.ChainMode.CHAIN_MINE;
-    private String selectedWhitelistPresetId;
-    private String selectedConfigPresetId;
     private GuiTextFieldGeneric whitelistPresetNameField;
     private GuiTextFieldGeneric configPresetNameField;
-    private ButtonGeneric deleteWhitelistPresetButton;
-    private ButtonGeneric useWhitelistPresetButton;
-    private ButtonGeneric deleteConfigPresetButton;
-    private ButtonGeneric useConfigPresetButton;
 
     public static abstract class MyDropdown<T> extends WidgetDropDownList<T> implements IDropdown {
         private long lastDrawn;
@@ -360,19 +354,16 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private void initPresetTab(int centerX, int topY) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        int leftX = centerX - 200;
-        int rightX = centerX + 20;
-        int panelWidth = 180;
-        int rowY = topY + 22;
-
-        this.selectedWhitelistPresetId = getValidSelectedWhitelistPresetId(config, this.presetWhitelistMode);
-        this.selectedConfigPresetId = getValidSelectedConfigPresetId(config);
-
-        this.drawPresetLabels(leftX, rightX, topY, panelWidth);
+        int listX = centerX - 220;
+        int listWidth = 440;
+        int nameWidth = 280;
+        int buttonWidth = 58;
+        int rowHeight = 24;
+        int y = topY;
 
         List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
         MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-            leftX, rowY, panelWidth, 20, 200, 5, modes, this::getModeString
+            listX + 128, y, 220, 20, 200, 5, modes, this::getModeString
         ) {
             @Override
             protected void setSelectedEntry(int index) {
@@ -380,7 +371,6 @@ public class GuiChainVein extends GuiConfigsBase {
                 ChainVeinConfig.ChainMode selected = this.getSelectedEntry();
                 if (selected != null && GuiChainVein.this.presetWhitelistMode != selected) {
                     GuiChainVein.this.presetWhitelistMode = selected;
-                    GuiChainVein.this.selectedWhitelistPresetId = ChainveinfabricClient.CONFIG.getActiveWhitelistPresetId(selected);
                     GuiChainVein.this.initGui();
                 }
             }
@@ -389,99 +379,68 @@ public class GuiChainVein extends GuiConfigsBase {
         modeDropdown.setSelectedEntry(this.presetWhitelistMode);
         this.addWidget(modeDropdown);
 
-        List<WhitelistPreset> whitelistPresets = config.getWhitelistPresets(this.presetWhitelistMode);
-        MyDropdown<WhitelistPreset> whitelistDropdown = new MyDropdown<WhitelistPreset>(
-            leftX, rowY + 34, panelWidth, 20, 200, 6, whitelistPresets,
-            preset -> getPresetDisplayName(preset.name, preset.id.equals(config.getActiveWhitelistPresetId(this.presetWhitelistMode)))
-        ) {
-            @Override
-            protected void setSelectedEntry(int index) {
-                super.setSelectedEntry(index);
-                WhitelistPreset selected = this.getSelectedEntry();
-                if (selected != null) {
-                    GuiChainVein.this.selectedWhitelistPresetId = selected.id;
-                    GuiChainVein.this.updateWhitelistPresetControls();
-                }
-            }
-        };
-        this.activeDropdowns.add(whitelistDropdown);
-        whitelistDropdown.setSelectedEntry(config.getWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId));
-        this.addWidget(whitelistDropdown);
+        this.addLabel(listX, y + 5, 120, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
 
-        WhitelistPreset selectedWhitelist = config.getWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId);
-        this.whitelistPresetNameField = new GuiTextFieldGeneric(leftX, rowY + 68, panelWidth, 20, this.font);
-        this.whitelistPresetNameField.setValue(selectedWhitelist != null ? selectedWhitelist.name : "");
-        this.addTextField(this.whitelistPresetNameField, field -> {
-            ChainveinfabricClient.CONFIG.renameWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId, field.getValue());
-            ChainveinfabricClient.CONFIG.save();
-            return true;
-        });
+        y += 30;
+        this.whitelistPresetNameField = new GuiTextFieldGeneric(listX, y, nameWidth, 20, this.font);
+        this.whitelistPresetNameField.setValue(nextPresetName(config.getWhitelistPresets(this.presetWhitelistMode).size() + 1));
+        this.addTextField(this.whitelistPresetNameField, null);
 
-        ButtonGeneric newWhitelistButton = new ButtonGeneric(leftX, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
+        ButtonGeneric newWhitelistButton = new ButtonGeneric(listX + nameWidth + 8, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
         this.addButton(newWhitelistButton, (button, mb) -> {
             WhitelistPreset preset = ChainveinfabricClient.CONFIG.createWhitelistPreset(this.presetWhitelistMode, this.whitelistPresetNameField.getValue());
-            this.selectedWhitelistPresetId = preset.id;
             ChainveinfabricClient.CONFIG.save();
+            this.whitelistPresetNameField.setValue(preset.name);
             this.initGui();
         });
 
-        this.useWhitelistPresetButton = new ButtonGeneric(leftX + 61, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.use"));
-        this.addButton(this.useWhitelistPresetButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.useWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId)) {
-                ChainveinfabricClient.CONFIG.save();
-                this.refreshLists();
-                this.initGui();
-            }
-        });
+        y += 30;
+        for (WhitelistPreset preset : config.getWhitelistPresets(this.presetWhitelistMode)) {
+            this.addWhitelistPresetRow(listX, y, nameWidth, buttonWidth, preset);
+            y += rowHeight;
+        }
 
-        this.deleteWhitelistPresetButton = new ButtonGeneric(leftX + 122, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
-        this.addButton(this.deleteWhitelistPresetButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.deleteWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId)) {
-                this.selectedWhitelistPresetId = ChainveinfabricClient.CONFIG.getActiveWhitelistPresetId(this.presetWhitelistMode);
-                ChainveinfabricClient.CONFIG.save();
-                this.initGui();
-            }
-        });
+        y += 12;
+        this.addLabel(listX, y + 5, listWidth, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
 
-        List<ConfigPreset> configPresets = config.getConfigPresets();
-        MyDropdown<ConfigPreset> configDropdown = new MyDropdown<ConfigPreset>(
-            rightX, rowY + 34, panelWidth, 20, 200, 6, configPresets,
-            preset -> getPresetDisplayName(preset.name, preset.id.equals(config.activeConfigPresetId))
-        ) {
-            @Override
-            protected void setSelectedEntry(int index) {
-                super.setSelectedEntry(index);
-                ConfigPreset selected = this.getSelectedEntry();
-                if (selected != null) {
-                    GuiChainVein.this.selectedConfigPresetId = selected.id;
-                    GuiChainVein.this.updateConfigPresetControls();
-                }
-            }
-        };
-        this.activeDropdowns.add(configDropdown);
-        configDropdown.setSelectedEntry(config.getConfigPreset(this.selectedConfigPresetId));
-        this.addWidget(configDropdown);
+        y += 30;
+        this.configPresetNameField = new GuiTextFieldGeneric(listX, y, nameWidth, 20, this.font);
+        this.configPresetNameField.setValue(nextPresetName(config.getConfigPresets().size() + 1));
+        this.addTextField(this.configPresetNameField, null);
 
-        ConfigPreset selectedConfig = config.getConfigPreset(this.selectedConfigPresetId);
-        this.configPresetNameField = new GuiTextFieldGeneric(rightX, rowY + 68, panelWidth, 20, this.font);
-        this.configPresetNameField.setValue(selectedConfig != null ? selectedConfig.name : "");
-        this.addTextField(this.configPresetNameField, field -> {
-            ChainveinfabricClient.CONFIG.renameConfigPreset(this.selectedConfigPresetId, field.getValue());
+        ButtonGeneric newConfigButton = new ButtonGeneric(listX + nameWidth + 8, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
+        this.addButton(newConfigButton, (button, mb) -> {
+            ConfigPreset preset = ChainveinfabricClient.CONFIG.createConfigPreset(this.configPresetNameField.getValue());
             ChainveinfabricClient.CONFIG.save();
+            this.configPresetNameField.setValue(preset.name);
+            this.initGui();
+        });
+
+        y += 30;
+        for (ConfigPreset preset : config.getConfigPresets()) {
+            this.addConfigPresetRow(listX, y, nameWidth, buttonWidth, preset);
+            y += rowHeight;
+        }
+    }
+
+    private void addWhitelistPresetRow(int x, int y, int nameWidth, int buttonWidth, WhitelistPreset preset) {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        boolean active = preset.id.equals(config.getActiveWhitelistPresetId(this.presetWhitelistMode));
+        GuiTextFieldGeneric nameField = new GuiTextFieldGeneric(x, y, nameWidth, 20, this.font);
+        nameField.setValue(preset.name);
+        this.addTextField(nameField, field -> {
+            if (ChainveinfabricClient.CONFIG.renameWhitelistPreset(this.presetWhitelistMode, preset.id, field.getValue())) {
+                ChainveinfabricClient.CONFIG.save();
+            }
             return true;
         });
 
-        ButtonGeneric newConfigButton = new ButtonGeneric(rightX, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
-        this.addButton(newConfigButton, (button, mb) -> {
-            ConfigPreset preset = ChainveinfabricClient.CONFIG.createConfigPreset(this.configPresetNameField.getValue());
-            this.selectedConfigPresetId = preset.id;
-            ChainveinfabricClient.CONFIG.save();
-            this.initGui();
-        });
-
-        this.useConfigPresetButton = new ButtonGeneric(rightX + 61, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.use"));
-        this.addButton(this.useConfigPresetButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.useConfigPreset(this.selectedConfigPresetId)) {
+        ButtonGeneric useButton = new ButtonGeneric(x + nameWidth + 8, y, buttonWidth, 20,
+            active ? StringUtils.translate("options.chainveinfabric.preset.active") : StringUtils.translate("options.chainveinfabric.preset.use"));
+        useButton.setEnabled(!active);
+        this.addButton(useButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.useWhitelistPreset(this.presetWhitelistMode, preset.id)) {
+                ChainveinfabricClient.CONFIG.mode = this.presetWhitelistMode;
                 ChainveinfabricClient.CONFIG.save();
                 ConfigProxies.load();
                 this.refreshLists();
@@ -489,24 +448,48 @@ public class GuiChainVein extends GuiConfigsBase {
             }
         });
 
-        this.deleteConfigPresetButton = new ButtonGeneric(rightX + 122, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
-        this.addButton(this.deleteConfigPresetButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.deleteConfigPreset(this.selectedConfigPresetId)) {
-                this.selectedConfigPresetId = ChainveinfabricClient.CONFIG.activeConfigPresetId;
+        ButtonGeneric deleteButton = new ButtonGeneric(x + nameWidth + 8 + buttonWidth + 5, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
+        deleteButton.setEnabled(!active);
+        this.addButton(deleteButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.deleteWhitelistPreset(this.presetWhitelistMode, preset.id)) {
                 ChainveinfabricClient.CONFIG.save();
                 this.initGui();
             }
         });
-
-        this.updateWhitelistPresetControls();
-        this.updateConfigPresetControls();
     }
 
-    private void drawPresetLabels(int leftX, int rightX, int topY, int panelWidth) {
-        this.addLabel(leftX, topY, panelWidth, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
-        this.addLabel(rightX, topY, panelWidth, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
-        this.addLabel(leftX, topY + 48, panelWidth, 12, 0xFFAAAAAA, StringUtils.translate("options.chainveinfabric.preset.name"));
-        this.addLabel(rightX, topY + 48, panelWidth, 12, 0xFFAAAAAA, StringUtils.translate("options.chainveinfabric.preset.name"));
+    private void addConfigPresetRow(int x, int y, int nameWidth, int buttonWidth, ConfigPreset preset) {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        boolean active = preset.id.equals(config.activeConfigPresetId);
+        GuiTextFieldGeneric nameField = new GuiTextFieldGeneric(x, y, nameWidth, 20, this.font);
+        nameField.setValue(preset.name);
+        this.addTextField(nameField, field -> {
+            if (ChainveinfabricClient.CONFIG.renameConfigPreset(preset.id, field.getValue())) {
+                ChainveinfabricClient.CONFIG.save();
+            }
+            return true;
+        });
+
+        ButtonGeneric useButton = new ButtonGeneric(x + nameWidth + 8, y, buttonWidth, 20,
+            active ? StringUtils.translate("options.chainveinfabric.preset.active") : StringUtils.translate("options.chainveinfabric.preset.use"));
+        useButton.setEnabled(!active);
+        this.addButton(useButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.useConfigPreset(preset.id)) {
+                ChainveinfabricClient.CONFIG.save();
+                ConfigProxies.load();
+                this.refreshLists();
+                this.initGui();
+            }
+        });
+
+        ButtonGeneric deleteButton = new ButtonGeneric(x + nameWidth + 8 + buttonWidth + 5, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
+        deleteButton.setEnabled(!active);
+        this.addButton(deleteButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.deleteConfigPreset(preset.id)) {
+                ChainveinfabricClient.CONFIG.save();
+                this.initGui();
+            }
+        });
     }
 
     @Override
@@ -526,7 +509,15 @@ public class GuiChainVein extends GuiConfigsBase {
             this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 5, 105 - 12, 0xFFFFFF);
         }
 
-        // Post-render open dropdowns
+    }
+
+    @Override
+    protected void drawButtonHoverTexts(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+        super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
+        this.renderOpenDropdowns(ctx, mouseX, mouseY);
+    }
+
+    private void renderOpenDropdowns(GuiContext ctx, int mouseX, int mouseY) {
         for (IDropdown dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
                 boolean selected = dd.isMouseOver(mouseX, mouseY);
@@ -615,47 +606,8 @@ public class GuiChainVein extends GuiConfigsBase {
         if (this.rightList != null) this.rightList.refreshEntries();
     }
 
-    private void updateWhitelistPresetControls() {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        WhitelistPreset preset = config.getWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId);
-        boolean exists = preset != null;
-        boolean active = exists && preset.id.equals(config.getActiveWhitelistPresetId(this.presetWhitelistMode));
-
-        if (this.whitelistPresetNameField != null && exists && !this.whitelistPresetNameField.getValue().equals(preset.name)) {
-            this.whitelistPresetNameField.setValue(preset.name);
-        }
-        if (this.useWhitelistPresetButton != null) this.useWhitelistPresetButton.setEnabled(exists && !active);
-        if (this.deleteWhitelistPresetButton != null) this.deleteWhitelistPresetButton.setEnabled(exists && !active);
-    }
-
-    private void updateConfigPresetControls() {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        ConfigPreset preset = config.getConfigPreset(this.selectedConfigPresetId);
-        boolean exists = preset != null;
-        boolean active = exists && preset.id.equals(config.activeConfigPresetId);
-
-        if (this.configPresetNameField != null && exists && !this.configPresetNameField.getValue().equals(preset.name)) {
-            this.configPresetNameField.setValue(preset.name);
-        }
-        if (this.useConfigPresetButton != null) this.useConfigPresetButton.setEnabled(exists && !active);
-        if (this.deleteConfigPresetButton != null) this.deleteConfigPresetButton.setEnabled(exists && !active);
-    }
-
-    private String getValidSelectedWhitelistPresetId(ChainVeinConfig config, ChainVeinConfig.ChainMode mode) {
-        if (config.getWhitelistPreset(mode, this.selectedWhitelistPresetId) != null) return this.selectedWhitelistPresetId;
-        return config.getActiveWhitelistPresetId(mode);
-    }
-
-    private String getValidSelectedConfigPresetId(ChainVeinConfig config) {
-        if (config.getConfigPreset(this.selectedConfigPresetId) != null) return this.selectedConfigPresetId;
-        return config.activeConfigPresetId;
-    }
-
-    private String getPresetDisplayName(String name, boolean active) {
-        if (active) {
-            return name + " (" + StringUtils.translate("options.chainveinfabric.preset.active") + ")";
-        }
-        return name;
+    private String nextPresetName(int index) {
+        return StringUtils.translate("options.chainveinfabric.preset.newName") + " " + index;
     }
 
     private String getModeString() {
