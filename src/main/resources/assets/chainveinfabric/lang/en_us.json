@@ -74,5 +74,6 @@
   "options.chainveinfabric.preset.new": "New",
   "options.chainveinfabric.preset.use": "Use",
   "options.chainveinfabric.preset.delete": "Delete",
-  "options.chainveinfabric.preset.active": "Active"
+  "options.chainveinfabric.preset.active": "Using",
+  "options.chainveinfabric.preset.newName": "Preset"
 }

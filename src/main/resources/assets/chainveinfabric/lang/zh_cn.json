@@ -74,5 +74,6 @@
   "options.chainveinfabric.preset.new": "新建",
   "options.chainveinfabric.preset.use": "使用",
   "options.chainveinfabric.preset.delete": "删除",
-  "options.chainveinfabric.preset.active": "使用中"
+  "options.chainveinfabric.preset.active": "使用中",
+  "options.chainveinfabric.preset.newName": "预设"
 }
