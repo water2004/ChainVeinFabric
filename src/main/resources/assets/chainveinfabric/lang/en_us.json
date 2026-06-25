@@ -1,5 +1,6 @@
 {
   "key.chainveinfabric.config": "Open Config",
+  "key.chainveinfabric.toggle": "Toggle Chain Mode",
   "key.category.chainveinfabric.general": "ChainVein Fabric",
   "options.chainveinfabric.chainVein": "Chain Vein",
   "options.chainveinfabric.search": "Search Item/Block",
@@ -11,6 +12,7 @@
   "options.chainveinfabric.cropWhitelist": "Crop Whitelist",
   "options.chainveinfabric.tab.basic": "Basic",
   "options.chainveinfabric.tab.settings": "Advanced",
+  "options.chainveinfabric.tab.presets": "Presets",
   "options.chainveinfabric.mode": "Current Mode",
   "options.chainveinfabric.mode.mine": "Chain Mining",
   "options.chainveinfabric.mode.plant": "Chain Planting",
@@ -37,6 +39,8 @@
   "message.chainveinfabric.planted": "Chain planted %d crops",
   "message.chainveinfabric.processed": "Chain processed %d blocks",
   "message.chainveinfabric.protection": "Chain operation aborted: low tool durability!",
+  "message.chainveinfabric.enabled": "Chain Mode Enabled",
+  "message.chainveinfabric.disabled": "Chain Mode Disabled",
   "options.chainveinfabric.searchAlgorithm": "Search Algorithm",
   "options.chainveinfabric.searchAlgorithm.adjacent_same": "Adjacent Same",
   "options.chainveinfabric.searchAlgorithm.adjacent_whitelist": "Adjacent Whitelist",
@@ -62,5 +66,13 @@
   "options.chainveinfabric.cuboidL": "Length (L)",
   "options.chainveinfabric.cuboidW": "Width (W)",
   "options.chainveinfabric.cuboidH": "Height (H)",
-  "options.chainveinfabric.showBlockOutlines": "Outlines"
+  "options.chainveinfabric.showBlockOutlines": "Outlines",
+  "options.chainveinfabric.toggleChainVeinHotkey": "Toggle Chain Mode Hotkey",
+  "options.chainveinfabric.preset.whitelist": "Whitelist Presets",
+  "options.chainveinfabric.preset.config": "Config Presets",
+  "options.chainveinfabric.preset.name": "Name",
+  "options.chainveinfabric.preset.new": "New",
+  "options.chainveinfabric.preset.use": "Use",
+  "options.chainveinfabric.preset.delete": "Delete",
+  "options.chainveinfabric.preset.active": "Active"
 }
