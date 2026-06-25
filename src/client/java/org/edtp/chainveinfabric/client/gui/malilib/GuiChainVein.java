@@ -6,9 +6,12 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetDropDownList;
+import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
+import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import net.minecraft.client.gui.GuiGraphics;
+import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -37,8 +40,6 @@ public class GuiChainVein extends GuiConfigsBase {
     private Tab currentTab = Tab.BASIC;
     private final List<IDropdown> activeDropdowns = new ArrayList<>();
     private ChainVeinConfig.ChainMode presetWhitelistMode = ChainVeinConfig.ChainMode.CHAIN_MINE;
-    private GuiTextFieldGeneric whitelistPresetNameField;
-    private GuiTextFieldGeneric configPresetNameField;
 
     public static abstract class MyDropdown<T> extends WidgetDropDownList<T> implements IDropdown {
         private long lastDrawn;
@@ -108,6 +109,7 @@ public class GuiChainVein extends GuiConfigsBase {
     private WidgetChainList leftList;
     private WidgetChainList rightList;
     private WidgetSearchBar searchBar;
+    private WidgetPresetList presetList;
 
     public GuiChainVein() {
         super(20, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
@@ -357,143 +359,316 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     private void initPresetTab(int centerX, int topY) {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        int listX = centerX - 220;
-        int listWidth = 440;
-        int nameWidth = 280;
-        int buttonWidth = 58;
-        int rowHeight = 24;
-        int y = topY;
+        int listX = centerX - 200;
+        int listWidth = 400;
+        int listY = topY;
+        this.presetList = new WidgetPresetList(listX, listY, listWidth, this.height - listY - 20, this);
+        this.presetList.refreshEntries();
+    }
 
-        List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
-        MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-            listX + 128, y, 220, 20, 200, 5, modes, this::getModeString
-        ) {
-            @Override
-            protected void setSelectedEntry(int index) {
-                super.setSelectedEntry(index);
-                ChainVeinConfig.ChainMode selected = this.getSelectedEntry();
-                if (selected != null && GuiChainVein.this.presetWhitelistMode != selected) {
-                    GuiChainVein.this.presetWhitelistMode = selected;
-                    GuiChainVein.this.initGui();
+    private void refreshPresetList() {
+        if (this.presetList != null) {
+            this.presetList.refreshEntriesPreserveScroll();
+        }
+    }
+
+    private static class PresetRow {
+        private enum Type { WHITELIST_HEADER, NEW_WHITELIST, WHITELIST, CONFIG_HEADER, NEW_CONFIG, CONFIG }
+
+        private final Type type;
+        private final WhitelistPreset whitelistPreset;
+        private final ConfigPreset configPreset;
+
+        private PresetRow(Type type, WhitelistPreset whitelistPreset, ConfigPreset configPreset) {
+            this.type = type;
+            this.whitelistPreset = whitelistPreset;
+            this.configPreset = configPreset;
+        }
+
+        private static PresetRow whitelistHeader() {
+            return new PresetRow(Type.WHITELIST_HEADER, null, null);
+        }
+
+        private static PresetRow newWhitelist() {
+            return new PresetRow(Type.NEW_WHITELIST, null, null);
+        }
+
+        private static PresetRow whitelist(WhitelistPreset preset) {
+            return new PresetRow(Type.WHITELIST, preset, null);
+        }
+
+        private static PresetRow configHeader() {
+            return new PresetRow(Type.CONFIG_HEADER, null, null);
+        }
+
+        private static PresetRow newConfig() {
+            return new PresetRow(Type.NEW_CONFIG, null, null);
+        }
+
+        private static PresetRow config(ConfigPreset preset) {
+            return new PresetRow(Type.CONFIG, null, preset);
+        }
+    }
+
+    private static class WidgetPresetList extends WidgetListBase<PresetRow, WidgetPresetEntry> {
+        private final GuiChainVein parent;
+
+        private WidgetPresetList(int x, int y, int width, int height, GuiChainVein parent) {
+            super(x, y, width, height, null);
+            this.parent = parent;
+            this.browserEntryHeight = 24;
+        }
+
+        @Override
+        protected Collection<PresetRow> getAllEntries() {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            List<PresetRow> rows = new ArrayList<>();
+            rows.add(PresetRow.whitelistHeader());
+            rows.add(PresetRow.newWhitelist());
+            for (WhitelistPreset preset : config.getWhitelistPresets(this.parent.presetWhitelistMode)) {
+                rows.add(PresetRow.whitelist(preset));
+            }
+            rows.add(PresetRow.configHeader());
+            rows.add(PresetRow.newConfig());
+            for (ConfigPreset preset : config.getConfigPresets()) {
+                rows.add(PresetRow.config(preset));
+            }
+            return rows;
+        }
+
+        @Override
+        protected int getBrowserEntryHeightFor(PresetRow row) {
+            return row.type == PresetRow.Type.WHITELIST_HEADER || row.type == PresetRow.Type.CONFIG_HEADER ? 28 : 24;
+        }
+
+        @Override
+        protected WidgetPresetEntry createListEntryWidget(int x, int y, int listIndex, boolean isOdd, PresetRow row) {
+            return new WidgetPresetEntry(x, y, this.browserEntryWidth, this.getBrowserEntryHeightFor(row), isOdd, row, listIndex, this.parent, this);
+        }
+
+        @Override
+        protected void reCreateListEntryWidgets() {
+            this.parent.activeDropdowns.clear();
+            super.reCreateListEntryWidgets();
+        }
+
+        private void refreshEntriesPreserveScroll() {
+            int scroll = this.scrollBar.getValue();
+            this.refreshEntries();
+            this.scrollBar.setValue(scroll);
+            this.reCreateListEntryWidgets();
+        }
+
+        @Override
+        public boolean onKeyTyped(KeyEvent input) {
+            for (WidgetPresetEntry widget : this.listWidgets) {
+                if (widget.onKeyTyped(input)) {
+                    return true;
                 }
             }
-        };
-        this.activeDropdowns.add(modeDropdown);
-        modeDropdown.setSelectedEntry(this.presetWhitelistMode);
-        this.addWidget(modeDropdown);
-
-        this.addLabel(listX, y + 5, 120, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
-
-        y += 30;
-        this.whitelistPresetNameField = new GuiTextFieldGeneric(listX, y, nameWidth, 20, this.font);
-        this.whitelistPresetNameField.setValue(nextPresetName(config.getWhitelistPresets(this.presetWhitelistMode).size() + 1));
-        this.addTextField(this.whitelistPresetNameField, null);
-
-        ButtonGeneric newWhitelistButton = new ButtonGeneric(listX + nameWidth + 8, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
-        this.addButton(newWhitelistButton, (button, mb) -> {
-            WhitelistPreset preset = ChainveinfabricClient.CONFIG.createWhitelistPreset(this.presetWhitelistMode, this.whitelistPresetNameField.getValue());
-            ChainveinfabricClient.CONFIG.save();
-            this.whitelistPresetNameField.setValue(preset.name);
-            this.initGui();
-        });
-
-        y += 30;
-        for (WhitelistPreset preset : config.getWhitelistPresets(this.presetWhitelistMode)) {
-            this.addWhitelistPresetRow(listX, y, nameWidth, buttonWidth, preset);
-            y += rowHeight;
-        }
-
-        y += 12;
-        this.addLabel(listX, y + 5, listWidth, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
-
-        y += 30;
-        this.configPresetNameField = new GuiTextFieldGeneric(listX, y, nameWidth, 20, this.font);
-        this.configPresetNameField.setValue(nextPresetName(config.getConfigPresets().size() + 1));
-        this.addTextField(this.configPresetNameField, null);
-
-        ButtonGeneric newConfigButton = new ButtonGeneric(listX + nameWidth + 8, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
-        this.addButton(newConfigButton, (button, mb) -> {
-            ConfigPreset preset = ChainveinfabricClient.CONFIG.createConfigPreset(this.configPresetNameField.getValue());
-            ChainveinfabricClient.CONFIG.save();
-            this.configPresetNameField.setValue(preset.name);
-            this.initGui();
-        });
-
-        y += 30;
-        for (ConfigPreset preset : config.getConfigPresets()) {
-            this.addConfigPresetRow(listX, y, nameWidth, buttonWidth, preset);
-            y += rowHeight;
+            return super.onKeyTyped(input);
         }
     }
 
-    private void addWhitelistPresetRow(int x, int y, int nameWidth, int buttonWidth, WhitelistPreset preset) {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        boolean active = preset.id.equals(config.getActiveWhitelistPresetId(this.presetWhitelistMode));
-        GuiTextFieldGeneric nameField = new GuiTextFieldGeneric(x, y, nameWidth, 20, this.font);
-        nameField.setValue(preset.name);
-        this.addTextField(nameField, field -> {
-            if (ChainveinfabricClient.CONFIG.renameWhitelistPreset(this.presetWhitelistMode, preset.id, field.getValue())) {
-                ChainveinfabricClient.CONFIG.save();
-            }
-            return true;
-        });
+    private static class WidgetPresetEntry extends WidgetListEntryBase<PresetRow> {
+        private final boolean isOdd;
+        private final GuiChainVein parentScreen;
+        private GuiTextFieldGeneric nameField;
+        private String lastSavedName;
 
-        ButtonGeneric useButton = new ButtonGeneric(x + nameWidth + 8, y, buttonWidth, 20,
-            active ? StringUtils.translate("options.chainveinfabric.preset.active") : StringUtils.translate("options.chainveinfabric.preset.use"));
-        useButton.setEnabled(!active);
-        this.addButton(useButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.useWhitelistPreset(this.presetWhitelistMode, preset.id)) {
-                ChainveinfabricClient.CONFIG.mode = this.presetWhitelistMode;
-                ChainveinfabricClient.CONFIG.save();
-                ConfigProxies.load();
-                this.refreshLists();
-                this.initGui();
-            }
-        });
+        private WidgetPresetEntry(int x, int y, int width, int height, boolean isOdd, PresetRow row, int listIndex, GuiChainVein parentScreen, WidgetPresetList parentList) {
+            super(x, y, width, height, row, listIndex);
+            this.isOdd = isOdd;
+            this.parentScreen = parentScreen;
 
-        ButtonGeneric deleteButton = new ButtonGeneric(x + nameWidth + 8 + buttonWidth + 5, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
-        deleteButton.setEnabled(!active);
-        this.addButton(deleteButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.deleteWhitelistPreset(this.presetWhitelistMode, preset.id)) {
-                ChainveinfabricClient.CONFIG.save();
-                this.initGui();
-            }
-        });
-    }
+            int buttonWidth = 58;
+            int nameWidth = Math.max(120, width - buttonWidth * 2 - 30);
+            int buttonY = y + (height - 20) / 2;
 
-    private void addConfigPresetRow(int x, int y, int nameWidth, int buttonWidth, ConfigPreset preset) {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        boolean active = preset.id.equals(config.activeConfigPresetId);
-        GuiTextFieldGeneric nameField = new GuiTextFieldGeneric(x, y, nameWidth, 20, this.font);
-        nameField.setValue(preset.name);
-        this.addTextField(nameField, field -> {
-            if (ChainveinfabricClient.CONFIG.renameConfigPreset(preset.id, field.getValue())) {
-                ChainveinfabricClient.CONFIG.save();
-            }
-            return true;
-        });
+            switch (row.type) {
+                case WHITELIST_HEADER -> {
+                    List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
+                    MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
+                        x + 120, buttonY, 200, 20, 200, 5, modes, parentScreen::getModeString
+                    ) {
+                        @Override
+                        protected void setSelectedEntry(int index) {
+                            super.setSelectedEntry(index);
+                            ChainVeinConfig.ChainMode selected = this.getSelectedEntry();
+                            if (selected != null && parentScreen.presetWhitelistMode != selected) {
+                                parentScreen.presetWhitelistMode = selected;
+                                parentScreen.refreshPresetList();
+                            }
+                        }
+                    };
+                    modeDropdown.setSelectedEntry(parentScreen.presetWhitelistMode);
+                    parentScreen.activeDropdowns.add(modeDropdown);
+                    this.addWidget(modeDropdown);
+                }
+                case NEW_WHITELIST -> {
+                    ButtonGeneric button = new ButtonGeneric(x + 2, buttonY, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
+                    this.addButton(button, (btn, mb) -> {
+                        ChainveinfabricClient.CONFIG.createWhitelistPreset(parentScreen.presetWhitelistMode,
+                            parentScreen.nextWhitelistPresetName(ChainveinfabricClient.CONFIG, parentScreen.presetWhitelistMode));
+                        ChainveinfabricClient.CONFIG.save();
+                        parentScreen.refreshPresetList();
+                    });
+                }
+                case WHITELIST -> {
+                    boolean active = row.whitelistPreset.id.equals(ChainveinfabricClient.CONFIG.getActiveWhitelistPresetId(parentScreen.presetWhitelistMode));
+                    this.nameField = new GuiTextFieldGeneric(x + 2, buttonY, nameWidth, 20, this.textRenderer);
+                    this.nameField.setValue(row.whitelistPreset.name);
+                    this.nameField.setEditable(!active);
+                    this.lastSavedName = row.whitelistPreset.name;
 
-        ButtonGeneric useButton = new ButtonGeneric(x + nameWidth + 8, y, buttonWidth, 20,
-            active ? StringUtils.translate("options.chainveinfabric.preset.active") : StringUtils.translate("options.chainveinfabric.preset.use"));
-        useButton.setEnabled(!active);
-        this.addButton(useButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.useConfigPreset(preset.id)) {
-                ChainveinfabricClient.CONFIG.save();
-                ConfigProxies.load();
-                this.refreshLists();
-                this.initGui();
-            }
-        });
+                    ButtonGeneric useButton = new ButtonGeneric(x + nameWidth + 10, buttonY, buttonWidth, 20,
+                        active ? StringUtils.translate("options.chainveinfabric.preset.active") : StringUtils.translate("options.chainveinfabric.preset.use"));
+                    useButton.setEnabled(!active);
+                    this.addButton(useButton, (btn, mb) -> {
+                        if (ChainveinfabricClient.CONFIG.useWhitelistPreset(parentScreen.presetWhitelistMode, row.whitelistPreset.id)) {
+                            ChainveinfabricClient.CONFIG.mode = parentScreen.presetWhitelistMode;
+                            ChainveinfabricClient.CONFIG.save();
+                            ConfigProxies.load();
+                            parentScreen.refreshLists();
+                            parentScreen.refreshPresetList();
+                        }
+                    });
 
-        ButtonGeneric deleteButton = new ButtonGeneric(x + nameWidth + 8 + buttonWidth + 5, y, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
-        deleteButton.setEnabled(!active);
-        this.addButton(deleteButton, (button, mb) -> {
-            if (ChainveinfabricClient.CONFIG.deleteConfigPreset(preset.id)) {
-                ChainveinfabricClient.CONFIG.save();
-                this.initGui();
+                    ButtonGeneric deleteButton = new ButtonGeneric(x + nameWidth + buttonWidth + 15, buttonY, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
+                    deleteButton.setEnabled(!active);
+                    this.addButton(deleteButton, (btn, mb) -> {
+                        if (ChainveinfabricClient.CONFIG.deleteWhitelistPreset(parentScreen.presetWhitelistMode, row.whitelistPreset.id)) {
+                            ChainveinfabricClient.CONFIG.save();
+                            parentScreen.refreshPresetList();
+                        }
+                    });
+                }
+                case NEW_CONFIG -> {
+                    ButtonGeneric button = new ButtonGeneric(x + 2, buttonY, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
+                    this.addButton(button, (btn, mb) -> {
+                        ChainveinfabricClient.CONFIG.createConfigPreset(parentScreen.nextConfigPresetName(ChainveinfabricClient.CONFIG));
+                        ChainveinfabricClient.CONFIG.save();
+                        parentScreen.refreshPresetList();
+                    });
+                }
+                case CONFIG -> {
+                    boolean active = row.configPreset.id.equals(ChainveinfabricClient.CONFIG.activeConfigPresetId);
+                    this.nameField = new GuiTextFieldGeneric(x + 2, buttonY, nameWidth, 20, this.textRenderer);
+                    this.nameField.setValue(row.configPreset.name);
+                    this.nameField.setEditable(!active);
+                    this.lastSavedName = row.configPreset.name;
+
+                    ButtonGeneric useButton = new ButtonGeneric(x + nameWidth + 10, buttonY, buttonWidth, 20,
+                        active ? StringUtils.translate("options.chainveinfabric.preset.active") : StringUtils.translate("options.chainveinfabric.preset.use"));
+                    useButton.setEnabled(!active);
+                    this.addButton(useButton, (btn, mb) -> {
+                        if (ChainveinfabricClient.CONFIG.useConfigPreset(row.configPreset.id)) {
+                            ChainveinfabricClient.CONFIG.save();
+                            ConfigProxies.load();
+                            parentScreen.refreshLists();
+                            parentScreen.refreshPresetList();
+                        }
+                    });
+
+                    ButtonGeneric deleteButton = new ButtonGeneric(x + nameWidth + buttonWidth + 15, buttonY, buttonWidth, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
+                    deleteButton.setEnabled(!active);
+                    this.addButton(deleteButton, (btn, mb) -> {
+                        if (ChainveinfabricClient.CONFIG.deleteConfigPreset(row.configPreset.id)) {
+                            ChainveinfabricClient.CONFIG.save();
+                            parentScreen.refreshPresetList();
+                        }
+                    });
+                }
+                default -> {
+                }
             }
-        });
+        }
+
+        @Override
+        public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
+            if (this.entry != null && this.entry.type == PresetRow.Type.WHITELIST_HEADER) {
+                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
+                super.render(ctx, mouseX, mouseY, selected);
+                return;
+            }
+
+            if (this.entry != null && this.entry.type == PresetRow.Type.CONFIG_HEADER) {
+                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
+                return;
+            }
+
+            if (selected || this.isMouseOver(mouseX, mouseY)) {
+                RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x50FFFFFF);
+            } else if (this.isOdd) {
+                RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x20FFFFFF);
+            }
+
+            if (this.nameField != null) {
+                this.nameField.renderWidget(ctx, mouseX, mouseY, 0f);
+            }
+
+            super.render(ctx, mouseX, mouseY, selected);
+        }
+
+        @Override
+        public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
+            if (this.nameField != null && this.nameField.mouseClicked(click, doubleClick)) {
+                return true;
+            }
+            if (this.nameField != null && !this.nameField.isMouseOver(click.x(), click.y())) {
+                this.nameField.setFocused(false);
+            }
+            return super.onMouseClicked(click, doubleClick);
+        }
+
+        @Override
+        public boolean onKeyTyped(KeyEvent input) {
+            if (this.nameField != null && this.nameField.isFocused()) {
+                String before = this.nameField.getValue();
+                boolean handled = this.nameField.keyPressed(input);
+                if (!before.equals(this.nameField.getValue())) {
+                    this.saveName();
+                }
+                return handled;
+            }
+            return super.onKeyTyped(input);
+        }
+
+        @Override
+        public boolean onCharTyped(CharacterEvent input) {
+            if (this.nameField != null && this.nameField.isFocused()) {
+                String before = this.nameField.getValue();
+                boolean handled = this.nameField.charTyped(input);
+                if (!before.equals(this.nameField.getValue())) {
+                    this.saveName();
+                }
+                return handled;
+            }
+            return super.onCharTyped(input);
+        }
+
+        @Override
+        public boolean canSelectAt(MouseButtonEvent click) {
+            return false;
+        }
+
+        private void saveName() {
+            if (this.entry == null || this.nameField == null || this.nameField.getValue().equals(this.lastSavedName)) {
+                return;
+            }
+
+            boolean saved = false;
+            if (this.entry.type == PresetRow.Type.WHITELIST && this.entry.whitelistPreset != null) {
+                saved = ChainveinfabricClient.CONFIG.renameWhitelistPreset(this.parentScreen.presetWhitelistMode, this.entry.whitelistPreset.id, this.nameField.getValue());
+            } else if (this.entry.type == PresetRow.Type.CONFIG && this.entry.configPreset != null) {
+                saved = ChainveinfabricClient.CONFIG.renameConfigPreset(this.entry.configPreset.id, this.nameField.getValue());
+            }
+
+            if (saved) {
+                this.lastSavedName = this.nameField.getValue();
+                ChainveinfabricClient.CONFIG.save();
+            }
+        }
     }
 
     @Override
@@ -511,17 +686,19 @@ public class GuiChainVein extends GuiConfigsBase {
                 case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
             };
             this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 5, 105 - 12, 0xFFFFFF);
+        } else if (currentTab == Tab.PRESETS) {
+            if (this.presetList != null) this.presetList.drawContents(ctx, mouseX, mouseY, partialTicks);
         }
 
     }
 
     @Override
-    protected void drawButtonHoverTexts(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+    protected void drawButtonHoverTexts(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
         super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
         this.renderOpenDropdowns(ctx, mouseX, mouseY);
     }
 
-    private void renderOpenDropdowns(GuiContext ctx, int mouseX, int mouseY) {
+    private void renderOpenDropdowns(GuiGraphics ctx, int mouseX, int mouseY) {
         for (IDropdown dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
                 boolean selected = dd.isMouseOver(mouseX, mouseY);
@@ -544,6 +721,8 @@ public class GuiChainVein extends GuiConfigsBase {
             if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
             if (this.leftList != null && this.leftList.onMouseClicked(click, doubleClick)) return true;
             if (this.rightList != null && this.rightList.onMouseClicked(click, doubleClick)) return true;
+        } else if (currentTab == Tab.PRESETS) {
+            if (this.presetList != null && this.presetList.onMouseClicked(click, doubleClick)) return true;
         }
         return false;
     }
@@ -554,6 +733,8 @@ public class GuiChainVein extends GuiConfigsBase {
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null && this.leftList.onMouseReleased(click)) return true;
             if (this.rightList != null && this.rightList.onMouseReleased(click)) return true;
+        } else if (currentTab == Tab.PRESETS) {
+            if (this.presetList != null && this.presetList.onMouseReleased(click)) return true;
         }
         return false;
     }
@@ -571,6 +752,8 @@ public class GuiChainVein extends GuiConfigsBase {
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null && this.leftList.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) return true;
             if (this.rightList != null && this.rightList.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) return true;
+        } else if (currentTab == Tab.PRESETS) {
+            if (this.presetList != null && this.presetList.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) return true;
         }
         return false;
     }
@@ -583,6 +766,8 @@ public class GuiChainVein extends GuiConfigsBase {
                 this.leftList.refreshEntries();
                 return true;
             }
+        } else if (currentTab == Tab.PRESETS && this.presetList != null) {
+            if (this.presetList.onKeyTyped(key)) return true;
         }
         return false;
     }
@@ -595,6 +780,8 @@ public class GuiChainVein extends GuiConfigsBase {
                 this.leftList.refreshEntries();
                 return true;
             }
+        } else if (currentTab == Tab.PRESETS && this.presetList != null) {
+            if (this.presetList.onCharTyped(character)) return true;
         }
         return false;
     }
@@ -610,8 +797,31 @@ public class GuiChainVein extends GuiConfigsBase {
         if (this.rightList != null) this.rightList.refreshEntries();
     }
 
-    private String nextPresetName(int index) {
-        return StringUtils.translate("options.chainveinfabric.preset.newName") + " " + index;
+    private String nextWhitelistPresetName(ChainVeinConfig config, ChainVeinConfig.ChainMode mode) {
+        Set<String> names = new HashSet<>();
+        for (WhitelistPreset preset : config.getWhitelistPresets(mode)) {
+            names.add(preset.name);
+        }
+        return nextPresetName(names);
+    }
+
+    private String nextConfigPresetName(ChainVeinConfig config) {
+        Set<String> names = new HashSet<>();
+        for (ConfigPreset preset : config.getConfigPresets()) {
+            names.add(preset.name);
+        }
+        return nextPresetName(names);
+    }
+
+    private String nextPresetName(Set<String> usedNames) {
+        int index = 1;
+        String baseName = StringUtils.translate("options.chainveinfabric.preset.newName");
+        String name = baseName + " " + index;
+        while (usedNames.contains(name)) {
+            index++;
+            name = baseName + " " + index;
+        }
+        return name;
     }
 
     private String getModeString() {
