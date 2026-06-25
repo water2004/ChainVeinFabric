@@ -1,45 +1,51 @@
 package org.edtp.chainveinfabric.client.gui.malilib;
 
-import fi.dy.masa.malilib.gui.GuiBase;
+import fi.dy.masa.malilib.gui.GuiConfigsBase;
+import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
+import fi.dy.masa.malilib.gui.widgets.WidgetDropDownList;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.AttachedStemBlock;
-import net.minecraft.world.level.block.AzaleaBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.SaplingBlock;
-import net.minecraft.world.level.block.SeaPickleBlock;
-import net.minecraft.world.level.block.StemBlock;
-import net.minecraft.world.level.block.VegetationBlock;
+import net.minecraft.world.level.block.*;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
+import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
 
 import fi.dy.masa.malilib.gui.LeftRight;
+import fi.dy.masa.malilib.gui.MaLiLibIcons;
 import fi.dy.masa.malilib.util.StringUtils;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
+public class GuiChainVein extends GuiConfigsBase {
 
-    private enum Tab { BASIC, SETTINGS }
+    private enum Tab { BASIC, SETTINGS, PRESETS }
 
     private Tab currentTab = Tab.BASIC;
     private final List<IDropdown> activeDropdowns = new ArrayList<>();
-    public static abstract class MyDropdown<T> extends fi.dy.masa.malilib.gui.widgets.WidgetDropDownList<T> implements IDropdown {
+    private ChainVeinConfig.ChainMode presetWhitelistMode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+    private String selectedWhitelistPresetId;
+    private String selectedConfigPresetId;
+    private GuiTextFieldGeneric whitelistPresetNameField;
+    private GuiTextFieldGeneric configPresetNameField;
+    private ButtonGeneric deleteWhitelistPresetButton;
+    private ButtonGeneric useWhitelistPresetButton;
+    private ButtonGeneric deleteConfigPresetButton;
+    private ButtonGeneric useConfigPresetButton;
+
+    public static abstract class MyDropdown<T> extends WidgetDropDownList<T> implements IDropdown {
         private long lastDrawn;
-        public MyDropdown(int x, int y, int width, int height, int maxHeight, int maxVisibleEntries, java.util.List<T> entries, fi.dy.masa.malilib.interfaces.IStringRetriever<T> stringRetriever) {
+        public MyDropdown(int x, int y, int width, int height, int maxHeight, int maxVisibleEntries, List<T> entries, fi.dy.masa.malilib.interfaces.IStringRetriever<T> stringRetriever) {
             super(x, y, width, height, maxHeight, maxVisibleEntries, entries, stringRetriever);
         }
         @Override public boolean isMenuOpen() { return this.isOpen; }
@@ -91,13 +97,16 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             this.isOpen = wasOpen;
         }
     }
+
     public interface IDropdown {
         boolean isMenuOpen();
         void setLastDrawn(long time);
         long getLastDrawn();
         boolean handleMouseClicked(int mouseX, int mouseY, int mouseButton);
         void handleRender(GuiGraphics ctx, int mouseX, int mouseY, boolean selected);
+        boolean isMouseOver(int mouseX, int mouseY);
     }
+
     private WidgetChainList leftList;
     private WidgetChainList rightList;
     private WidgetSearchBar searchBar;
@@ -121,13 +130,13 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    protected fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions createListWidget(int listX, int listY) {
-        if (this.currentTab == Tab.BASIC) {
+    protected WidgetListConfigOptions createListWidget(int listX, int listY) {
+        if (this.currentTab != Tab.SETTINGS) {
             return null;
         }
-        return new fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions(listX, listY, 
+        return new WidgetListConfigOptions(listX, listY,
             this.getBrowserWidth(), this.getBrowserHeight(), this.getConfigWidth(), 0.f, this.useKeybindSearch(), this) {
-            
+
             @Override
             protected fi.dy.masa.malilib.gui.widgets.WidgetConfigOption createListEntryWidget(int x, int y, int listIndex, boolean isOdd, ConfigOptionWrapper wrapper) {
                 return new DropdownConfigOption(x, y, this.browserEntryWidth, this.browserEntryHeight,
@@ -138,7 +147,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
 
     private static class DropdownConfigOption extends fi.dy.masa.malilib.gui.widgets.WidgetConfigOption {
         public DropdownConfigOption(int x, int y, int width, int height, int labelWidth, int configWidth,
-            fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper wrapper, int listIndex, 
+            ConfigOptionWrapper wrapper, int listIndex,
             fi.dy.masa.malilib.gui.interfaces.IKeybindConfigGui host, fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase<?, ?> parent) {
             super(x, y, width, height, labelWidth, configWidth, wrapper, listIndex, host, parent);
         }
@@ -148,7 +157,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             if (config.getType() == fi.dy.masa.malilib.config.ConfigType.OPTION_LIST) {
                 fi.dy.masa.malilib.config.IConfigOptionList optionList = (fi.dy.masa.malilib.config.IConfigOptionList) config;
                 fi.dy.masa.malilib.config.IConfigResettable resettable = (fi.dy.masa.malilib.config.IConfigResettable) config;
-                
+
                 y += 1;
                 int configHeight = 20;
 
@@ -169,8 +178,8 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
                 }
 
                 x += labelWidth + 10;
-                
-                java.util.List<fi.dy.masa.malilib.config.IConfigOptionListEntry> entries = new java.util.ArrayList<>();
+
+                List<fi.dy.masa.malilib.config.IConfigOptionListEntry> entries = new ArrayList<>();
                 fi.dy.masa.malilib.config.IConfigOptionListEntry current = optionList.getOptionListValue();
                 fi.dy.masa.malilib.config.IConfigOptionListEntry iter = current;
                 if (iter != null) {
@@ -179,10 +188,10 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
                         iter = iter.cycle(true);
                     } while (iter != current && iter != null && entries.size() < 100);
                 }
-                
-                fi.dy.masa.malilib.gui.button.ButtonGeneric resetButton = this.createResetButton(x + configWidth + 2, y, resettable);
-                
-                MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry> dropdown = 
+
+                ButtonGeneric resetButton = this.createResetButton(x + configWidth + 2, y, resettable);
+
+                MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry> dropdown =
                     new MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry>(
                         x, y, configWidth, configHeight, 200, 5, entries,
                         entry -> entry.getDisplayName()
@@ -198,16 +207,16 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
                     };
                 ((GuiChainVein)this.host).activeDropdowns.add(dropdown);
                 dropdown.setSelectedEntry(current);
-                
-                fi.dy.masa.malilib.gui.button.IButtonActionListener resetListener = (button, mouseButton) -> {
+
+                IButtonActionListener resetListener = (button, mouseButton) -> {
                     resettable.resetToDefault();
                     dropdown.setSelectedEntry(optionList.getOptionListValue());
                     resetButton.setEnabled(resettable.isModified());
                 };
-                
+
                 this.addWidget(dropdown);
                 this.addButton(resetButton, resetListener);
-                
+
             } else {
                 super.addConfigOption(x, y, zLevel, labelWidth, configWidth, config);
             }
@@ -215,10 +224,10 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    public List<fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper> getConfigs() {
-        java.util.List<fi.dy.masa.malilib.config.IConfigBase> configs = new java.util.ArrayList<>();
+    public List<ConfigOptionWrapper> getConfigs() {
+        List<fi.dy.masa.malilib.config.IConfigBase> configs = new ArrayList<>();
         configs.add(ConfigProxies.ALGO);
-        
+
         switch ((ConfigProxies.MAlgo) ConfigProxies.ALGO.getOptionListValue()) {
             case SPHERE:
                 configs.add(ConfigProxies.SPHERE_RADIUS);
@@ -244,18 +253,21 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         configs.add(ConfigProxies.DIAG_EDGE);
         configs.add(ConfigProxies.DIAG_CORNER);
         configs.add(ConfigProxies.PACKET_INV);
+        configs.add(ConfigProxies.OPEN_CONFIG);
+        configs.add(ConfigProxies.TOGGLE_CHAIN_VEIN);
 
-        return fi.dy.masa.malilib.gui.GuiConfigsBase.ConfigOptionWrapper.createFor(configs);
+        return ConfigOptionWrapper.createFor(configs);
     }
 
     @Override
     public void initGui() {
         super.initGui();
+        this.activeDropdowns.clear();
 
         int centerX = this.width / 2;
         int y = 10;
 
-        ButtonGeneric btnBasic = new ButtonGeneric(centerX - 105, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.basic"));
+        ButtonGeneric btnBasic = new ButtonGeneric(centerX - 160, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.basic"));
         btnBasic.setEnabled(this.currentTab != Tab.BASIC);
         this.addButton(btnBasic, (button, mouseButton) -> {
             this.currentTab = Tab.BASIC;
@@ -263,7 +275,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             this.initGui();
         });
 
-        ButtonGeneric btnSettings = new ButtonGeneric(centerX + 5, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.settings"));
+        ButtonGeneric btnSettings = new ButtonGeneric(centerX - 50, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.settings"));
         btnSettings.setEnabled(this.currentTab != Tab.SETTINGS);
         this.addButton(btnSettings, (button, mouseButton) -> {
             this.currentTab = Tab.SETTINGS;
@@ -271,13 +283,24 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             this.initGui();
         });
 
+        ButtonGeneric btnPresets = new ButtonGeneric(centerX + 60, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.presets"));
+        btnPresets.setEnabled(this.currentTab != Tab.PRESETS);
+        this.addButton(btnPresets, (button, mouseButton) -> {
+            this.currentTab = Tab.PRESETS;
+            this.reCreateListWidget();
+            this.initGui();
+        });
+
         int topY = 40;
         if (this.currentTab == Tab.BASIC) {
             initBasicTab(centerX, topY);
+        } else if (this.currentTab == Tab.PRESETS) {
+            initPresetTab(centerX, topY);
         }
     }
 
     private void initBasicTab(int centerX, int topY) {
+        final int pad = 10;
         int leftX = centerX - 200;
         int rightX = centerX + 5;
         int rightToggleX = centerX + 140;
@@ -316,25 +339,174 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         this.addButton(outlineBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
             ChainveinfabricClient.CONFIG.save();
+            ConfigProxies.load();
             button.setDisplayString(getOutlineToggleString());
         });
 
         // Search Bar
-        this.searchBar = new WidgetSearchBar(leftX, topY + 30, 400, 20, 0, fi.dy.masa.malilib.gui.MaLiLibIcons.SEARCH, LeftRight.LEFT);
-        
+        this.searchBar = new WidgetSearchBar(leftX, topY + 30, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
+
         int listWidth = 200;
         int listTopY = topY + 65;
         int listHeight = this.height - listTopY - 20;
 
         this.leftList = new WidgetChainList(leftX, listTopY, listWidth, listHeight, null, false, this::getLeftListData, this);
         this.leftList.bindSearchBar(searchBar);
-        
+
         this.rightList = new WidgetChainList(rightX, listTopY, listWidth, listHeight, null, true, this::getRightListData, this);
 
         this.refreshLists();
     }
 
-    private void initSettingsTab(int centerX, int topY) {
+    private void initPresetTab(int centerX, int topY) {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        int leftX = centerX - 200;
+        int rightX = centerX + 20;
+        int panelWidth = 180;
+        int rowY = topY + 22;
+
+        this.selectedWhitelistPresetId = getValidSelectedWhitelistPresetId(config, this.presetWhitelistMode);
+        this.selectedConfigPresetId = getValidSelectedConfigPresetId(config);
+
+        this.drawPresetLabels(leftX, rightX, topY, panelWidth);
+
+        List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
+        MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
+            leftX, rowY, panelWidth, 20, 200, 5, modes, this::getModeString
+        ) {
+            @Override
+            protected void setSelectedEntry(int index) {
+                super.setSelectedEntry(index);
+                ChainVeinConfig.ChainMode selected = this.getSelectedEntry();
+                if (selected != null && GuiChainVein.this.presetWhitelistMode != selected) {
+                    GuiChainVein.this.presetWhitelistMode = selected;
+                    GuiChainVein.this.selectedWhitelistPresetId = ChainveinfabricClient.CONFIG.getActiveWhitelistPresetId(selected);
+                    GuiChainVein.this.initGui();
+                }
+            }
+        };
+        this.activeDropdowns.add(modeDropdown);
+        modeDropdown.setSelectedEntry(this.presetWhitelistMode);
+        this.addWidget(modeDropdown);
+
+        List<WhitelistPreset> whitelistPresets = config.getWhitelistPresets(this.presetWhitelistMode);
+        MyDropdown<WhitelistPreset> whitelistDropdown = new MyDropdown<WhitelistPreset>(
+            leftX, rowY + 34, panelWidth, 20, 200, 6, whitelistPresets,
+            preset -> getPresetDisplayName(preset.name, preset.id.equals(config.getActiveWhitelistPresetId(this.presetWhitelistMode)))
+        ) {
+            @Override
+            protected void setSelectedEntry(int index) {
+                super.setSelectedEntry(index);
+                WhitelistPreset selected = this.getSelectedEntry();
+                if (selected != null) {
+                    GuiChainVein.this.selectedWhitelistPresetId = selected.id;
+                    GuiChainVein.this.updateWhitelistPresetControls();
+                }
+            }
+        };
+        this.activeDropdowns.add(whitelistDropdown);
+        whitelistDropdown.setSelectedEntry(config.getWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId));
+        this.addWidget(whitelistDropdown);
+
+        WhitelistPreset selectedWhitelist = config.getWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId);
+        this.whitelistPresetNameField = new GuiTextFieldGeneric(leftX, rowY + 68, panelWidth, 20, this.font);
+        this.whitelistPresetNameField.setValue(selectedWhitelist != null ? selectedWhitelist.name : "");
+        this.addTextField(this.whitelistPresetNameField, field -> {
+            ChainveinfabricClient.CONFIG.renameWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId, field.getValue());
+            ChainveinfabricClient.CONFIG.save();
+            return true;
+        });
+
+        ButtonGeneric newWhitelistButton = new ButtonGeneric(leftX, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
+        this.addButton(newWhitelistButton, (button, mb) -> {
+            WhitelistPreset preset = ChainveinfabricClient.CONFIG.createWhitelistPreset(this.presetWhitelistMode, this.whitelistPresetNameField.getValue());
+            this.selectedWhitelistPresetId = preset.id;
+            ChainveinfabricClient.CONFIG.save();
+            this.initGui();
+        });
+
+        this.useWhitelistPresetButton = new ButtonGeneric(leftX + 61, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.use"));
+        this.addButton(this.useWhitelistPresetButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.useWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId)) {
+                ChainveinfabricClient.CONFIG.save();
+                this.refreshLists();
+                this.initGui();
+            }
+        });
+
+        this.deleteWhitelistPresetButton = new ButtonGeneric(leftX + 122, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
+        this.addButton(this.deleteWhitelistPresetButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.deleteWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId)) {
+                this.selectedWhitelistPresetId = ChainveinfabricClient.CONFIG.getActiveWhitelistPresetId(this.presetWhitelistMode);
+                ChainveinfabricClient.CONFIG.save();
+                this.initGui();
+            }
+        });
+
+        List<ConfigPreset> configPresets = config.getConfigPresets();
+        MyDropdown<ConfigPreset> configDropdown = new MyDropdown<ConfigPreset>(
+            rightX, rowY + 34, panelWidth, 20, 200, 6, configPresets,
+            preset -> getPresetDisplayName(preset.name, preset.id.equals(config.activeConfigPresetId))
+        ) {
+            @Override
+            protected void setSelectedEntry(int index) {
+                super.setSelectedEntry(index);
+                ConfigPreset selected = this.getSelectedEntry();
+                if (selected != null) {
+                    GuiChainVein.this.selectedConfigPresetId = selected.id;
+                    GuiChainVein.this.updateConfigPresetControls();
+                }
+            }
+        };
+        this.activeDropdowns.add(configDropdown);
+        configDropdown.setSelectedEntry(config.getConfigPreset(this.selectedConfigPresetId));
+        this.addWidget(configDropdown);
+
+        ConfigPreset selectedConfig = config.getConfigPreset(this.selectedConfigPresetId);
+        this.configPresetNameField = new GuiTextFieldGeneric(rightX, rowY + 68, panelWidth, 20, this.font);
+        this.configPresetNameField.setValue(selectedConfig != null ? selectedConfig.name : "");
+        this.addTextField(this.configPresetNameField, field -> {
+            ChainveinfabricClient.CONFIG.renameConfigPreset(this.selectedConfigPresetId, field.getValue());
+            ChainveinfabricClient.CONFIG.save();
+            return true;
+        });
+
+        ButtonGeneric newConfigButton = new ButtonGeneric(rightX, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.new"));
+        this.addButton(newConfigButton, (button, mb) -> {
+            ConfigPreset preset = ChainveinfabricClient.CONFIG.createConfigPreset(this.configPresetNameField.getValue());
+            this.selectedConfigPresetId = preset.id;
+            ChainveinfabricClient.CONFIG.save();
+            this.initGui();
+        });
+
+        this.useConfigPresetButton = new ButtonGeneric(rightX + 61, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.use"));
+        this.addButton(this.useConfigPresetButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.useConfigPreset(this.selectedConfigPresetId)) {
+                ChainveinfabricClient.CONFIG.save();
+                ConfigProxies.load();
+                this.refreshLists();
+                this.initGui();
+            }
+        });
+
+        this.deleteConfigPresetButton = new ButtonGeneric(rightX + 122, rowY + 102, 58, 20, StringUtils.translate("options.chainveinfabric.preset.delete"));
+        this.addButton(this.deleteConfigPresetButton, (button, mb) -> {
+            if (ChainveinfabricClient.CONFIG.deleteConfigPreset(this.selectedConfigPresetId)) {
+                this.selectedConfigPresetId = ChainveinfabricClient.CONFIG.activeConfigPresetId;
+                ChainveinfabricClient.CONFIG.save();
+                this.initGui();
+            }
+        });
+
+        this.updateWhitelistPresetControls();
+        this.updateConfigPresetControls();
+    }
+
+    private void drawPresetLabels(int leftX, int rightX, int topY, int panelWidth) {
+        this.addLabel(leftX, topY, panelWidth, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
+        this.addLabel(rightX, topY, panelWidth, 12, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
+        this.addLabel(leftX, topY + 48, panelWidth, 12, 0xFFAAAAAA, StringUtils.translate("options.chainveinfabric.preset.name"));
+        this.addLabel(rightX, topY + 48, panelWidth, 12, 0xFFAAAAAA, StringUtils.translate("options.chainveinfabric.preset.name"));
     }
 
     @Override
@@ -344,7 +516,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
-            
+
             this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.width / 2 - 200, 105 - 12, 0xFFFFFF);
             String rightTitle = switch (ChainveinfabricClient.CONFIG.mode) {
                 case CHAIN_MINE -> "options.chainveinfabric.whitelist";
@@ -354,11 +526,10 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
             this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 5, 105 - 12, 0xFFFFFF);
         }
 
-        // Post-render open dropdowns so they appear on top of all lists/content
+        // Post-render open dropdowns
         for (IDropdown dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
-                // Draw normally, our override injected inside handleRender automatically enforces isOpen=true.
-                boolean selected = ((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).isMouseOver(mouseX, mouseY);
+                boolean selected = dd.isMouseOver(mouseX, mouseY);
                 dd.handleRender(ctx, mouseX, mouseY, selected);
             }
         }
@@ -381,7 +552,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         }
         return false;
     }
-    
+
     @Override
     public boolean onMouseReleased(int mouseX, int mouseY, int mouseButton) {
         if (super.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
@@ -391,7 +562,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         }
         return false;
     }
-    
+
     @Override
     public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         for (IDropdown dd : this.activeDropdowns) {
@@ -420,7 +591,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         }
         return false;
     }
-    
+
     @Override
     public boolean onCharTyped(char charIn, int modifiers) {
         if (currentTab != Tab.BASIC && super.onCharTyped(charIn, modifiers)) return true;
@@ -434,10 +605,8 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     }
 
     @Override
-    public void removed() {
-        if (this.getListWidget() != null) {
-            super.removed();
-        }
+    public void onClose() {
+        super.onClose();
         ConfigProxies.save();
     }
 
@@ -445,15 +614,58 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
         if (this.leftList != null) this.leftList.refreshEntries();
         if (this.rightList != null) this.rightList.refreshEntries();
     }
-    
+
+    private void updateWhitelistPresetControls() {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        WhitelistPreset preset = config.getWhitelistPreset(this.presetWhitelistMode, this.selectedWhitelistPresetId);
+        boolean exists = preset != null;
+        boolean active = exists && preset.id.equals(config.getActiveWhitelistPresetId(this.presetWhitelistMode));
+
+        if (this.whitelistPresetNameField != null && exists && !this.whitelistPresetNameField.getValue().equals(preset.name)) {
+            this.whitelistPresetNameField.setValue(preset.name);
+        }
+        if (this.useWhitelistPresetButton != null) this.useWhitelistPresetButton.setEnabled(exists && !active);
+        if (this.deleteWhitelistPresetButton != null) this.deleteWhitelistPresetButton.setEnabled(exists && !active);
+    }
+
+    private void updateConfigPresetControls() {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        ConfigPreset preset = config.getConfigPreset(this.selectedConfigPresetId);
+        boolean exists = preset != null;
+        boolean active = exists && preset.id.equals(config.activeConfigPresetId);
+
+        if (this.configPresetNameField != null && exists && !this.configPresetNameField.getValue().equals(preset.name)) {
+            this.configPresetNameField.setValue(preset.name);
+        }
+        if (this.useConfigPresetButton != null) this.useConfigPresetButton.setEnabled(exists && !active);
+        if (this.deleteConfigPresetButton != null) this.deleteConfigPresetButton.setEnabled(exists && !active);
+    }
+
+    private String getValidSelectedWhitelistPresetId(ChainVeinConfig config, ChainVeinConfig.ChainMode mode) {
+        if (config.getWhitelistPreset(mode, this.selectedWhitelistPresetId) != null) return this.selectedWhitelistPresetId;
+        return config.getActiveWhitelistPresetId(mode);
+    }
+
+    private String getValidSelectedConfigPresetId(ChainVeinConfig config) {
+        if (config.getConfigPreset(this.selectedConfigPresetId) != null) return this.selectedConfigPresetId;
+        return config.activeConfigPresetId;
+    }
+
+    private String getPresetDisplayName(String name, boolean active) {
+        if (active) {
+            return name + " (" + StringUtils.translate("options.chainveinfabric.preset.active") + ")";
+        }
+        return name;
+    }
+
     private String getModeString() {
         return getModeString(ChainveinfabricClient.CONFIG.mode);
     }
-    
+
     private String getModeString(ChainVeinConfig.ChainMode mode) {
         return StringUtils.translate("options.chainveinfabric.mode." + mode.name().toLowerCase().replace("chain_", ""));
     }
-    
+
     private String getToggleString() {
         return ChainveinfabricClient.CONFIG.isChainVeinEnabled ? "ON" : "OFF";
     }
@@ -466,7 +678,7 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     private List<ItemStack> getLeftListData() {
         ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
         Set<String> whitelist = getWhitelistForMode(mode);
-        
+
         List<ItemStack> list = new ArrayList<>();
         if (mode == ChainVeinConfig.ChainMode.CHAIN_MINE) {
             for (Block block : BuiltInRegistries.BLOCK) {
@@ -493,12 +705,12 @@ public class GuiChainVein extends fi.dy.masa.malilib.gui.GuiConfigsBase {
     private List<ItemStack> getRightListData() {
         ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
         Set<String> whitelist = getWhitelistForMode(mode);
-        
+
         List<ItemStack> list = new ArrayList<>();
         for (String id : whitelist) {
             ResourceLocation identifier = ResourceLocation.tryParse(id);
             if (identifier == null) continue;
-            
+
             if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
                 Item item = BuiltInRegistries.ITEM.getValue(identifier);
                 if (item != null && item != Items.AIR) list.add(new ItemStack(item));
