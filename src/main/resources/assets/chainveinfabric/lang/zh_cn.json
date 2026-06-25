@@ -1,5 +1,6 @@
 {
   "key.chainveinfabric.config": "打开配置",
+  "key.chainveinfabric.toggle": "切换连锁模式",
   "key.category.chainveinfabric.general": "连锁采集 Fabric",
   "options.chainveinfabric.chainVein": "连锁模式",
   "options.chainveinfabric.search": "搜索物品/方块",
@@ -11,6 +12,7 @@
   "options.chainveinfabric.cropWhitelist": "作物白名单",
   "options.chainveinfabric.tab.basic": "基础设置",
   "options.chainveinfabric.tab.settings": "高级设置",
+  "options.chainveinfabric.tab.presets": "预设",
   "options.chainveinfabric.mode": "当前模式",
   "options.chainveinfabric.mode.mine": "连锁采集",
   "options.chainveinfabric.mode.plant": "连锁种植",
@@ -37,6 +39,8 @@
   "message.chainveinfabric.planted": "连锁种植了 %d 个作物",
   "message.chainveinfabric.processed": "连锁处理了 %d 个方块",
   "message.chainveinfabric.protection": "连锁操作已停止：工具耐久不足！",
+  "message.chainveinfabric.enabled": "连锁模式已开启",
+  "message.chainveinfabric.disabled": "连锁模式已关闭",
   "options.chainveinfabric.searchAlgorithm": "搜索算法",
   "options.chainveinfabric.searchAlgorithm.adjacent_same": "相邻同种方块",
   "options.chainveinfabric.searchAlgorithm.adjacent_whitelist": "相邻白名单方块",
@@ -62,5 +66,13 @@
   "options.chainveinfabric.cuboidL": "长度 (L)",
   "options.chainveinfabric.cuboidW": "宽度 (W)",
   "options.chainveinfabric.cuboidH": "高度 (H)",
-  "options.chainveinfabric.showBlockOutlines": "显示描边"
+  "options.chainveinfabric.showBlockOutlines": "显示描边",
+  "options.chainveinfabric.toggleChainVeinHotkey": "切换连锁模式快捷键",
+  "options.chainveinfabric.preset.whitelist": "白名单预设",
+  "options.chainveinfabric.preset.config": "配置预设",
+  "options.chainveinfabric.preset.name": "名称",
+  "options.chainveinfabric.preset.new": "新建",
+  "options.chainveinfabric.preset.use": "使用",
+  "options.chainveinfabric.preset.delete": "删除",
+  "options.chainveinfabric.preset.active": "使用中"
 }
