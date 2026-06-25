@@ -2,11 +2,15 @@ package org.edtp.chainveinfabric.client.gui.malilib;
 
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
+import fi.dy.masa.malilib.hotkeys.IHotkey;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import fi.dy.masa.malilib.util.StringUtils;
+
+import java.util.List;
 
 public class ConfigProxies {
     public enum MAlgo implements IConfigOptionListEntry {
@@ -49,6 +53,9 @@ public class ConfigProxies {
     public static final ConfigBoolean DIAG_CORNER = new ConfigBoolean("options.chainveinfabric.diagonalCorner", false, "");
     public static final ConfigBoolean SHOW_OUTLINES = new ConfigBoolean("options.chainveinfabric.showBlockOutlines", false, "");
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
+    public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey("key.chainveinfabric.config", "V", "");
+    public static final ConfigHotkey TOGGLE_CHAIN_VEIN = new ConfigHotkey("options.chainveinfabric.toggleChainVeinHotkey", "", "");
+    public static final List<IHotkey> HOTKEY_LIST = List.of(OPEN_CONFIG, TOGGLE_CHAIN_VEIN);
 
     private static boolean loading = false;
 
@@ -68,6 +75,8 @@ public class ConfigProxies {
         DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
         SHOW_OUTLINES.setValueChangeCallback(c -> { if (!loading) save(); });
         PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+        OPEN_CONFIG.setValueChangeCallback(c -> { if (!loading) save(); });
+        TOGGLE_CHAIN_VEIN.setValueChangeCallback(c -> { if (!loading) save(); });
     }
 
     public static void load() {
@@ -98,6 +107,8 @@ public class ConfigProxies {
             DIAG_CORNER.setBooleanValue(config.diagonalCorner);
             SHOW_OUTLINES.setBooleanValue(config.showBlockOutlines);
             PACKET_INV.setIntegerValue(config.packetInterval);
+            OPEN_CONFIG.setValueFromString(config.openConfigHotkey);
+            TOGGLE_CHAIN_VEIN.setValueFromString(config.toggleChainVeinHotkey);
         } finally {
             loading = false;
         }
@@ -121,6 +132,8 @@ public class ConfigProxies {
         config.diagonalCorner = DIAG_CORNER.getBooleanValue();
         config.showBlockOutlines = SHOW_OUTLINES.getBooleanValue();
         config.packetInterval = PACKET_INV.getIntegerValue();
+        config.openConfigHotkey = OPEN_CONFIG.getStringValue();
+        config.toggleChainVeinHotkey = TOGGLE_CHAIN_VEIN.getStringValue();
         config.save();
     }
 }
