@@ -32,7 +32,7 @@ import java.util.*;
 
 public class GuiChainVein extends GuiConfigsBase {
 
-    private enum Tab { BASIC, SETTINGS, PRESETS }
+    private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
 
     private Tab currentTab = Tab.BASIC;
     private final List<IDropdown> activeDropdowns = new ArrayList<>();
@@ -127,7 +127,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     protected WidgetListConfigOptions createListWidget(int listX, int listY) {
-        if (this.currentTab != Tab.SETTINGS) {
+        if (this.currentTab != Tab.SETTINGS && this.currentTab != Tab.HOTKEYS) {
             return null;
         }
         return new WidgetListConfigOptions(listX, listY,
@@ -222,6 +222,14 @@ public class GuiChainVein extends GuiConfigsBase {
     @Override
     public List<ConfigOptionWrapper> getConfigs() {
         List<fi.dy.masa.malilib.config.IConfigBase> configs = new ArrayList<>();
+
+        if (this.currentTab == Tab.HOTKEYS) {
+            configs.add(ConfigProxies.OPEN_CONFIG);
+            configs.add(ConfigProxies.TOGGLE_CHAIN_VEIN);
+            configs.add(ConfigProxies.TOGGLE_TARGET_WHITELIST);
+            return ConfigOptionWrapper.createFor(configs);
+        }
+
         configs.add(ConfigProxies.ALGO);
 
         switch ((ConfigProxies.MAlgo) ConfigProxies.ALGO.getOptionListValue()) {
@@ -249,8 +257,6 @@ public class GuiChainVein extends GuiConfigsBase {
         configs.add(ConfigProxies.DIAG_EDGE);
         configs.add(ConfigProxies.DIAG_CORNER);
         configs.add(ConfigProxies.PACKET_INV);
-        configs.add(ConfigProxies.OPEN_CONFIG);
-        configs.add(ConfigProxies.TOGGLE_CHAIN_VEIN);
 
         return ConfigOptionWrapper.createFor(configs);
     }
@@ -263,29 +269,7 @@ public class GuiChainVein extends GuiConfigsBase {
         int centerX = this.width / 2;
         int y = 10;
 
-        ButtonGeneric btnBasic = new ButtonGeneric(centerX - 160, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.basic"));
-        btnBasic.setEnabled(this.currentTab != Tab.BASIC);
-        this.addButton(btnBasic, (button, mouseButton) -> {
-            this.currentTab = Tab.BASIC;
-            this.reCreateListWidget();
-            this.initGui();
-        });
-
-        ButtonGeneric btnSettings = new ButtonGeneric(centerX - 50, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.settings"));
-        btnSettings.setEnabled(this.currentTab != Tab.SETTINGS);
-        this.addButton(btnSettings, (button, mouseButton) -> {
-            this.currentTab = Tab.SETTINGS;
-            this.reCreateListWidget();
-            this.initGui();
-        });
-
-        ButtonGeneric btnPresets = new ButtonGeneric(centerX + 60, y, 100, 20, StringUtils.translate("options.chainveinfabric.tab.presets"));
-        btnPresets.setEnabled(this.currentTab != Tab.PRESETS);
-        this.addButton(btnPresets, (button, mouseButton) -> {
-            this.currentTab = Tab.PRESETS;
-            this.reCreateListWidget();
-            this.initGui();
-        });
+        this.addTabButtons(centerX, y);
 
         int topY = 40;
         if (this.currentTab == Tab.BASIC) {
@@ -293,6 +277,40 @@ public class GuiChainVein extends GuiConfigsBase {
         } else if (this.currentTab == Tab.PRESETS) {
             initPresetTab(centerX, topY);
         }
+    }
+
+    private void addTabButtons(int centerX, int y) {
+        List<Tab> tabs = List.of(Tab.BASIC, Tab.SETTINGS, Tab.HOTKEYS, Tab.PRESETS);
+        List<ButtonGeneric> tabButtons = new ArrayList<>();
+        for (Tab tab : tabs) {
+            tabButtons.add(this.createTabButton(tab));
+        }
+
+        int gap = 10;
+        int totalWidth = -gap;
+        for (ButtonGeneric button : tabButtons) {
+            totalWidth += button.getWidth() + gap;
+        }
+
+        int x = centerX - totalWidth / 2;
+        for (int i = 0; i < tabButtons.size(); i++) {
+            ButtonGeneric button = tabButtons.get(i);
+            Tab tab = tabs.get(i);
+            button.setPosition(x, y);
+            this.addButton(button, (btn, mouseButton) -> {
+                this.currentTab = tab;
+                this.reCreateListWidget();
+                this.initGui();
+            });
+            x += button.getWidth() + gap;
+        }
+    }
+
+    private ButtonGeneric createTabButton(Tab tab) {
+        String key = "options.chainveinfabric.tab." + tab.name().toLowerCase(Locale.ROOT);
+        ButtonGeneric button = new ButtonGeneric(0, 0, -1, 20, StringUtils.translate(key));
+        button.setEnabled(this.currentTab != tab);
+        return button;
     }
 
     private void initBasicTab(int centerX, int topY) {

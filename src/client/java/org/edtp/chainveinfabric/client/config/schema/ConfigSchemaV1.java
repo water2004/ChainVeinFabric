@@ -26,6 +26,7 @@ public class ConfigSchemaV1 {
     public boolean showBlockOutlines = false;
     public String openConfigHotkey = "V";
     public String toggleChainVeinHotkey = "";
+    public String toggleTargetWhitelistHotkey = "";
     public Set<String> whitelistedBlocks = new HashSet<>();
     public Set<String> whitelistedCrops = new HashSet<>();
     public Set<String> whitelistedUtilityBlocks = new HashSet<>();
@@ -37,6 +38,7 @@ public class ConfigSchemaV1 {
         if (this.cuboidMiningPoint == null) this.cuboidMiningPoint = ChainVeinConfig.MiningPoint.CENTER;
         if (this.openConfigHotkey == null) this.openConfigHotkey = "V";
         if (this.toggleChainVeinHotkey == null) this.toggleChainVeinHotkey = "";
+        if (this.toggleTargetWhitelistHotkey == null) this.toggleTargetWhitelistHotkey = "";
         if (this.whitelistedBlocks == null) this.whitelistedBlocks = new HashSet<>();
         if (this.whitelistedCrops == null) this.whitelistedCrops = new HashSet<>();
         if (this.whitelistedUtilityBlocks == null) this.whitelistedUtilityBlocks = new HashSet<>();
