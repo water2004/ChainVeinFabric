@@ -623,7 +623,7 @@ public class GuiChainVein extends GuiConfigsBase {
             }
 
             if (this.nameField != null) {
-                this.nameField.extractRenderState(ctx.getGuiGraphics(), mouseX, mouseY, 0f);
+                this.nameField.renderWidget(ctx.getGuiGraphics(), mouseX, mouseY, 0f);
             }
 
             super.render(ctx, mouseX, mouseY, selected);
