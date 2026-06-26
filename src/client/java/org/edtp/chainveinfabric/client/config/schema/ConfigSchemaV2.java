@@ -31,6 +31,7 @@ public class ConfigSchemaV2 {
     public boolean showBlockOutlines = false;
     public String openConfigHotkey = "V";
     public String toggleChainVeinHotkey = "";
+    public String toggleTargetWhitelistHotkey = "";
     public List<ConfigPreset> configPresets = new ArrayList<>();
     public String activeConfigPresetId = ConfigPreset.DEFAULT_ID;
     public Map<String, List<WhitelistPreset>> whitelistPresets = new LinkedHashMap<>();
