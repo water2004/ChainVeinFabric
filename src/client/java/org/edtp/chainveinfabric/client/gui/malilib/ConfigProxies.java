@@ -55,7 +55,8 @@ public class ConfigProxies {
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
     public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey("key.chainveinfabric.config", "V", "");
     public static final ConfigHotkey TOGGLE_CHAIN_VEIN = new ConfigHotkey("options.chainveinfabric.toggleChainVeinHotkey", "", "");
-    public static final List<IHotkey> HOTKEY_LIST = List.of(OPEN_CONFIG, TOGGLE_CHAIN_VEIN);
+    public static final ConfigHotkey TOGGLE_TARGET_WHITELIST = new ConfigHotkey("options.chainveinfabric.toggleTargetWhitelistHotkey", "", "");
+    public static final List<IHotkey> HOTKEY_LIST = List.of(OPEN_CONFIG, TOGGLE_CHAIN_VEIN, TOGGLE_TARGET_WHITELIST);
 
     private static boolean loading = false;
 
@@ -77,6 +78,7 @@ public class ConfigProxies {
         PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
         OPEN_CONFIG.setValueChangeCallback(c -> { if (!loading) save(); });
         TOGGLE_CHAIN_VEIN.setValueChangeCallback(c -> { if (!loading) save(); });
+        TOGGLE_TARGET_WHITELIST.setValueChangeCallback(c -> { if (!loading) save(); });
     }
 
     public static void load() {
@@ -109,6 +111,7 @@ public class ConfigProxies {
             PACKET_INV.setIntegerValue(config.packetInterval);
             OPEN_CONFIG.setValueFromString(config.openConfigHotkey);
             TOGGLE_CHAIN_VEIN.setValueFromString(config.toggleChainVeinHotkey);
+            TOGGLE_TARGET_WHITELIST.setValueFromString(config.toggleTargetWhitelistHotkey);
         } finally {
             loading = false;
         }
@@ -134,6 +137,7 @@ public class ConfigProxies {
         config.packetInterval = PACKET_INV.getIntegerValue();
         config.openConfigHotkey = OPEN_CONFIG.getStringValue();
         config.toggleChainVeinHotkey = TOGGLE_CHAIN_VEIN.getStringValue();
+        config.toggleTargetWhitelistHotkey = TOGGLE_TARGET_WHITELIST.getStringValue();
         config.save();
     }
 }
