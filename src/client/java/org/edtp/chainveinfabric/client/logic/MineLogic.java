@@ -50,11 +50,9 @@ public class MineLogic {
 
         if (toBreak.isEmpty()) return;
 
-        boolean emptyHand = tool.isEmpty();
         boolean isDamageable = tool.isDamageableItem();
         boolean toolProtection = ChainveinfabricClient.CONFIG.toolProtection;
         int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
-        maxBlocks = isCreative ? maxBlocks : (emptyHand || isDamageable ? maxBlocks : tool.getCount());
 
         boolean limitedByDurability = false;
         
