@@ -10,6 +10,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
+import fi.dy.masa.malilib.event.InputEventHandler;
 import net.minecraft.client.gui.GuiGraphics;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -803,7 +804,13 @@ public class GuiChainVein extends GuiConfigsBase {
     @Override
     public void onClose() {
         super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
         ConfigProxies.save();
+        InputEventHandler.getKeybindManager().updateUsedKeys();
     }
 
     public void refreshLists() {
