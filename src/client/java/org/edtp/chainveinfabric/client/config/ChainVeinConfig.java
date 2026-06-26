@@ -119,6 +119,7 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         config.showBlockOutlines = v1.showBlockOutlines;
         config.openConfigHotkey = v1.openConfigHotkey;
         config.toggleChainVeinHotkey = v1.toggleChainVeinHotkey;
+        config.toggleTargetWhitelistHotkey = v1.toggleTargetWhitelistHotkey;
 
         config.whitelistPresets = new LinkedHashMap<>();
         config.activeWhitelistPresetIds = new LinkedHashMap<>();
@@ -166,6 +167,7 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         if (this.cuboidMiningPoint == null) this.cuboidMiningPoint = MiningPoint.CENTER;
         if (this.openConfigHotkey == null) this.openConfigHotkey = "V";
         if (this.toggleChainVeinHotkey == null) this.toggleChainVeinHotkey = "";
+        if (this.toggleTargetWhitelistHotkey == null) this.toggleTargetWhitelistHotkey = "";
         if (this.whitelistedBlocks == null) this.whitelistedBlocks = new HashSet<>();
         if (this.whitelistedCrops == null) this.whitelistedCrops = new HashSet<>();
         if (this.whitelistedUtilityBlocks == null) this.whitelistedUtilityBlocks = new HashSet<>();
