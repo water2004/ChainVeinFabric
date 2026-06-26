@@ -600,29 +600,29 @@ public class GuiChainVein extends GuiConfigsBase {
         }
 
         @Override
-        public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
+        public void render(int mouseX, int mouseY, boolean selected, GuiGraphics ctx) {
             if (this.entry != null && this.entry.type == PresetRow.Type.WHITELIST_HEADER) {
-                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
-                super.render(ctx, mouseX, mouseY, selected);
+                this.drawString(this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"), ctx);
+                super.render(mouseX, mouseY, selected, ctx);
                 return;
             }
 
             if (this.entry != null && this.entry.type == PresetRow.Type.CONFIG_HEADER) {
-                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
+                this.drawString(this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"), ctx);
                 return;
             }
 
             if (selected || this.isMouseOver(mouseX, mouseY)) {
-                RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x50FFFFFF);
+                RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x50FFFFFF);
             } else if (this.isOdd) {
-                RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x20FFFFFF);
+                RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x20FFFFFF);
             }
 
             if (this.nameField != null) {
                 this.nameField.renderWidget(ctx, mouseX, mouseY, 0f);
             }
 
-            super.render(ctx, mouseX, mouseY, selected);
+            super.render(mouseX, mouseY, selected, ctx);
         }
 
         @Override
@@ -708,8 +708,8 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawButtonHoverTexts(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
-        super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
+    protected void drawButtonHoverTexts(int mouseX, int mouseY, float partialTicks, GuiGraphics ctx) {
+        super.drawButtonHoverTexts(mouseX, mouseY, partialTicks, ctx);
         this.renderOpenDropdowns(ctx, mouseX, mouseY);
     }
 
