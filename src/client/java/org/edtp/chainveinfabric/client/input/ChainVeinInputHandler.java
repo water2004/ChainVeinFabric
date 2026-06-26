@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -136,17 +136,17 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 if (item == Items.AIR) {
                     return null;
                 }
-                Identifier id = BuiltInRegistries.ITEM.getKey(item);
+                ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
                 return new WhitelistTarget(id.toString(), new ItemStack(item).getHoverName());
             }
 
-            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+            ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
             return new WhitelistTarget(id.toString(), block.getName());
         }
 
         private static void showOverlay(Minecraft client, Component message) {
             if (client.gui != null) {
-                client.gui.hud.setOverlayMessage(message, false);
+                client.gui.setOverlayMessage(message, false);
             }
         }
     }
