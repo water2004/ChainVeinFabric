@@ -4,39 +4,21 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "v*.*.*-*"
       - "[0-9]*.*.*"
+      - "[0-9]*.*.*-*"
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build ${{ matrix.branch }}
+  release:
+    name: Build and publish jars
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        branch:
-          - master
-          - "26.1"
-          - "1.21"
-          - "1.21.1"
-          - "1.21.2"
-          - "1.21.3"
-          - "1.21.4"
-          - "1.21.5"
-          - "1.21.6"
-          - "1.21.7"
-          - "1.21.8"
-          - "1.21.9"
-          - "1.21.10"
-          - "1.21.11"
 
     steps:
-      - name: Checkout ${{ matrix.branch }}
+      - name: Checkout tag
         uses: actions/checkout@v4
-        with:
-          ref: ${{ matrix.branch }}
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -53,58 +35,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "release/${{ matrix.branch }}"
+          mkdir -p release
           shopt -s nullglob
           jars=(build/libs/*.jar)
           if [ "${#jars[@]}" -eq 0 ]; then
             echo "No jars were produced in build/libs" >&2
             exit 1
           fi
-          cp "${jars[@]}" "release/${{ matrix.branch }}/"
+          cp "${jars[@]}" release/
 
-      - name: Upload ${{ matrix.branch }} jars
-        uses: actions/upload-artifact@v4
-        with:
-          name: jars-${{ matrix.branch }}
-          path: release/${{ matrix.branch }}/*.jar
-          if-no-files-found: error
-
-  release:
-    name: Publish GitHub release
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout release notes
-        uses: actions/checkout@v4
-
-      - name: Download jars
-        uses: actions/download-artifact@v4
-        with:
-          pattern: jars-*
-          path: release
-          merge-multiple: true
-
-      - name: Publish release
+      - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
-          release_version="${TAG_NAME#v}"
+          release_tag="$TAG_NAME"
+          if [[ "$TAG_NAME" == *-* ]]; then
+            release_tag="${TAG_NAME%%-*}"
+          fi
+          release_version="${release_tag#v}"
           title="ChainVeinFabric ${release_version}"
           notes_file="RELEASE_NOTE.md"
           mapfile -t files < <(find release -type f -name '*.jar' | sort)
 
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No release jars were downloaded" >&2
-            exit 1
-          fi
-
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release edit "$TAG_NAME" --title "$title" --notes-file "$notes_file"
-            gh release upload "$TAG_NAME" "${files[@]}" --clobber
+          if [ "$TAG_NAME" = "$release_tag" ]; then
+            if gh release view "$release_tag" >/dev/null 2>&1; then
+              gh release edit "$release_tag" --title "$title" --notes-file "$notes_file"
+              gh release upload "$release_tag" "${files[@]}" --clobber
+            else
+              gh release create "$release_tag" "${files[@]}" --title "$title" --notes-file "$notes_file"
+            fi
           else
-            gh release create "$TAG_NAME" "${files[@]}" --title "$title" --notes-file "$notes_file"
+            gh release upload "$release_tag" "${files[@]}" --clobber
           fi
