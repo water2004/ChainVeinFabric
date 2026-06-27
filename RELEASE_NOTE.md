@@ -1,7 +1,11 @@
-## ChainVeinFabric v2.1.3-1.21.11
+## ChainVeinFabric 2.2.0
 
 ### Changes
 
-- Fixed crop blocks not being addable to the whitelist in Chain Mine mode
-- Fixed items like bone meal, which return PASS on the client, not triggering chain actions
-- Fixed items being consumed in Creative mode when using the custom packet handler
+- Added MaLiLib hotkey registration and a dedicated hotkeys config tab
+- Added a hotkey for quickly toggling chain state
+- Added a hotkey for adding/removing the targeted block from the current whitelist
+- Added whitelist and config preset management
+- Fixed hotkey config persistence after reopening the config screen
+- Fixed chain mining block limits being capped by the held item stack size
+- Restricted the Fabric Minecraft dependency range to the current Minecraft line with `~<minecraft_version>`
