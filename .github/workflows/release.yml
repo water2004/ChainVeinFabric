@@ -1,0 +1,68 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "[0-9]*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build release jars
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build --no-daemon
+
+      - name: Collect jars
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          shopt -s nullglob
+          jars=(build/libs/*.jar)
+          if [ "${#jars[@]}" -eq 0 ]; then
+            echo "No jars were produced in build/libs" >&2
+            exit 1
+          fi
+          cp "${jars[@]}" release/
+          mod_version="$(grep '^mod_version=' gradle.properties | cut -d= -f2-)"
+          minecraft_version="$(grep '^minecraft_version=' gradle.properties | cut -d= -f2-)"
+          {
+            echo "mod_version=${mod_version}"
+            echo "minecraft_version=${minecraft_version}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          MOD_VERSION: ${{ steps.collect.outputs.mod_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="ChainVeinFabric ${MOD_VERSION}"
+          notes_file="RELEASE_NOTE.md"
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" --title "$title" --notes-file "$notes_file"
+            gh release upload "$TAG_NAME" release/*.jar --clobber
+          else
+            gh release create "$TAG_NAME" release/*.jar --title "$title" --notes-file "$notes_file"
+          fi
