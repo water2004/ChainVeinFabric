@@ -1,15 +1,11 @@
-## ChainVeinFabric v2.1.2-26.1
+## ChainVeinFabric 2.2.0
 
 ### 变更 / Changes
 
-- GUI 左右两侧增加留白，修复因 MC 渲染问题导致的边缘显示不全
-- 高级设置中配置控件宽度缩减，不再撑满屏幕
-- 模式下拉菜单加宽，容纳完整中文标签
-- 描边按钮使用翻译文本替代硬编码 "OL" 前缀
-- 清理死代码
-
-- Added padding on both sides of the GUI to fix edge clipping caused by MC rendering bug
-- Reduced config control width in Advanced settings tab
-- Widened mode dropdown to fit full translated labels
-- Outline toggle button now uses translated text instead of hardcoded "OL" prefix
-- Cleaned up dead code
+- Added MaLiLib hotkey registration and a dedicated hotkeys config tab
+- Added a hotkey for quickly toggling chain state
+- Added a hotkey for adding/removing the targeted block from the current whitelist
+- Added whitelist and config preset management
+- Fixed hotkey config persistence after reopening the config screen
+- Fixed chain mining block limits being capped by the held item stack size
+- Restricted the Fabric Minecraft dependency range to the current Minecraft line with `~<minecraft_version>`
