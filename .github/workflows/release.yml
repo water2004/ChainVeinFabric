@@ -3,20 +3,40 @@ name: Build and Release
 on:
   push:
     tags:
-      - "v*"
-      - "[0-9]*"
+      - "v*.*.*"
+      - "[0-9]*.*.*"
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build release jars
+  build:
+    name: Build ${{ matrix.branch }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch:
+          - master
+          - "26.1"
+          - "1.21"
+          - "1.21.1"
+          - "1.21.2"
+          - "1.21.3"
+          - "1.21.4"
+          - "1.21.5"
+          - "1.21.6"
+          - "1.21.7"
+          - "1.21.8"
+          - "1.21.9"
+          - "1.21.10"
+          - "1.21.11"
 
     steps:
-      - name: Checkout tag
+      - name: Checkout ${{ matrix.branch }}
         uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -30,39 +50,61 @@ jobs:
           ./gradlew clean build --no-daemon
 
       - name: Collect jars
-        id: collect
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p release
+          mkdir -p "release/${{ matrix.branch }}"
           shopt -s nullglob
           jars=(build/libs/*.jar)
           if [ "${#jars[@]}" -eq 0 ]; then
             echo "No jars were produced in build/libs" >&2
             exit 1
           fi
-          cp "${jars[@]}" release/
-          mod_version="$(grep '^mod_version=' gradle.properties | cut -d= -f2-)"
-          minecraft_version="$(grep '^minecraft_version=' gradle.properties | cut -d= -f2-)"
-          {
-            echo "mod_version=${mod_version}"
-            echo "minecraft_version=${minecraft_version}"
-          } >> "$GITHUB_OUTPUT"
+          cp "${jars[@]}" "release/${{ matrix.branch }}/"
 
-      - name: Publish GitHub release
+      - name: Upload ${{ matrix.branch }} jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: jars-${{ matrix.branch }}
+          path: release/${{ matrix.branch }}/*.jar
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
+      - name: Download jars
+        uses: actions/download-artifact@v4
+        with:
+          pattern: jars-*
+          path: release
+          merge-multiple: true
+
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.ref_name }}
-          MOD_VERSION: ${{ steps.collect.outputs.mod_version }}
         shell: bash
         run: |
           set -euo pipefail
-          title="ChainVeinFabric ${MOD_VERSION}"
+          release_version="${TAG_NAME#v}"
+          title="ChainVeinFabric ${release_version}"
           notes_file="RELEASE_NOTE.md"
+          mapfile -t files < <(find release -type f -name '*.jar' | sort)
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release jars were downloaded" >&2
+            exit 1
+          fi
 
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release edit "$TAG_NAME" --title "$title" --notes-file "$notes_file"
-            gh release upload "$TAG_NAME" release/*.jar --clobber
+            gh release upload "$TAG_NAME" "${files[@]}" --clobber
           else
-            gh release create "$TAG_NAME" release/*.jar --title "$title" --notes-file "$notes_file"
+            gh release create "$TAG_NAME" "${files[@]}" --title "$title" --notes-file "$notes_file"
           fi
