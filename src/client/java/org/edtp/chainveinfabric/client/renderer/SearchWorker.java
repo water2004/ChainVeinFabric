@@ -12,7 +12,6 @@ import fi.dy.masa.malilib.util.data.Color4f;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -147,10 +146,10 @@ public class SearchWorker implements Runnable {
             case CHAIN_MINE -> {
                 yield p -> {
                     BlockState s = world.getBlockState(p);
-                    String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
-                    if (!snap.whitelistedBlocks().contains(id)) return false;
+                    String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
+                    if (id == null || !snap.whitelistedBlocks().contains(id)) return false;
                     if (snap.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME)
-                        return s.is(targetState.getBlock());
+                        return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
                     return true;
                 };
             }
@@ -162,10 +161,10 @@ public class SearchWorker implements Runnable {
             case CHAIN_UTILITY -> {
                 yield p -> {
                     BlockState s = world.getBlockState(p);
-                    String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
-                    if (!snap.whitelistedUtilityBlocks().contains(id)) return false;
+                    String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
+                    if (id == null || !snap.whitelistedUtilityBlocks().contains(id)) return false;
                     if (snap.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME)
-                        return s.is(targetState.getBlock());
+                        return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
                     return true;
                 };
             }
