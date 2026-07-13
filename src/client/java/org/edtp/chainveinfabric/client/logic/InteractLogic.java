@@ -52,8 +52,8 @@ public class InteractLogic {
     private static void handleUtility(Minecraft client, BlockPos pos, BlockState state, ItemStack stack) {
         if (stack.getItem() instanceof BlockItem) return;
 
-        String blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
-        if (!ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(blockId)) return;
+        String itemId = ChainVeinConfig.getWhitelistItemId(state.getBlock());
+        if (itemId == null || !ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(itemId)) return;
 
         Direction face = Direction.UP;
         if (client.hitResult instanceof BlockHitResult hit) {
@@ -62,14 +62,14 @@ public class InteractLogic {
 
         List<BlockPos> targets = ChainSearcher.search(client, pos, face, p -> {
             BlockState s = client.level.getBlockState(p);
-            String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
+            String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
             
-            if (!ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(id)) {
+            if (id == null || !ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(id)) {
                 return false;
             }
             
             if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
-                return s.is(state.getBlock());
+                return id.equals(itemId);
             }
             return true;
         });

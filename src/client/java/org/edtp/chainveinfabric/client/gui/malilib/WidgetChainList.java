@@ -55,19 +55,9 @@ public class WidgetChainList extends WidgetListBase<ItemStack, WidgetChainListEn
     public void onButtonAction(ItemStack stack, boolean removing) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
 
-        String key;
-        if (config.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
-            // Item key: matches held item in InteractLogic.handlePlanting
-            net.minecraft.resources.Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-            if (id == net.minecraft.core.registries.BuiltInRegistries.ITEM.getDefaultKey()) {
-                id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(net.minecraft.world.level.block.Block.byItem(stack.getItem()));
-            }
-            key = id.toString();
-        } else {
-            // Block key: matches MineLogic / InteractLogic.handleUtility
-            net.minecraft.world.level.block.Block block = net.minecraft.world.level.block.Block.byItem(stack.getItem());
-            key = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).toString();
-        }
+        // All whitelist modes use item IDs. A wall torch and a standing torch
+        // intentionally resolve to the same item ID.
+        String key = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 
         java.util.Set<String> targetSet;
         if (config.mode == ChainVeinConfig.ChainMode.CHAIN_MINE) targetSet = config.whitelistedBlocks;
