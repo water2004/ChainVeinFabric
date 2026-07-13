@@ -779,7 +779,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     public boolean onKeyTyped(KeyEvent key) {
-        if (super.onKeyTyped(key)) return true;
+        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onKeyTyped(key)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onKeyTyped(key)) {
                 this.leftList.refreshEntries();
@@ -793,7 +793,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     public boolean onCharTyped(CharacterEvent character) {
-        if (super.onCharTyped(character)) return true;
+        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onCharTyped(character)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onCharTyped(character)) {
                 this.leftList.refreshEntries();
@@ -812,7 +812,9 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     public void removed() {
-        super.removed();
+        if (this.getListWidget() != null) {
+            super.removed();
+        }
         ConfigProxies.save();
         InputEventHandler.getKeybindManager().updateUsedKeys();
     }
