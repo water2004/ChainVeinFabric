@@ -97,7 +97,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
 
             BlockPos pos = ((BlockHitResult) client.hitResult).getBlockPos();
             BlockState state = client.level.getBlockState(pos);
-            WhitelistTarget target = getWhitelistTarget(ChainveinfabricClient.CONFIG.mode, state);
+            WhitelistTarget target = getWhitelistTarget(state);
             if (target == null) {
                 showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noTarget"));
                 return false;
@@ -129,19 +129,13 @@ public class ChainVeinInputHandler implements IKeybindProvider {
             };
         }
 
-        private static WhitelistTarget getWhitelistTarget(ChainVeinConfig.ChainMode mode, BlockState state) {
+        private static WhitelistTarget getWhitelistTarget(BlockState state) {
             Block block = state.getBlock();
-            if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
-                Item item = block.asItem();
-                if (item == Items.AIR) {
-                    return null;
-                }
-                Identifier id = BuiltInRegistries.ITEM.getKey(item);
-                return new WhitelistTarget(id.toString(), new ItemStack(item).getHoverName());
-            }
+            Item item = block.asItem();
+            if (item == Items.AIR) return null;
 
-            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
-            return new WhitelistTarget(id.toString(), block.getName());
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
+            return new WhitelistTarget(id.toString(), new ItemStack(item).getHoverName());
         }
 
         private static void showOverlay(Minecraft client, Component message) {
