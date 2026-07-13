@@ -870,11 +870,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
         List<ItemStack> list = new ArrayList<>();
         if (mode == ChainVeinConfig.ChainMode.CHAIN_MINE) {
-            for (Block block : BuiltInRegistries.BLOCK) {
-                if (block.asItem() != Items.AIR && !whitelist.contains(BuiltInRegistries.BLOCK.getKey(block).toString())) {
-                    list.add(new ItemStack(block.asItem()));
-                }
-            }
+            list.addAll(getBlockItemList(whitelist));
         } else if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
             for (Item item : BuiltInRegistries.ITEM) {
                 if (isPlantable(item) && !whitelist.contains(BuiltInRegistries.ITEM.getKey(item).toString())) {
@@ -882,31 +878,37 @@ public class GuiChainVein extends GuiConfigsBase {
                 }
             }
         } else {
-            for (Block block : BuiltInRegistries.BLOCK) {
-                if (block.asItem() != Items.AIR && !whitelist.contains(BuiltInRegistries.BLOCK.getKey(block).toString())) {
-                    list.add(new ItemStack(block.asItem()));
-                }
-            }
+            list.addAll(getBlockItemList(whitelist));
         }
         return list;
     }
 
+    private List<ItemStack> getBlockItemList(Set<String> whitelist) {
+        List<ItemStack> list = new ArrayList<>();
+        Set<String> seenItems = new HashSet<>();
+
+        for (Block block : BuiltInRegistries.BLOCK) {
+            Item item = block.asItem();
+            if (item == Items.AIR) continue;
+
+            String itemId = BuiltInRegistries.ITEM.getKey(item).toString();
+            if (whitelist.contains(itemId) || !seenItems.add(itemId)) continue;
+            list.add(new ItemStack(item));
+        }
+
+        return list;
+    }
+
     private List<ItemStack> getRightListData() {
-        ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
-        Set<String> whitelist = getWhitelistForMode(mode);
+        Set<String> whitelist = getWhitelistForMode(ChainveinfabricClient.CONFIG.mode);
 
         List<ItemStack> list = new ArrayList<>();
         for (String id : whitelist) {
             ResourceLocation identifier = ResourceLocation.tryParse(id);
             if (identifier == null) continue;
 
-            if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
-                Item item = BuiltInRegistries.ITEM.getValue(identifier);
-                if (item != null && item != Items.AIR) list.add(new ItemStack(item));
-            } else {
-                Block block = BuiltInRegistries.BLOCK.getValue(identifier);
-                if (block != null && block.asItem() != Items.AIR) list.add(new ItemStack(block.asItem()));
-            }
+            Item item = BuiltInRegistries.ITEM.getValue(identifier);
+            if (item != null && item != Items.AIR) list.add(new ItemStack(item));
         }
         return list;
     }
