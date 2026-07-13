@@ -4,7 +4,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
@@ -24,14 +23,14 @@ public class MineLogic {
 
         List<BlockPos> toBreak = ChainSearcher.search(client, pos, face, p -> {
             BlockState s = client.level.getBlockState(p);
-            String id = BuiltInRegistries.BLOCK.getKey(s.getBlock()).toString();
+            String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
             
-            if (!ChainveinfabricClient.CONFIG.whitelistedBlocks.contains(id)) {
+            if (id == null || !ChainveinfabricClient.CONFIG.whitelistedBlocks.contains(id)) {
                 return false;
             }
             
             if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
-                return s.is(targetState.getBlock());
+                return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
             }
             return true;
         });
@@ -91,4 +90,5 @@ public class MineLogic {
             client.player.displayClientMessage(Component.translatable("message.chainveinfabric.broken", finalBreakList.size()), true);
         }
     }
+
 }
