@@ -5,6 +5,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
 import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV1;
@@ -17,6 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +31,7 @@ import java.util.UUID;
 public class ChainVeinConfig extends ConfigSchemaV2 {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chainveinfabric.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int CURRENT_SCHEMA_VERSION = 2;
+    private static final int CURRENT_SCHEMA_VERSION = 3;
 
     public enum ChainMode {
         CHAIN_MINE,
@@ -67,10 +73,14 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         try (FileReader reader = new FileReader(CONFIG_PATH.toFile())) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
             ChainVeinConfig config;
-            if (root.has("version") && root.get("version").getAsInt() == CURRENT_SCHEMA_VERSION) {
+            int storedVersion = root.has("version") ? root.get("version").getAsInt() : 1;
+            if (storedVersion >= 2) {
                 config = GSON.fromJson(root, ChainVeinConfig.class);
                 if (config == null) config = createFresh();
-                config.fixV2();
+                boolean whitelistChanged = config.fixV2();
+                if (storedVersion != CURRENT_SCHEMA_VERSION || whitelistChanged) {
+                    config.save();
+                }
             } else {
                 ConfigSchemaV1 v1 = GSON.fromJson(root, ConfigSchemaV1.class);
                 config = migrateV1ToV2(v1);
@@ -129,11 +139,12 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         config.configPresets = new ArrayList<>();
         config.configPresets.add(ConfigPreset.create(ConfigPreset.DEFAULT_ID, ConfigPreset.DEFAULT_NAME, config));
         config.activeConfigPresetId = ConfigPreset.DEFAULT_ID;
+        config.normalizeWhitelistEntries();
         config.applyActivePresets();
         return config;
     }
 
-    private void fixV2() {
+    private boolean fixV2() {
         this.fixV2Scalars();
         if (this.configPresets == null) this.configPresets = new ArrayList<>();
         if (this.whitelistPresets == null) this.whitelistPresets = new LinkedHashMap<>();
@@ -156,7 +167,9 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
             this.ensureWhitelistPreset(mode);
         }
 
+        boolean whitelistChanged = this.normalizeWhitelistEntries();
         this.applyActivePresets();
+        return whitelistChanged;
     }
 
     private void fixV2Scalars() {
@@ -222,6 +235,67 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         if (preset.id == null || preset.id.isBlank()) preset.id = UUID.randomUUID().toString();
         if (preset.name == null || preset.name.isBlank()) preset.name = WhitelistPreset.DEFAULT_NAME;
         if (preset.entries == null) preset.entries = new HashSet<>();
+    }
+
+    /**
+     * Whitelist entries are stored as item IDs. Older versions stored block IDs
+     * for mining and utility targets, so convert those entries on load.
+     */
+    private boolean normalizeWhitelistEntries() {
+        boolean changed = false;
+
+        if (this.whitelistPresets == null) return false;
+
+        for (ChainMode mode : ChainMode.values()) {
+            List<WhitelistPreset> presets = this.whitelistPresets.get(mode.name());
+            if (presets == null) continue;
+
+            for (WhitelistPreset preset : presets) {
+                Set<String> normalized = new LinkedHashSet<>();
+                for (String entry : preset.entries) {
+                    String normalizedEntry = normalizeWhitelistEntry(entry);
+                    if (normalizedEntry != null) {
+                        normalized.add(normalizedEntry);
+                    }
+                }
+
+                if (!normalized.equals(preset.entries)) {
+                    preset.entries = normalized;
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    private static String normalizeWhitelistEntry(String entry) {
+        if (entry == null || entry.isBlank()) return null;
+
+        ResourceLocation identifier = ResourceLocation.tryParse(entry);
+        if (identifier == null) return null;
+
+        // Keep already-valid item IDs unchanged.
+        Item item = BuiltInRegistries.ITEM.getValue(identifier);
+        if (item != Items.AIR && BuiltInRegistries.ITEM.getKey(item).equals(identifier)) {
+            return identifier.toString();
+        }
+
+        // Convert legacy block IDs to the item used to represent the block.
+        Block block = BuiltInRegistries.BLOCK.getValue(identifier);
+        if (block == null) return null;
+
+        String itemId = getWhitelistItemId(block);
+        return itemId;
+    }
+
+    public static String getWhitelistItemId(Block block) {
+        if (block == null) return null;
+
+        Item item = block.asItem();
+        if (item == null || item == Items.AIR) return null;
+
+        return BuiltInRegistries.ITEM.getKey(item).toString();
     }
 
     private void applyActivePresets() {
