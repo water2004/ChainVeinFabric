@@ -12,14 +12,15 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
 import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
-import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV1;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV2;
+import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV3;
 
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -28,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class ChainVeinConfig extends ConfigSchemaV2 {
+public class ChainVeinConfig extends ConfigSchemaV3 {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chainveinfabric.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int CURRENT_SCHEMA_VERSION = 3;
@@ -36,7 +37,22 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
     public enum ChainMode {
         CHAIN_MINE,
         CHAIN_PLANT,
-        CHAIN_UTILITY
+        CHAIN_UTILITY,
+        SCHEMATIC_SELECTION,
+        SCHEMATIC_EXTRA,
+        SCHEMATIC_WRONG;
+
+        public boolean isMiningMode() {
+            return this == CHAIN_MINE || this.isSchematicMode();
+        }
+
+        public boolean isInteractionMode() {
+            return this == CHAIN_PLANT || this == CHAIN_UTILITY;
+        }
+
+        public boolean isSchematicMode() {
+            return this == SCHEMATIC_SELECTION || this == SCHEMATIC_EXTRA || this == SCHEMATIC_WRONG;
+        }
     }
 
     public enum SearchAlgorithm {
@@ -59,9 +75,7 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         BACK_BOTTOM_RIGHT
     }
 
-    public transient Set<String> whitelistedBlocks = new HashSet<>();
-    public transient Set<String> whitelistedCrops = new HashSet<>();
-    public transient Set<String> whitelistedUtilityBlocks = new HashSet<>();
+    private transient Map<ChainMode, Set<String>> activeWhitelists = new EnumMap<>(ChainMode.class);
 
     public static ChainVeinConfig load() {
         if (!CONFIG_PATH.toFile().exists()) {
@@ -72,21 +86,23 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
 
         try (FileReader reader = new FileReader(CONFIG_PATH.toFile())) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            ChainVeinConfig config;
             int storedVersion = root.has("version") ? root.get("version").getAsInt() : 1;
-            if (storedVersion >= 2) {
-                config = GSON.fromJson(root, ChainVeinConfig.class);
-                if (config == null) config = createFresh();
-                boolean whitelistChanged = config.fixV2();
-                if (storedVersion != CURRENT_SCHEMA_VERSION || whitelistChanged) {
-                    config.save();
-                }
-            } else {
-                ConfigSchemaV1 v1 = GSON.fromJson(root, ConfigSchemaV1.class);
-                config = migrateV1ToV2(v1);
+            if (storedVersion == 2) {
+                ConfigSchemaV2 v2 = GSON.fromJson(root, ConfigSchemaV2.class);
+                ChainVeinConfig config = migrateV2ToV3(v2);
                 config.save();
+                return config;
             }
-            return config;
+
+            if (storedVersion == CURRENT_SCHEMA_VERSION) {
+                ChainVeinConfig config = GSON.fromJson(root, ChainVeinConfig.class);
+                if (config == null) config = createFresh();
+                boolean whitelistChanged = config.fixV3();
+                if (whitelistChanged) config.save();
+                return config;
+            }
+
+            return createFresh();
         } catch (Exception e) {
             // Config file is invalid, create a new one with default values.
             ChainVeinConfig config = createFresh();
@@ -96,59 +112,53 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
 
     private static ChainVeinConfig createFresh() {
         ChainVeinConfig config = new ChainVeinConfig();
-        config.fixV2Scalars();
+        config.fixV3Scalars();
         config.createDefaultPresets();
         config.applyActivePresets();
         return config;
     }
 
-    private static ChainVeinConfig migrateV1ToV2(ConfigSchemaV1 v1) {
-        if (v1 == null) return createFresh();
-
-        v1.fixNulls();
+    private static ChainVeinConfig migrateV2ToV3(ConfigSchemaV2 v2) {
+        if (v2 == null) return createFresh();
 
         ChainVeinConfig config = new ChainVeinConfig();
         config.version = CURRENT_SCHEMA_VERSION;
-        config.isChainVeinEnabled = v1.isChainVeinEnabled;
-        config.mode = v1.mode;
-        config.searchAlgorithm = v1.searchAlgorithm;
-        config.maxChainBlocks = v1.maxChainBlocks;
-        config.maxRadius = v1.maxRadius;
-        config.sphereRadius = v1.sphereRadius;
-        config.squareLength = v1.squareLength;
-        config.squareMiningPoint = v1.squareMiningPoint;
-        config.cuboidL = v1.cuboidL;
-        config.cuboidW = v1.cuboidW;
-        config.cuboidH = v1.cuboidH;
-        config.cuboidMiningPoint = v1.cuboidMiningPoint;
-        config.directToInventory = v1.directToInventory;
-        config.toolProtection = v1.toolProtection;
-        config.diagonalEdge = v1.diagonalEdge;
-        config.diagonalCorner = v1.diagonalCorner;
-        config.packetInterval = v1.packetInterval;
-        config.showBlockOutlines = v1.showBlockOutlines;
-        config.openConfigHotkey = v1.openConfigHotkey;
-        config.toggleChainVeinHotkey = v1.toggleChainVeinHotkey;
-        config.toggleTargetWhitelistHotkey = v1.toggleTargetWhitelistHotkey;
-
-        config.whitelistPresets = new LinkedHashMap<>();
-        config.activeWhitelistPresetIds = new LinkedHashMap<>();
-        config.putDefaultWhitelistPreset(ChainMode.CHAIN_MINE, v1.whitelistedBlocks);
-        config.putDefaultWhitelistPreset(ChainMode.CHAIN_PLANT, v1.whitelistedCrops);
-        config.putDefaultWhitelistPreset(ChainMode.CHAIN_UTILITY, v1.whitelistedUtilityBlocks);
-        config.configPresets = new ArrayList<>();
-        config.configPresets.add(ConfigPreset.create(ConfigPreset.DEFAULT_ID, ConfigPreset.DEFAULT_NAME, config));
-        config.activeConfigPresetId = ConfigPreset.DEFAULT_ID;
-        config.normalizeWhitelistEntries();
-        config.applyActivePresets();
+        config.isChainVeinEnabled = v2.isChainVeinEnabled;
+        config.mode = v2.mode;
+        config.searchAlgorithm = v2.searchAlgorithm;
+        config.maxChainBlocks = v2.maxChainBlocks;
+        config.maxRadius = v2.maxRadius;
+        config.sphereRadius = v2.sphereRadius;
+        config.squareLength = v2.squareLength;
+        config.squareMiningPoint = v2.squareMiningPoint;
+        config.cuboidL = v2.cuboidL;
+        config.cuboidW = v2.cuboidW;
+        config.cuboidH = v2.cuboidH;
+        config.cuboidMiningPoint = v2.cuboidMiningPoint;
+        config.directToInventory = v2.directToInventory;
+        config.toolProtection = v2.toolProtection;
+        config.diagonalEdge = v2.diagonalEdge;
+        config.diagonalCorner = v2.diagonalCorner;
+        config.packetInterval = v2.packetInterval;
+        config.showBlockOutlines = v2.showBlockOutlines;
+        config.openConfigHotkey = v2.openConfigHotkey;
+        config.toggleChainVeinHotkey = v2.toggleChainVeinHotkey;
+        config.toggleTargetWhitelistHotkey = v2.toggleTargetWhitelistHotkey;
+        config.configPresets = v2.configPresets != null ? v2.configPresets : new ArrayList<>();
+        config.activeConfigPresetId = v2.activeConfigPresetId;
+        config.whitelistPresets = v2.whitelistPresets != null ? v2.whitelistPresets : new LinkedHashMap<>();
+        config.activeWhitelistPresetIds = v2.activeWhitelistPresetIds != null ? v2.activeWhitelistPresetIds : new LinkedHashMap<>();
+        config.fixV3();
         return config;
     }
 
-    private boolean fixV2() {
-        this.fixV2Scalars();
+    private boolean fixV3() {
+        this.fixV3Scalars();
         if (this.configPresets == null) this.configPresets = new ArrayList<>();
         if (this.whitelistPresets == null) this.whitelistPresets = new LinkedHashMap<>();
         if (this.activeWhitelistPresetIds == null) this.activeWhitelistPresetIds = new LinkedHashMap<>();
+        Set<String> presetModeKeys = Set.copyOf(this.whitelistPresets.keySet());
+        Set<String> activeModeKeys = Set.copyOf(this.activeWhitelistPresetIds.keySet());
 
         if (this.configPresets.isEmpty()) {
             this.configPresets.add(ConfigPreset.create(ConfigPreset.DEFAULT_ID, ConfigPreset.DEFAULT_NAME, this));
@@ -168,11 +178,13 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         }
 
         boolean whitelistChanged = this.normalizeWhitelistEntries();
+        boolean structureChanged = !presetModeKeys.equals(this.whitelistPresets.keySet())
+                || !activeModeKeys.equals(this.activeWhitelistPresetIds.keySet());
         this.applyActivePresets();
-        return whitelistChanged;
+        return whitelistChanged || structureChanged;
     }
 
-    private void fixV2Scalars() {
+    private void fixV3Scalars() {
         this.version = CURRENT_SCHEMA_VERSION;
         if (this.mode == null) this.mode = ChainMode.CHAIN_MINE;
         if (this.searchAlgorithm == null) this.searchAlgorithm = SearchAlgorithm.ADJACENT_SAME;
@@ -181,9 +193,7 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
         if (this.openConfigHotkey == null) this.openConfigHotkey = "V";
         if (this.toggleChainVeinHotkey == null) this.toggleChainVeinHotkey = "";
         if (this.toggleTargetWhitelistHotkey == null) this.toggleTargetWhitelistHotkey = "";
-        if (this.whitelistedBlocks == null) this.whitelistedBlocks = new HashSet<>();
-        if (this.whitelistedCrops == null) this.whitelistedCrops = new HashSet<>();
-        if (this.whitelistedUtilityBlocks == null) this.whitelistedUtilityBlocks = new HashSet<>();
+        if (this.activeWhitelists == null) this.activeWhitelists = new EnumMap<>(ChainMode.class);
     }
 
     private void createDefaultPresets() {
@@ -416,14 +426,16 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
     public void applyActiveWhitelistPreset(ChainMode mode) {
         WhitelistPreset preset = this.getActiveWhitelistPreset(mode);
         Set<String> entries = preset != null ? preset.entries : new HashSet<>();
+        this.activeWhitelists.put(mode, entries);
+    }
 
-        if (mode == ChainMode.CHAIN_MINE) {
-            this.whitelistedBlocks = entries;
-        } else if (mode == ChainMode.CHAIN_PLANT) {
-            this.whitelistedCrops = entries;
-        } else {
-            this.whitelistedUtilityBlocks = entries;
+    public Set<String> getWhitelist(ChainMode mode) {
+        Set<String> whitelist = this.activeWhitelists.get(mode);
+        if (whitelist == null) {
+            this.applyActiveWhitelistPreset(mode);
+            whitelist = this.activeWhitelists.get(mode);
         }
+        return whitelist;
     }
 
     private static String sanitizePresetName(String name, String fallback) {
@@ -432,7 +444,7 @@ public class ChainVeinConfig extends ConfigSchemaV2 {
     }
 
     public void save() {
-        this.fixV2Scalars();
+        this.fixV3Scalars();
         this.syncActiveConfigPresetFromCurrent();
         for (ChainMode mode : ChainMode.values()) {
             this.ensureWhitelistPreset(mode);

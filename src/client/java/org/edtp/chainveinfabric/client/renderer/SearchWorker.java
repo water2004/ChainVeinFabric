@@ -147,7 +147,7 @@ public class SearchWorker implements Runnable {
                 yield p -> {
                     BlockState s = world.getBlockState(p);
                     String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
-                    if (id == null || !snap.whitelistedBlocks().contains(id)) return false;
+                    if (id == null || !snap.whitelist().contains(id)) return false;
                     if (snap.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME)
                         return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
                     return true;
@@ -162,12 +162,13 @@ public class SearchWorker implements Runnable {
                 yield p -> {
                     BlockState s = world.getBlockState(p);
                     String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
-                    if (id == null || !snap.whitelistedUtilityBlocks().contains(id)) return false;
+                    if (id == null || !snap.whitelist().contains(id)) return false;
                     if (snap.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME)
                         return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
                     return true;
                 };
             }
+            case SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> p -> false;
         };
     }
 
@@ -176,6 +177,9 @@ public class SearchWorker implements Runnable {
             case CHAIN_MINE -> COLOR_MINE;
             case CHAIN_PLANT -> COLOR_PLANT;
             case CHAIN_UTILITY -> COLOR_UTILITY;
+            case SCHEMATIC_SELECTION -> COLOR_MINE;
+            case SCHEMATIC_EXTRA -> new Color4f(1.0f, 0.0f, 0.8f, 0.7f);
+            case SCHEMATIC_WRONG -> new Color4f(1.0f, 0.2f, 0.2f, 0.7f);
         };
     }
 

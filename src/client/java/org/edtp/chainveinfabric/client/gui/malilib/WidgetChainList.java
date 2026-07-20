@@ -59,10 +59,7 @@ public class WidgetChainList extends WidgetListBase<ItemStack, WidgetChainListEn
         // intentionally resolve to the same item ID.
         String key = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 
-        java.util.Set<String> targetSet;
-        if (config.mode == ChainVeinConfig.ChainMode.CHAIN_MINE) targetSet = config.whitelistedBlocks;
-        else if (config.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) targetSet = config.whitelistedCrops;
-        else targetSet = config.whitelistedUtilityBlocks;
+        java.util.Set<String> targetSet = config.getWhitelist(config.mode);
 
         if (removing) {
             targetSet.remove(key);

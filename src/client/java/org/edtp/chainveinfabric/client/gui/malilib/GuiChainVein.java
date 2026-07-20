@@ -703,6 +703,7 @@ public class GuiChainVein extends GuiConfigsBase {
                 case CHAIN_MINE -> "options.chainveinfabric.whitelist";
                 case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
                 case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
+                case SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
             };
             this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 5, 105 - 12, 0xFFFFFF);
         } else if (currentTab == Tab.PRESETS) {
@@ -873,16 +874,14 @@ public class GuiChainVein extends GuiConfigsBase {
         Set<String> whitelist = getWhitelistForMode(mode);
 
         List<ItemStack> list = new ArrayList<>();
-        if (mode == ChainVeinConfig.ChainMode.CHAIN_MINE) {
+        if (mode != ChainVeinConfig.ChainMode.CHAIN_PLANT) {
             list.addAll(getBlockItemList(whitelist));
-        } else if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
+        } else {
             for (Item item : BuiltInRegistries.ITEM) {
                 if (isPlantable(item) && !whitelist.contains(BuiltInRegistries.ITEM.getKey(item).toString())) {
                     list.add(new ItemStack(item));
                 }
             }
-        } else {
-            list.addAll(getBlockItemList(whitelist));
         }
         return list;
     }
@@ -918,9 +917,7 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     private Set<String> getWhitelistForMode(ChainVeinConfig.ChainMode mode) {
-        if (mode == ChainVeinConfig.ChainMode.CHAIN_MINE) return ChainveinfabricClient.CONFIG.whitelistedBlocks;
-        if (mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) return ChainveinfabricClient.CONFIG.whitelistedCrops;
-        return ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks;
+        return ChainveinfabricClient.CONFIG.getWhitelist(mode);
     }
 
     private boolean isPlantable(Item item) {

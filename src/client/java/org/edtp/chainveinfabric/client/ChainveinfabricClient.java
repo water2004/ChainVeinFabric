@@ -124,9 +124,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
         hash = 31 * hash + config.cuboidMiningPoint.ordinal();
         hash = 31 * hash + (config.diagonalEdge ? 1 : 0);
         hash = 31 * hash + (config.diagonalCorner ? 1 : 0);
-        hash = 31 * hash + config.whitelistedBlocks.hashCode();
-        hash = 31 * hash + config.whitelistedCrops.hashCode();
-        hash = 31 * hash + config.whitelistedUtilityBlocks.hashCode();
+        hash = 31 * hash + config.getWhitelist(config.mode).hashCode();
         return hash;
     }
 }
