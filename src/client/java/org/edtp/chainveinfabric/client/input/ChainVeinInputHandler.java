@@ -122,11 +122,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
         }
 
         private static Set<String> getWhitelist(ChainVeinConfig config) {
-            return switch (config.mode) {
-                case CHAIN_MINE -> config.whitelistedBlocks;
-                case CHAIN_PLANT -> config.whitelistedCrops;
-                case CHAIN_UTILITY -> config.whitelistedUtilityBlocks;
-            };
+            return config.getWhitelist(config.mode);
         }
 
         private static WhitelistTarget getWhitelistTarget(BlockState state) {

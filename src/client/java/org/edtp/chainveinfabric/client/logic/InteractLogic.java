@@ -24,14 +24,14 @@ public class InteractLogic {
     public static void perform(Minecraft client, BlockPos pos, BlockState state, ItemStack stack) {
         if (ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT) {
             handlePlanting(client, pos, state, stack);
-        } else {
+        } else if (ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_UTILITY) {
             handleUtility(client, pos, state, stack);
         }
     }
 
     private static void handlePlanting(Minecraft client, BlockPos pos, BlockState state, ItemStack stack) {
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-        if (!ChainveinfabricClient.CONFIG.whitelistedCrops.contains(itemId)) return;
+        if (!ChainveinfabricClient.CONFIG.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_PLANT).contains(itemId)) return;
 
         Block targetSoil = state.getBlock();
         Direction face = Direction.UP;
@@ -53,7 +53,8 @@ public class InteractLogic {
         if (stack.getItem() instanceof BlockItem) return;
 
         String itemId = ChainVeinConfig.getWhitelistItemId(state.getBlock());
-        if (itemId == null || !ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(itemId)) return;
+        var whitelist = ChainveinfabricClient.CONFIG.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_UTILITY);
+        if (itemId == null || !whitelist.contains(itemId)) return;
 
         Direction face = Direction.UP;
         if (client.hitResult instanceof BlockHitResult hit) {
@@ -64,7 +65,7 @@ public class InteractLogic {
             BlockState s = client.level.getBlockState(p);
             String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
             
-            if (id == null || !ChainveinfabricClient.CONFIG.whitelistedUtilityBlocks.contains(id)) {
+            if (id == null || !whitelist.contains(id)) {
                 return false;
             }
             

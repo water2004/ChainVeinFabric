@@ -16,6 +16,7 @@ import java.util.List;
 
 public class MineLogic {
     public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
+        var whitelist = ChainveinfabricClient.CONFIG.getWhitelist(ChainveinfabricClient.CONFIG.mode);
         Direction face = Direction.UP;
         if (client.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit) {
             face = hit.getDirection();
@@ -25,7 +26,7 @@ public class MineLogic {
             BlockState s = client.level.getBlockState(p);
             String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
             
-            if (id == null || !ChainveinfabricClient.CONFIG.whitelistedBlocks.contains(id)) {
+            if (id == null || !whitelist.contains(id)) {
                 return false;
             }
             

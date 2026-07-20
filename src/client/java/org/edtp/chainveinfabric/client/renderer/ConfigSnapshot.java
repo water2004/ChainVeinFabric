@@ -21,9 +21,7 @@ public record ConfigSnapshot(
     MiningPoint cuboidMiningPoint,
     boolean diagonalEdge,
     boolean diagonalCorner,
-    Set<String> whitelistedBlocks,
-    Set<String> whitelistedCrops,
-    Set<String> whitelistedUtilityBlocks
+    Set<String> whitelist
 ) {
     public static ConfigSnapshot from(ChainVeinConfig c) {
         return new ConfigSnapshot(
@@ -40,9 +38,7 @@ public record ConfigSnapshot(
             c.cuboidMiningPoint,
             c.diagonalEdge,
             c.diagonalCorner,
-            Set.copyOf(c.whitelistedBlocks),
-            Set.copyOf(c.whitelistedCrops),
-            Set.copyOf(c.whitelistedUtilityBlocks)
+            Set.copyOf(c.getWhitelist(c.mode))
         );
     }
 }
