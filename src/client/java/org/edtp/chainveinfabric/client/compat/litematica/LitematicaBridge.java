@@ -8,6 +8,7 @@ import fi.dy.masa.litematica.selection.AreaSelection;
 import fi.dy.masa.litematica.selection.Box;
 import fi.dy.masa.litematica.util.IgnoreBlockRegistry;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
+import fi.dy.masa.litematica.world.ChunkSchematicState;
 import fi.dy.masa.litematica.world.WorldSchematic;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -37,7 +38,7 @@ final class LitematicaBridge {
             return LitematicaContext.NONE;
         }
 
-        List<Bounds> bounds = new ArrayList<>();
+        List<BlockBounds> bounds = new ArrayList<>();
         for (SchematicPlacement placement : DataManager.getSchematicPlacementManager().getAllSchematicsPlacements()) {
             bounds.addAll(snapshotBounds(placement.getSubRegionBoxes(RequiredEnabled.PLACEMENT_ENABLED).values()));
         }
@@ -56,36 +57,54 @@ final class LitematicaBridge {
         );
     }
 
-    private static List<Bounds> snapshotBounds(Iterable<Box> boxes) {
-        List<Bounds> bounds = new ArrayList<>();
+    static LitematicaImportSnapshot createImportSnapshot(ChainMode mode, boolean respectRenderLayer) {
+        LitematicaContext context = createContext(mode, respectRenderLayer);
+        if (context instanceof SelectionContext selection) {
+            return new LitematicaImportSnapshot(selection.bounds, context);
+        }
+        if (context instanceof SchematicContext schematic) {
+            List<BlockBounds> scanBounds = schematic.bounds;
+            if (schematic.renderRange != null) {
+                scanBounds = schematic.bounds.stream()
+                        .map(schematic.renderRange::clamp)
+                        .filter(java.util.Objects::nonNull)
+                        .toList();
+            }
+            return new LitematicaImportSnapshot(scanBounds, context);
+        }
+        return LitematicaImportSnapshot.EMPTY;
+    }
+
+    private static List<BlockBounds> snapshotBounds(Iterable<Box> boxes) {
+        List<BlockBounds> bounds = new ArrayList<>();
         for (Box box : boxes) {
             BlockPos first = box.getPos1();
             BlockPos second = box.getPos2();
             if (first != null && second != null) {
-                bounds.add(Bounds.of(first, second));
+                bounds.add(BlockBounds.of(first, second));
             }
         }
         sortBounds(bounds);
         return List.copyOf(bounds);
     }
 
-    private static void sortBounds(List<Bounds> bounds) {
-        bounds.sort(Comparator.comparingInt(Bounds::minX)
-                .thenComparingInt(Bounds::minY)
-                .thenComparingInt(Bounds::minZ)
-                .thenComparingInt(Bounds::maxX)
-                .thenComparingInt(Bounds::maxY)
-                .thenComparingInt(Bounds::maxZ));
+    private static void sortBounds(List<BlockBounds> bounds) {
+        bounds.sort(Comparator.comparingInt(BlockBounds::minX)
+                .thenComparingInt(BlockBounds::minY)
+                .thenComparingInt(BlockBounds::minZ)
+                .thenComparingInt(BlockBounds::maxX)
+                .thenComparingInt(BlockBounds::maxY)
+                .thenComparingInt(BlockBounds::maxZ));
     }
 
-    private static boolean contains(List<Bounds> bounds, BlockPos pos) {
-        for (Bounds box : bounds) {
+    private static boolean contains(List<BlockBounds> bounds, BlockPos pos) {
+        for (BlockBounds box : bounds) {
             if (box.contains(pos)) return true;
         }
         return false;
     }
 
-    private record SelectionContext(List<Bounds> bounds) implements LitematicaContext {
+    private record SelectionContext(List<BlockBounds> bounds) implements LitematicaContext {
         @Override
         public boolean matches(ClientLevel world, BlockPos pos) {
             return contains(this.bounds, pos) && !world.getBlockState(pos).isAir();
@@ -99,7 +118,7 @@ final class LitematicaBridge {
 
     private record SchematicContext(
             ChainMode mode,
-            List<Bounds> bounds,
+            List<BlockBounds> bounds,
             WorldSchematic schematicWorld,
             RenderRange renderRange,
             boolean ignoreFluids,
@@ -108,7 +127,10 @@ final class LitematicaBridge {
         @Override
         public boolean matches(ClientLevel world, BlockPos pos) {
             if (!contains(this.bounds, pos)
-                    || (this.renderRange != null && !this.renderRange.contains(pos))) {
+                    || (this.renderRange != null && !this.renderRange.contains(pos))
+                    || !this.schematicWorld.getChunkSource()
+                            .getChunkState(pos.getX() >> 4, pos.getZ() >> 4)
+                            .atLeast(ChunkSchematicState.LOADED)) {
                 return false;
             }
 
@@ -150,24 +172,9 @@ final class LitematicaBridge {
             };
             return coordinate >= this.min && coordinate <= this.max;
         }
-    }
 
-    record Bounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        static Bounds of(BlockPos first, BlockPos second) {
-            return new Bounds(
-                    Math.min(first.getX(), second.getX()),
-                    Math.min(first.getY(), second.getY()),
-                    Math.min(first.getZ(), second.getZ()),
-                    Math.max(first.getX(), second.getX()),
-                    Math.max(first.getY(), second.getY()),
-                    Math.max(first.getZ(), second.getZ())
-            );
-        }
-
-        boolean contains(BlockPos pos) {
-            return pos.getX() >= this.minX && pos.getX() <= this.maxX
-                    && pos.getY() >= this.minY && pos.getY() <= this.maxY
-                    && pos.getZ() >= this.minZ && pos.getZ() <= this.maxZ;
+        BlockBounds clamp(BlockBounds bounds) {
+            return bounds.clamp(this.axis, this.min, this.max);
         }
     }
 }

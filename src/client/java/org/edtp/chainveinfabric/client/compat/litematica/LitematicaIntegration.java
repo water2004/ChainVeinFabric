@@ -20,4 +20,12 @@ public final class LitematicaIntegration {
 
         return LitematicaBridge.createContext(mode, respectRenderLayer);
     }
+
+    public static LitematicaImportSnapshot createImportSnapshot(ChainMode mode, boolean respectRenderLayer) {
+        if (!AVAILABLE || !mode.isSchematicMode()) {
+            return LitematicaImportSnapshot.EMPTY;
+        }
+
+        return LitematicaBridge.createImportSnapshot(mode, respectRenderLayer);
+    }
 }

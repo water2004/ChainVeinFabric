@@ -438,6 +438,21 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
         return whitelist;
     }
 
+    public void replaceWhitelist(ChainMode mode, Set<String> entries) {
+        this.replaceWhitelist(mode, this.getActiveWhitelistPresetId(mode), entries);
+    }
+
+    public void replaceWhitelist(ChainMode mode, String presetId, Set<String> entries) {
+        WhitelistPreset preset = this.getWhitelistPreset(mode, presetId);
+        if (preset == null) return;
+
+        preset.entries.clear();
+        preset.entries.addAll(entries);
+        if (preset.id.equals(this.getActiveWhitelistPresetId(mode))) {
+            this.activeWhitelists.put(mode, preset.entries);
+        }
+    }
+
     private static String sanitizePresetName(String name, String fallback) {
         if (name == null || name.isBlank()) return fallback;
         return name.trim();
