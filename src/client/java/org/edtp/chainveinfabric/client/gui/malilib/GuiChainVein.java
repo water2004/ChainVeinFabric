@@ -323,13 +323,22 @@ public class GuiChainVein extends GuiConfigsBase {
     private void initBasicTab(int centerX, int topY) {
         int leftX = centerX - 200;
         int rightX = centerX + 5;
-        int rightToggleX = centerX + 140;
-        int outlineX = centerX - 25;
+        int controlsLeftX = centerX - 222;
+        int controlGap = 5;
+        int modeWidth = 170;
+        int outlineWidth = 80;
+        int importWidth = 50;
+        int renderLayerWidth = 85;
+        int toggleWidth = 40;
+        int outlineX = controlsLeftX + modeWidth + controlGap;
+        int importX = outlineX + outlineWidth + controlGap;
+        int renderLayerX = importX + importWidth + controlGap;
+        int toggleX = renderLayerX + renderLayerWidth + controlGap;
 
         // Mode dropdown
         List<ChainVeinConfig.ChainMode> modes = getAvailableModes();
         MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-            leftX, topY, 170, 20, 200, 5, modes, this::getModeString
+            controlsLeftX, topY, modeWidth, 20, 200, 5, modes, this::getModeString
         ) {
             @Override
             protected void setSelectedEntry(int index) {
@@ -347,7 +356,7 @@ public class GuiChainVein extends GuiConfigsBase {
         this.addWidget(modeDropdown);
 
         // Toggle enabled
-        ButtonGeneric toggleBtn = new ButtonGeneric(rightToggleX, topY, 60, 20, getToggleString());
+        ButtonGeneric toggleBtn = new ButtonGeneric(toggleX, topY, toggleWidth, 20, getToggleString());
         this.addButton(toggleBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.isChainVeinEnabled = !ChainveinfabricClient.CONFIG.isChainVeinEnabled;
             ChainveinfabricClient.CONFIG.save();
@@ -355,7 +364,7 @@ public class GuiChainVein extends GuiConfigsBase {
         });
 
         // Toggle outlines
-        ButtonGeneric outlineBtn = new ButtonGeneric(outlineX, topY, 80, 20, getOutlineToggleString());
+        ButtonGeneric outlineBtn = new ButtonGeneric(outlineX, topY, outlineWidth, 20, getOutlineToggleString());
         this.addButton(outlineBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
             ChainveinfabricClient.CONFIG.save();
@@ -364,13 +373,11 @@ public class GuiChainVein extends GuiConfigsBase {
         });
 
         ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
-        int modeControlsOffset = 0;
         if (mode.isSchematicMode()) {
-            modeControlsOffset = 30;
             ButtonGeneric importButton = new ButtonGeneric(
-                    rightX,
-                    topY + 30,
-                    195,
+                    importX,
+                    topY,
+                    importWidth,
                     20,
                     StringUtils.translate("options.chainveinfabric.whitelist.import")
             );
@@ -385,9 +392,9 @@ public class GuiChainVein extends GuiConfigsBase {
             if (mode == ChainVeinConfig.ChainMode.SCHEMATIC_EXTRA
                     || mode == ChainVeinConfig.ChainMode.SCHEMATIC_WRONG) {
                 ButtonGeneric renderLayerButton = new ButtonGeneric(
-                        leftX,
-                        topY + 30,
-                        195,
+                        renderLayerX,
+                        topY,
+                        renderLayerWidth,
                         20,
                         getRenderLayerToggleString()
                 );
@@ -401,10 +408,10 @@ public class GuiChainVein extends GuiConfigsBase {
         }
 
         // Search Bar
-        this.searchBar = new WidgetSearchBar(leftX, topY + 30 + modeControlsOffset, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
+        this.searchBar = new WidgetSearchBar(leftX, topY + 30, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
 
         int listWidth = 200;
-        int listTopY = topY + 65 + modeControlsOffset;
+        int listTopY = topY + 65;
         int listHeight = this.height - listTopY - 20;
 
         this.leftList = new WidgetChainList(leftX, listTopY, listWidth, listHeight, null, false, this::getLeftListData, this);
