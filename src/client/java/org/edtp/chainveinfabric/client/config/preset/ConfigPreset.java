@@ -28,6 +28,7 @@ public class ConfigPreset {
     public boolean diagonalCorner = false;
     public int packetInterval = 0;
     public boolean showBlockOutlines = false;
+    public boolean respectSchematicRenderLayer = true;
 
     public static ConfigPreset create(String id, String name, ChainVeinConfig config) {
         ConfigPreset preset = new ConfigPreset();
@@ -56,6 +57,7 @@ public class ConfigPreset {
         this.diagonalCorner = config.diagonalCorner;
         this.packetInterval = config.packetInterval;
         this.showBlockOutlines = config.showBlockOutlines;
+        this.respectSchematicRenderLayer = config.respectSchematicRenderLayer;
     }
 
     public void applyTo(ChainVeinConfig config) {
@@ -77,5 +79,6 @@ public class ConfigPreset {
         config.diagonalCorner = this.diagonalCorner;
         config.packetInterval = this.packetInterval;
         config.showBlockOutlines = this.showBlockOutlines;
+        config.respectSchematicRenderLayer = this.respectSchematicRenderLayer;
     }
 }

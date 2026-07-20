@@ -6,6 +6,8 @@ package org.edtp.chainveinfabric.client.config.schema;
  * mode-specific whitelist data continues to live in the preset maps.
  */
 public class ConfigSchemaV3 extends ConfigSchemaV2 {
+    public boolean respectSchematicRenderLayer = true;
+
     public ConfigSchemaV3() {
         this.version = 3;
     }
