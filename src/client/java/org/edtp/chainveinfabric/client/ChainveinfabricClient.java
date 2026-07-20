@@ -18,6 +18,7 @@ import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
+import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
 import org.edtp.chainveinfabric.client.renderer.ConfigSnapshot;
 import org.edtp.chainveinfabric.client.renderer.SearchWorker;
@@ -36,6 +37,9 @@ public class ChainveinfabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         CONFIG = ChainVeinConfig.load();
+        if (CONFIG.mode.isSchematicMode() && !LitematicaIntegration.isAvailable()) {
+            CONFIG.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+        }
         ConfigProxies.load();
         InputEventHandler.getKeybindManager().registerKeybindProvider(ChainVeinInputHandler.getInstance());
         InputEventHandler.getKeybindManager().updateUsedKeys();
@@ -46,6 +50,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ClientChainHandler.onTick(client);
+            WhitelistImportService.tick(client);
             onOutlineTick(client);
         });
 

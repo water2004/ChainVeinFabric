@@ -24,9 +24,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.*;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
 import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
+import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 
 import fi.dy.masa.malilib.gui.LeftRight;
 import fi.dy.masa.malilib.gui.MaLiLibIcons;
@@ -319,14 +321,13 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     private void initBasicTab(int centerX, int topY) {
-        final int pad = 10;
         int leftX = centerX - 200;
         int rightX = centerX + 5;
         int rightToggleX = centerX + 140;
         int outlineX = centerX - 25;
 
         // Mode dropdown
-        List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
+        List<ChainVeinConfig.ChainMode> modes = getAvailableModes();
         MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
             leftX, topY, 170, 20, 200, 5, modes, this::getModeString
         ) {
@@ -337,7 +338,7 @@ public class GuiChainVein extends GuiConfigsBase {
                 if (selected != null && ChainveinfabricClient.CONFIG.mode != selected) {
                     ChainveinfabricClient.CONFIG.mode = selected;
                     ChainveinfabricClient.CONFIG.save();
-                    refreshLists();
+                    initGui();
                 }
             }
         };
@@ -362,11 +363,48 @@ public class GuiChainVein extends GuiConfigsBase {
             button.setDisplayString(getOutlineToggleString());
         });
 
+        ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
+        int modeControlsOffset = 0;
+        if (mode.isSchematicMode()) {
+            modeControlsOffset = 30;
+            ButtonGeneric importButton = new ButtonGeneric(
+                    rightX,
+                    topY + 30,
+                    195,
+                    20,
+                    StringUtils.translate("options.chainveinfabric.whitelist.import")
+            );
+            this.addButton(importButton, (button, mb) -> {
+                WhitelistImportService.start(
+                        net.minecraft.client.Minecraft.getInstance(),
+                        ChainveinfabricClient.CONFIG.mode,
+                        this::refreshLists
+                );
+            });
+
+            if (mode == ChainVeinConfig.ChainMode.SCHEMATIC_EXTRA
+                    || mode == ChainVeinConfig.ChainMode.SCHEMATIC_WRONG) {
+                ButtonGeneric renderLayerButton = new ButtonGeneric(
+                        leftX,
+                        topY + 30,
+                        195,
+                        20,
+                        getRenderLayerToggleString()
+                );
+                this.addButton(renderLayerButton, (button, mb) -> {
+                    ChainveinfabricClient.CONFIG.respectSchematicRenderLayer =
+                            !ChainveinfabricClient.CONFIG.respectSchematicRenderLayer;
+                    ChainveinfabricClient.CONFIG.save();
+                    button.setDisplayString(getRenderLayerToggleString());
+                });
+            }
+        }
+
         // Search Bar
-        this.searchBar = new WidgetSearchBar(leftX, topY + 30, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
+        this.searchBar = new WidgetSearchBar(leftX, topY + 30 + modeControlsOffset, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
 
         int listWidth = 200;
-        int listTopY = topY + 65;
+        int listTopY = topY + 65 + modeControlsOffset;
         int listHeight = this.height - listTopY - 20;
 
         this.leftList = new WidgetChainList(leftX, listTopY, listWidth, listHeight, null, false, this::getLeftListData, this);
@@ -506,7 +544,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
             switch (row.type) {
                 case WHITELIST_HEADER -> {
-                    List<ChainVeinConfig.ChainMode> modes = Arrays.asList(ChainVeinConfig.ChainMode.values());
+                    List<ChainVeinConfig.ChainMode> modes = parentScreen.getAvailableModes();
                     MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
                         x + 120, buttonY, 200, 20, 200, 5, modes, parentScreen::getModeString
                     ) {
@@ -582,6 +620,7 @@ public class GuiChainVein extends GuiConfigsBase {
                     useButton.setEnabled(!active);
                     this.addButton(useButton, (btn, mb) -> {
                         if (ChainveinfabricClient.CONFIG.useConfigPreset(row.configPreset.id)) {
+                            parentScreen.ensureAvailableMode();
                             ChainveinfabricClient.CONFIG.save();
                             ConfigProxies.load();
                             parentScreen.refreshLists();
@@ -918,6 +957,23 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private Set<String> getWhitelistForMode(ChainVeinConfig.ChainMode mode) {
         return ChainveinfabricClient.CONFIG.getWhitelist(mode);
+    }
+
+    private String getRenderLayerToggleString() {
+        String state = ChainveinfabricClient.CONFIG.respectSchematicRenderLayer ? "ON" : "OFF";
+        return StringUtils.translate("options.chainveinfabric.schematic.respectRenderLayer") + ": " + state;
+    }
+
+    private List<ChainVeinConfig.ChainMode> getAvailableModes() {
+        return Arrays.stream(ChainVeinConfig.ChainMode.values())
+                .filter(mode -> !mode.isSchematicMode() || LitematicaIntegration.isAvailable())
+                .toList();
+    }
+
+    private void ensureAvailableMode() {
+        if (ChainveinfabricClient.CONFIG.mode.isSchematicMode() && !LitematicaIntegration.isAvailable()) {
+            ChainveinfabricClient.CONFIG.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+        }
     }
 
     private boolean isPlantable(Item item) {
