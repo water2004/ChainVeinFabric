@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
 import org.edtp.chainveinfabric.client.logic.ChainSearcher;
 
 public class SearchWorker implements Runnable {
@@ -25,6 +26,9 @@ public class SearchWorker implements Runnable {
     private static final Color4f COLOR_MINE = new Color4f(0.0f, 1.0f, 1.0f, 0.7f);
     private static final Color4f COLOR_PLANT = new Color4f(0.0f, 1.0f, 0.0f, 0.7f);
     private static final Color4f COLOR_UTILITY = new Color4f(1.0f, 1.0f, 0.0f, 0.7f);
+    private static final Color4f COLOR_SCHEMATIC_SELECTION = new Color4f(0.0f, 1.0f, 1.0f, 0.7f);
+    private static final Color4f COLOR_SCHEMATIC_EXTRA = new Color4f(1.0f, 0.0f, 0.8f, 0.7f);
+    private static final Color4f COLOR_SCHEMATIC_WRONG = new Color4f(1.0f, 0.2f, 0.2f, 0.7f);
 
     private final Thread thread;
     private volatile boolean running = true;
@@ -38,6 +42,7 @@ public class SearchWorker implements Runnable {
     private volatile Direction hitFace;
     private volatile Direction playerFacing;
     private volatile ClientLevel world;
+    private volatile LitematicaContext litematicaContext = LitematicaContext.NONE;
 
     public SearchWorker() {
         this.thread = new Thread(this, "ChainVeinFabric-OutlineWorker");
@@ -64,13 +69,14 @@ public class SearchWorker implements Runnable {
      */
     public void signal(int gen, ConfigSnapshot config, BlockPos target,
                         BlockState state, Direction face, Direction pFacing,
-                        ClientLevel level) {
+                        ClientLevel level, LitematicaContext context) {
         this.configSnapshot = config;
         this.targetPos = target;
         this.targetState = state;
         this.hitFace = face;
         this.playerFacing = pFacing;
         this.world = level;
+        this.litematicaContext = context;
         this.generation.set(gen);
         LockSupport.unpark(this.thread);
     }
@@ -95,11 +101,12 @@ public class SearchWorker implements Runnable {
             Direction face = this.hitFace;
             Direction pFacing = this.playerFacing;
             ClientLevel level = this.world;
+            LitematicaContext context = this.litematicaContext;
 
             if (snap == null || pos == null || state == null || level == null) continue;
 
             try {
-                Predicate<BlockPos> predicate = buildPredicate(level, pos, snap, state);
+                Predicate<BlockPos> predicate = buildPredicate(level, pos, snap, state, context);
                 List<BlockPos> searchResult = doSearch(level, pos, pFacing, snap, predicate);
 
                 if (searchResult.isEmpty()) {
@@ -123,6 +130,8 @@ public class SearchWorker implements Runnable {
 
     private List<BlockPos> doSearch(ClientLevel level, BlockPos pos, Direction playerFacing,
                                      ConfigSnapshot snap, Predicate<BlockPos> predicate) {
+        if (!predicate.test(pos)) return List.of();
+
         Set<BlockPos> result = switch (snap.searchAlgorithm()) {
             case SPHERE -> ChainSearcher.findSphere(level, pos, snap.sphereRadius(), predicate);
             case SQUARE -> ChainSearcher.findSquare(level, pos, snap.squareLength(),
@@ -141,7 +150,8 @@ public class SearchWorker implements Runnable {
     // ─── Predicate building (same as MineLogic/InteractLogic) ───
 
     private Predicate<BlockPos> buildPredicate(ClientLevel world, BlockPos targetPos,
-                                                ConfigSnapshot snap, BlockState targetState) {
+                                                ConfigSnapshot snap, BlockState targetState,
+                                                LitematicaContext context) {
         return switch (snap.mode()) {
             case CHAIN_MINE -> {
                 yield p -> {
@@ -168,7 +178,16 @@ public class SearchWorker implements Runnable {
                     return true;
                 };
             }
-            case SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> p -> false;
+            case SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> {
+                String targetId = ChainVeinConfig.getWhitelistItemId(targetState.getBlock());
+                yield p -> {
+                    BlockState state = world.getBlockState(p);
+                    String id = ChainVeinConfig.getWhitelistItemId(state.getBlock());
+                    if (id == null || !snap.whitelist().contains(id) || !context.matches(world, p)) return false;
+                    return snap.searchAlgorithm() != ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME
+                            || id.equals(targetId);
+                };
+            }
         };
     }
 
@@ -177,9 +196,9 @@ public class SearchWorker implements Runnable {
             case CHAIN_MINE -> COLOR_MINE;
             case CHAIN_PLANT -> COLOR_PLANT;
             case CHAIN_UTILITY -> COLOR_UTILITY;
-            case SCHEMATIC_SELECTION -> COLOR_MINE;
-            case SCHEMATIC_EXTRA -> new Color4f(1.0f, 0.0f, 0.8f, 0.7f);
-            case SCHEMATIC_WRONG -> new Color4f(1.0f, 0.2f, 0.2f, 0.7f);
+            case SCHEMATIC_SELECTION -> COLOR_SCHEMATIC_SELECTION;
+            case SCHEMATIC_EXTRA -> COLOR_SCHEMATIC_EXTRA;
+            case SCHEMATIC_WRONG -> COLOR_SCHEMATIC_WRONG;
         };
     }
 

@@ -30,7 +30,7 @@ public abstract class ChainVeinClientMixin {
     private void onBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (ClientChainHandler.isChainOperating() || 
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
-            ChainveinfabricClient.CONFIG.mode != ChainVeinConfig.ChainMode.CHAIN_MINE ||
+            !ChainveinfabricClient.CONFIG.mode.isMiningMode() ||
             minecraft.level == null || minecraft.player == null) {
             return;
         }
@@ -53,6 +53,7 @@ public abstract class ChainVeinClientMixin {
         // 仅当交互未明确失败时触发连锁（骨粉等物品客户端返回 PASS，仍需放行）
         if (result == InteractionResult.FAIL || ClientChainHandler.isChainOperating() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
+            !ChainveinfabricClient.CONFIG.mode.isInteractionMode() ||
             minecraft.level == null || minecraft.player == null || hand != InteractionHand.MAIN_HAND || capturedState == null) {
             return;
         }

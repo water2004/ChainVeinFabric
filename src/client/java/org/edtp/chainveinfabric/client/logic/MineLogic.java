@@ -9,6 +9,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 
@@ -16,25 +18,38 @@ import java.util.List;
 
 public class MineLogic {
     public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
-        var whitelist = ChainveinfabricClient.CONFIG.getWhitelist(ChainveinfabricClient.CONFIG.mode);
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        var whitelist = config.getWhitelist(config.mode);
+        LitematicaContext litematicaContext = LitematicaIntegration.createContext(
+                config.mode,
+                config.respectSchematicRenderLayer
+        );
         Direction face = Direction.UP;
         if (client.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit) {
             face = hit.getDirection();
         }
 
-        List<BlockPos> toBreak = ChainSearcher.search(client, pos, face, p -> {
+        java.util.function.Predicate<BlockPos> predicate = p -> {
             BlockState s = client.level.getBlockState(p);
             String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
-            
+
             if (id == null || !whitelist.contains(id)) {
                 return false;
             }
-            
-            if (ChainveinfabricClient.CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
+
+            if (config.mode.isSchematicMode() && !litematicaContext.matches(client.level, p)) {
+                return false;
+            }
+
+            if (config.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
                 return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
             }
             return true;
-        });
+        };
+
+        if (!predicate.test(pos)) return;
+
+        List<BlockPos> toBreak = ChainSearcher.search(client, pos, face, predicate);
 
         if (toBreak.isEmpty()) return;
 

@@ -13,6 +13,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
@@ -90,7 +92,11 @@ public class ChainveinfabricClient implements ClientModInitializer {
             return;
         }
 
-        long configHash = computeOutlineConfigHash(CONFIG);
+        LitematicaContext litematicaContext = LitematicaIntegration.createContext(
+                CONFIG.mode,
+                CONFIG.respectSchematicRenderLayer
+        );
+        long configHash = computeOutlineConfigHash(CONFIG, litematicaContext);
         boolean configChanged = (configHash != outlineLastConfigHash);
         boolean targetChanged = !target.equals(outlineLastTarget);
 
@@ -106,11 +112,12 @@ public class ChainveinfabricClient implements ClientModInitializer {
             client.level.getBlockState(target),
             face,
             client.player.getDirection(),
-            (ClientLevel) client.level
+            (ClientLevel) client.level,
+            litematicaContext
         );
     }
 
-    private static long computeOutlineConfigHash(ChainVeinConfig config) {
+    private static long computeOutlineConfigHash(ChainVeinConfig config, LitematicaContext litematicaContext) {
         long hash = config.mode.ordinal();
         hash = 31 * hash + config.searchAlgorithm.ordinal();
         hash = 31 * hash + config.maxChainBlocks;
@@ -125,6 +132,8 @@ public class ChainveinfabricClient implements ClientModInitializer {
         hash = 31 * hash + (config.diagonalEdge ? 1 : 0);
         hash = 31 * hash + (config.diagonalCorner ? 1 : 0);
         hash = 31 * hash + config.getWhitelist(config.mode).hashCode();
+        hash = 31 * hash + (config.respectSchematicRenderLayer ? 1 : 0);
+        hash = 31 * hash + litematicaContext.fingerprint();
         return hash;
     }
 }
