@@ -1,21 +1,18 @@
 package org.edtp.chainveinfabric.client.logic;
 
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
-import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 
 import java.util.List;
 
@@ -45,7 +42,7 @@ public class InteractLogic {
 
         if (targets.size() <= 1) return;
 
-        executeInteract(client, pos, targets, stack, "message.chainveinfabric.planted");
+        executeInteract(client, pos, targets, stack, "message.chainveinfabric.planted", true);
     }
 
     private static void handleUtility(Minecraft client, BlockPos pos, BlockState state, ItemStack stack) {
@@ -76,10 +73,11 @@ public class InteractLogic {
 
         if (targets.size() <= 1) return;
 
-        executeInteract(client, pos, targets, stack, "message.chainveinfabric.processed");
+        executeInteract(client, pos, targets, stack, "message.chainveinfabric.processed", false);
     }
 
-    private static void executeInteract(Minecraft client, BlockPos startPos, List<BlockPos> targets, ItemStack stack, String translationKey) {
+    private static void executeInteract(Minecraft client, BlockPos startPos, List<BlockPos> targets,
+                                        ItemStack stack, String translationKey, boolean planting) {
         if (targets.isEmpty()) return;
 
         boolean isEmptyHand = stack.isEmpty();
@@ -104,16 +102,12 @@ public class InteractLogic {
             client.gui.setOverlayMessage(Component.translatable("message.chainveinfabric.protection"), false);
         }
 
-        if (ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID)) {
-            ClientPlayNetworking.send(new Chainveinfabric.ChainInteractPayload(finalSubList));
+        List<BlockPos> queuedPositions = new java.util.ArrayList<>(finalSubList);
+        queuedPositions.remove(startPos);
+        if (planting) {
+            ChainVeinClientApi.queuePlantJobs(client, queuedPositions);
         } else {
-            for (BlockPos p : finalSubList) {
-                if (p.equals(startPos)) continue;
-                ClientChainHandler.addTask(() -> {
-                    client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND, 
-                        new BlockHitResult(p.getCenter(), Direction.UP, p, false));
-                });
-            }
+            ChainVeinClientApi.queueUseJobs(client, queuedPositions);
         }
 
         if (finalSubList.size() > 1) {
