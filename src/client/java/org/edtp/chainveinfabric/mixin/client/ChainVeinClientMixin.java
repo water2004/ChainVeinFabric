@@ -10,8 +10,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
-import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
+import org.edtp.chainveinfabric.client.logic.InteractLogic;
+import org.edtp.chainveinfabric.client.logic.MineLogic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,7 +30,7 @@ public abstract class ChainVeinClientMixin {
 
     @Inject(method = "destroyBlock", at = @At("HEAD"))
     private void onBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        if (ClientChainHandler.isChainOperating() || 
+        if (ChainVeinClientApi.isDispatching() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
             !ChainveinfabricClient.CONFIG.mode.isMiningMode() ||
             minecraft.level == null || minecraft.player == null) {
@@ -36,7 +38,7 @@ public abstract class ChainVeinClientMixin {
         }
 
         BlockState state = minecraft.level.getBlockState(pos);
-        ClientChainHandler.performChainMine(minecraft, pos, state);
+        MineLogic.perform(minecraft, pos, state);
     }
 
     @Inject(method = "useItemOn", at = @At("HEAD"))
@@ -51,7 +53,7 @@ public abstract class ChainVeinClientMixin {
         InteractionResult result = cir.getReturnValue();
         
         // 仅当交互未明确失败时触发连锁（骨粉等物品客户端返回 PASS，仍需放行）
-        if (result == InteractionResult.FAIL || ClientChainHandler.isChainOperating() ||
+        if (result == InteractionResult.FAIL || ChainVeinClientApi.isDispatching() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
             !ChainveinfabricClient.CONFIG.mode.isInteractionMode() ||
             minecraft.level == null || minecraft.player == null || hand != InteractionHand.MAIN_HAND || capturedState == null) {
@@ -64,7 +66,7 @@ public abstract class ChainVeinClientMixin {
         if (stack.isEmpty()) return;
 
         // 执行连锁处理（种植、打蜡等），使用捕获到的原始状态
-        ClientChainHandler.performChainInteract(minecraft, pos, capturedState, stack);
+        InteractLogic.perform(minecraft, pos, capturedState, stack);
         this.capturedState = null;
     }
 }

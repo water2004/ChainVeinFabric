@@ -115,6 +115,31 @@ This mod uses a smart networking system to determine how to break blocks:
 
 ---
 
+## Client Job API / 客户端作业 API
+
+Other client-side mods can submit resolved positions through the same queue used by
+ChainVein itself:
+
+其他客户端 Mod 可以把已经确定的坐标提交给 ChainVein 自身也在使用的统一队列：
+
+```java
+ChainVeinClientApi.queueMineJobs(client, positions);
+ChainVeinClientApi.queuePlantJobs(client, positions);
+ChainVeinClientApi.queueUseJobs(client, positions);
+```
+
+The API deduplicates jobs, applies the current Direct to Inventory and Tool
+Protection settings, and automatically chooses the dedicated server protocol or
+vanilla client packets. Direct to Inventory only takes effect when the server has
+ChainVein installed; the public method signatures stay independent of config fields.
+
+API 会负责作业去重，并隐式读取当前的“直接进入背包”和“工具保护”设置，再自动选择
+服务端专用协议或原版客户端发包。“直接进入背包”仅在服务端安装 ChainVein 时生效，
+公共方法签名不与具体配置字段绑定。调用方应将 ChainVein 声明为客户端可选依赖，并只在
+确认 Mod 已加载后调用。
+
+---
+
 ## 📝 License / 许可证
 
 This project is licensed under the GPL-3.0 License.

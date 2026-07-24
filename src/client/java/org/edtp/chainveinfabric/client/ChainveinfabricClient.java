@@ -13,10 +13,10 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
-import org.edtp.chainveinfabric.client.handler.ClientChainHandler;
 import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
@@ -49,7 +49,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
         RenderEventHandler.getInstance().registerWorldLastRenderer(new BlockOutlineRenderer(outlineWorker));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            ClientChainHandler.onTick(client);
+            ChainVeinClientApi.tick(client);
             WhitelistImportService.tick(client);
             onOutlineTick(client);
         });
