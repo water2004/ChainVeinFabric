@@ -50,10 +50,10 @@ public class GuiChainVein extends GuiConfigsBase {
     private static final int COMPACT_HEADER_TAB_GAP = 4;
     private static final int CONFIG_SWITCHER_WIDTH = 155;
     private static final int COLLAPSED_TAB_WIDTH = 130;
-    private static final int SINGLE_ROW_COMPRESSION_ALLOWANCE = 25;
 
     private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
     private enum BasicPane { AVAILABLE, WHITELIST }
+    private enum ControlDensity { FULL, COMPACT, ICON }
 
     private record LayoutRect(int x, int y, int width, int height) {
         private static LayoutRect hidden() {
@@ -77,7 +77,8 @@ public class GuiChainVein extends GuiConfigsBase {
             LayoutRect leftList,
             LayoutRect rightList,
             int titleY,
-            boolean singlePane
+            boolean singlePane,
+            ControlDensity controlDensity
     ) {
     }
 
@@ -500,7 +501,7 @@ public class GuiChainVein extends GuiConfigsBase {
             200,
             5,
             modes,
-            this::getModeString
+            this::getBasicModeString
         ) {
             @Override
             protected void setSelectedEntry(int index) {
@@ -528,12 +529,15 @@ public class GuiChainVein extends GuiConfigsBase {
 
         // Toggle outlines
         LayoutRect outline = this.basicLayout.outline;
-        ButtonGeneric outlineBtn = new ButtonGeneric(outline.x, outline.y, outline.width, outline.height, getOutlineToggleString());
+        ButtonGeneric outlineBtn = new ButtonGeneric(outline.x, outline.y, outline.width, outline.height,
+            getBasicOutlineToggleString());
+        this.updateCompactButtonTooltip(outlineBtn, this.getOutlineToggleString());
         this.addButton(outlineBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
             ChainveinfabricClient.CONFIG.save();
             ConfigProxies.load();
-            button.setDisplayString(getOutlineToggleString());
+            button.setDisplayString(getBasicOutlineToggleString());
+            this.updateCompactButtonTooltip(button, this.getOutlineToggleString());
         });
 
         if (this.basicLayout.importButton.isVisible()) {
@@ -543,8 +547,10 @@ public class GuiChainVein extends GuiConfigsBase {
                     importRect.y,
                     importRect.width,
                     importRect.height,
-                    StringUtils.translate("options.chainveinfabric.whitelist.import")
+                    getBasicImportString()
             );
+            this.updateCompactButtonTooltip(importButton,
+                StringUtils.translate("options.chainveinfabric.whitelist.import"));
             this.addButton(importButton, (button, mb) -> {
                 WhitelistImportService.start(
                         net.minecraft.client.Minecraft.getInstance(),
@@ -560,13 +566,15 @@ public class GuiChainVein extends GuiConfigsBase {
                         renderLayer.y,
                         renderLayer.width,
                         renderLayer.height,
-                        getRenderLayerToggleString()
+                        getBasicRenderLayerToggleString()
                 );
+                this.updateCompactButtonTooltip(renderLayerButton, this.getRenderLayerToggleString());
                 this.addButton(renderLayerButton, (button, mb) -> {
                     ChainveinfabricClient.CONFIG.respectSchematicRenderLayer =
                             !ChainveinfabricClient.CONFIG.respectSchematicRenderLayer;
                     ChainveinfabricClient.CONFIG.save();
-                    button.setDisplayString(getRenderLayerToggleString());
+                    button.setDisplayString(getBasicRenderLayerToggleString());
+                    this.updateCompactButtonTooltip(button, this.getRenderLayerToggleString());
                 });
             }
         }
@@ -600,49 +608,34 @@ public class GuiChainVein extends GuiConfigsBase {
         boolean showRenderLayer = mode == ChainVeinConfig.ChainMode.SCHEMATIC_EXTRA
                 || mode == ChainVeinConfig.ChainMode.SCHEMATIC_WRONG;
 
-        List<Integer> preferredWidths = new ArrayList<>();
-        preferredWidths.add(170);
-        preferredWidths.add(80);
-        if (showImport) preferredWidths.add(50);
-        if (showRenderLayer) preferredWidths.add(85);
-        preferredWidths.add(40);
+        List<Integer> fullWidths = this.createFullControlWidths(showImport, showRenderLayer);
+        List<Integer> compactWidths = this.createCompactControlWidths(showImport, showRenderLayer);
+        ControlDensity controlDensity;
+        List<Integer> controlWidths;
+        if (rowWidth(fullWidths) <= contentWidth) {
+            controlDensity = ControlDensity.FULL;
+            controlWidths = fullWidths;
+        } else if (rowWidth(compactWidths) <= contentWidth) {
+            controlDensity = ControlDensity.COMPACT;
+            controlWidths = compactWidths;
+        } else {
+            controlDensity = ControlDensity.ICON;
+            controlWidths = this.createIconControlWidths(contentWidth, showImport, showRenderLayer);
+        }
 
         LayoutRect modeRect;
         LayoutRect outlineRect;
         LayoutRect importRect = LayoutRect.hidden();
         LayoutRect renderLayerRect = LayoutRect.hidden();
         LayoutRect toggleRect;
-        int controlsBottom;
-
-        // Preserve the compact single-row layout whenever all visible controls fit.
-        if (rowWidth(preferredWidths) <= contentWidth + SINGLE_ROW_COMPRESSION_ALLOWANCE) {
-            LayoutRect[] row = centeredRow(contentX, topY, contentWidth, preferredWidths);
-            int index = 0;
-            modeRect = row[index++];
-            outlineRect = row[index++];
-            if (showImport) importRect = row[index++];
-            if (showRenderLayer) renderLayerRect = row[index++];
-            toggleRect = row[index];
-            controlsBottom = topY + CONTROL_HEIGHT;
-        } else {
-            // Keep the mode selector usable and move the smaller actions together.
-            LayoutRect[] primaryRow = centeredRow(contentX, topY, contentWidth, List.of(170, 40));
-            modeRect = primaryRow[0];
-            toggleRect = primaryRow[1];
-
-            List<Integer> secondaryWidths = new ArrayList<>();
-            secondaryWidths.add(80);
-            if (showImport) secondaryWidths.add(50);
-            if (showRenderLayer) secondaryWidths.add(85);
-
-            int secondaryY = topY + CONTROL_HEIGHT + CONTROL_GAP;
-            LayoutRect[] secondaryRow = centeredRow(contentX, secondaryY, contentWidth, secondaryWidths);
-            int index = 0;
-            outlineRect = secondaryRow[index++];
-            if (showImport) importRect = secondaryRow[index++];
-            if (showRenderLayer) renderLayerRect = secondaryRow[index];
-            controlsBottom = secondaryY + CONTROL_HEIGHT;
-        }
+        LayoutRect[] row = centeredRow(contentX, topY, contentWidth, controlWidths);
+        int index = 0;
+        modeRect = row[index++];
+        outlineRect = row[index++];
+        if (showImport) importRect = row[index++];
+        if (showRenderLayer) renderLayerRect = row[index++];
+        toggleRect = row[index];
+        int controlsBottom = topY + CONTROL_HEIGHT;
 
         int bodyWidth = Math.min(BASIC_BODY_MAX_WIDTH, contentWidth);
         int bodyX = (this.width - bodyWidth) / 2;
@@ -693,8 +686,66 @@ public class GuiChainVein extends GuiConfigsBase {
                 leftListRect,
                 rightListRect,
                 titleY,
-                singlePane
+                singlePane,
+                controlDensity
         );
+    }
+
+    private List<Integer> createFullControlWidths(boolean showImport, boolean showRenderLayer) {
+        List<Integer> widths = new ArrayList<>();
+        widths.add(170);
+        widths.add(80);
+        if (showImport) widths.add(50);
+        if (showRenderLayer) widths.add(85);
+        widths.add(40);
+        return widths;
+    }
+
+    private List<Integer> createCompactControlWidths(boolean showImport, boolean showRenderLayer) {
+        List<Integer> widths = new ArrayList<>();
+        int modeWidth = getAvailableModes().stream()
+            .map(this::getCompactModeString)
+            .mapToInt(this::getStringWidth)
+            .max()
+            .orElse(70) + 24;
+        widths.add(Math.max(80, modeWidth));
+        widths.add(this.getToggleLabelWidth("options.chainveinfabric.showBlockOutlines"));
+        if (showImport) {
+            widths.add(this.getStringWidth(StringUtils.translate("options.chainveinfabric.whitelist.import")) + 12);
+        }
+        if (showRenderLayer) {
+            widths.add(this.getToggleLabelWidth("options.chainveinfabric.schematic.respectRenderLayer"));
+        }
+        widths.add(Math.max(this.getStringWidth("ON"), this.getStringWidth("OFF")) + 12);
+        return widths;
+    }
+
+    private List<Integer> createIconControlWidths(int contentWidth, boolean showImport, boolean showRenderLayer) {
+        List<Integer> widths = new ArrayList<>();
+        int fixedWidth = 28 + 40;
+        int fixedCount = 2;
+        if (showImport) {
+            fixedWidth += 28;
+            fixedCount++;
+        }
+        if (showRenderLayer) {
+            fixedWidth += 28;
+            fixedCount++;
+        }
+        int gapWidth = fixedCount * CONTROL_GAP;
+        widths.add(Math.max(40, contentWidth - fixedWidth - gapWidth));
+        widths.add(28);
+        if (showImport) widths.add(28);
+        if (showRenderLayer) widths.add(28);
+        widths.add(40);
+        return widths;
+    }
+
+    private int getToggleLabelWidth(String translationKey) {
+        String label = StringUtils.translate(translationKey);
+        int enabledWidth = this.getStringWidth("✓ " + label);
+        int disabledWidth = this.getStringWidth("✗ " + label);
+        return Math.max(enabledWidth, disabledWidth) + 12;
     }
 
     private static int rowWidth(List<Integer> widths) {
@@ -1271,6 +1322,28 @@ public class GuiChainVein extends GuiConfigsBase {
         return StringUtils.translate("options.chainveinfabric.mode." + mode.name().toLowerCase().replace("chain_", ""));
     }
 
+    private String getCompactModeString(ChainVeinConfig.ChainMode mode) {
+        return StringUtils.translate(
+            "options.chainveinfabric.mode.compact." + mode.name().toLowerCase().replace("chain_", ""));
+    }
+
+    private String getBasicModeString(ChainVeinConfig.ChainMode mode) {
+        String text = this.basicLayout.controlDensity == ControlDensity.FULL
+            ? this.getModeString(mode)
+            : this.getCompactModeString(mode);
+        return this.fitText(text, Math.max(1, this.basicLayout.mode.width - 18));
+    }
+
+    private String fitText(String text, int maxWidth) {
+        if (this.getStringWidth(text) <= maxWidth) {
+            return text;
+        }
+
+        String ellipsis = "…";
+        int contentWidth = maxWidth - this.getStringWidth(ellipsis);
+        return contentWidth > 0 ? this.font.plainSubstrByWidth(text, contentWidth) + ellipsis : "";
+    }
+
     private String getWhitelistTitleKey() {
         return switch (ChainveinfabricClient.CONFIG.mode) {
             case CHAIN_MINE, SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
@@ -1286,6 +1359,46 @@ public class GuiChainVein extends GuiConfigsBase {
     private String getOutlineToggleString() {
         String state = ChainveinfabricClient.CONFIG.showBlockOutlines ? "ON" : "OFF";
         return StringUtils.translate("options.chainveinfabric.showBlockOutlines") + ": " + state;
+    }
+
+    private String getBasicOutlineToggleString() {
+        return this.getBasicToggleLabel(
+            "options.chainveinfabric.showBlockOutlines",
+            ChainveinfabricClient.CONFIG.showBlockOutlines,
+            "O"
+        );
+    }
+
+    private String getBasicImportString() {
+        return this.basicLayout.controlDensity == ControlDensity.ICON
+            ? "I"
+            : StringUtils.translate("options.chainveinfabric.whitelist.import");
+    }
+
+    private String getBasicRenderLayerToggleString() {
+        return this.getBasicToggleLabel(
+            "options.chainveinfabric.schematic.respectRenderLayer",
+            ChainveinfabricClient.CONFIG.respectSchematicRenderLayer,
+            "L"
+        );
+    }
+
+    private String getBasicToggleLabel(String translationKey, boolean enabled, String iconLabel) {
+        if (this.basicLayout.controlDensity == ControlDensity.FULL) {
+            return StringUtils.translate(translationKey) + ": " + (enabled ? "ON" : "OFF");
+        }
+        if (this.basicLayout.controlDensity == ControlDensity.ICON) {
+            return iconLabel + (enabled ? "+" : "-");
+        }
+        return (enabled ? "✓ " : "✗ ") + StringUtils.translate(translationKey);
+    }
+
+    private void updateCompactButtonTooltip(ButtonBase button, String fullLabel) {
+        if (this.basicLayout.controlDensity == ControlDensity.FULL) {
+            button.clearHoverStrings();
+        } else {
+            button.setHoverStrings(fullLabel);
+        }
     }
 
     private List<ItemStack> getLeftListData() {
