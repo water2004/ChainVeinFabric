@@ -50,6 +50,11 @@ public class GuiChainVein extends GuiConfigsBase {
     private static final int COMPACT_HEADER_TAB_GAP = 4;
     private static final int CONFIG_SWITCHER_WIDTH = 155;
     private static final int COLLAPSED_TAB_WIDTH = 130;
+    private static final int CONFIG_LABEL_GAP = 10;
+    private static final int CONFIG_RESET_GAP = 2;
+    private static final int CONFIG_SCROLLBAR_CLEARANCE = 6;
+    private static final int CONFIG_MIN_LABEL_WIDTH = 40;
+    private static final int CONFIG_MIN_CONTROL_WIDTH = 40;
 
     private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
     private enum BasicPane { AVAILABLE, WHITELIST }
@@ -210,10 +215,18 @@ public class GuiChainVein extends GuiConfigsBase {
 
             @Override
             protected fi.dy.masa.malilib.gui.widgets.WidgetConfigOption createListEntryWidget(int x, int y, int listIndex, boolean isOdd, ConfigOptionWrapper wrapper) {
+                int resetWidth = this.getStringWidth(
+                    StringUtils.translate("malilib.gui.button.reset.caps")) + 10;
+                int fixedWidth = resetWidth + CONFIG_LABEL_GAP + CONFIG_RESET_GAP
+                    + CONFIG_SCROLLBAR_CLEARANCE;
+                int availableWidth = Math.max(1, this.browserEntryWidth - fixedWidth);
+                int configWidth = Math.min(this.configWidth,
+                    Math.max(CONFIG_MIN_CONTROL_WIDTH, availableWidth - CONFIG_MIN_LABEL_WIDTH));
+                configWidth = Math.min(configWidth, Math.max(1, availableWidth - 1));
                 int labelWidth = Math.min(this.maxLabelWidth,
-                    Math.max(40, this.browserEntryWidth - this.configWidth - 36));
+                    Math.max(1, availableWidth - configWidth));
                 return new DropdownConfigOption(x, y, this.browserEntryWidth, this.browserEntryHeight,
-                    labelWidth, this.configWidth, wrapper, listIndex, GuiChainVein.this, this);
+                    labelWidth, configWidth, wrapper, listIndex, GuiChainVein.this, this);
             }
         };
     }
@@ -298,14 +311,20 @@ public class GuiChainVein extends GuiConfigsBase {
         }
 
         private int getControlsX(int configWidth) {
-            // Config widgets use an additional 22 px for their settings/reset control.
-            return this.x + this.width - configWidth - 26;
+            int resetWidth = this.textRenderer.width(
+                StringUtils.translate("malilib.gui.button.reset.caps")) + 10;
+            return this.x + this.width - configWidth - resetWidth
+                - CONFIG_RESET_GAP - CONFIG_SCROLLBAR_CLEARANCE;
         }
 
         private void addResponsiveConfigLabel(int x, int y, int availableWidth,
             fi.dy.masa.malilib.config.IConfigBase config) {
             int labelWidth = Math.max(0, availableWidth);
-            String configName = this.fitText(config.getConfigGuiDisplayName(), labelWidth);
+            String translatedName = StringUtils.translate(config.getName());
+            String configName = this.fitText(
+                translatedName.equals(config.getName()) ? config.getConfigGuiDisplayName() : translatedName,
+                labelWidth
+            );
             this.addLabel(x, y + 7, labelWidth, 8, 0xFFFFFFFF, configName);
 
             fi.dy.masa.malilib.gui.interfaces.IConfigInfoProvider infoProvider = this.host.getHoverInfoProvider();
@@ -336,7 +355,7 @@ public class GuiChainVein extends GuiConfigsBase {
         if (this.currentTab == Tab.HOTKEYS) {
             configs.addAll(ConfigProxies.getAvailableHotkeys());
             configs.add(ConfigProxies.ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY);
-            return ConfigOptionWrapper.createFor(configs);
+            return this.createTranslatedConfigWrappers(configs);
         }
 
         configs.add(ConfigProxies.ALGO);
@@ -367,6 +386,14 @@ public class GuiChainVein extends GuiConfigsBase {
         configs.add(ConfigProxies.DIAG_CORNER);
         configs.add(ConfigProxies.PACKET_INV);
 
+        return this.createTranslatedConfigWrappers(configs);
+    }
+
+    private List<ConfigOptionWrapper> createTranslatedConfigWrappers(
+        List<fi.dy.masa.malilib.config.IConfigBase> configs) {
+        for (fi.dy.masa.malilib.config.IConfigBase config : configs) {
+            config.setTranslatedName(StringUtils.translate(config.getName()));
+        }
         return ConfigOptionWrapper.createFor(configs);
     }
 
