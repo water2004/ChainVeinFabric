@@ -231,9 +231,8 @@ public class GuiChainVein extends GuiConfigsBase {
         List<fi.dy.masa.malilib.config.IConfigBase> configs = new ArrayList<>();
 
         if (this.currentTab == Tab.HOTKEYS) {
-            configs.add(ConfigProxies.OPEN_CONFIG);
-            configs.add(ConfigProxies.TOGGLE_CHAIN_VEIN);
-            configs.add(ConfigProxies.TOGGLE_TARGET_WHITELIST);
+            configs.addAll(ConfigProxies.getAvailableHotkeys());
+            configs.add(ConfigProxies.ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY);
             return ConfigOptionWrapper.createFor(configs);
         }
 

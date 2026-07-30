@@ -7,6 +7,14 @@ package org.edtp.chainveinfabric.client.config.schema;
  */
 public class ConfigSchemaV3 extends ConfigSchemaV2 {
     public boolean respectSchematicRenderLayer = true;
+    public boolean enableChainVeinOnModeHotkey = false;
+    public String cycleModeHotkey = "";
+    public String switchToMineModeHotkey = "";
+    public String switchToPlantModeHotkey = "";
+    public String switchToUtilityModeHotkey = "";
+    public String switchToSchematicSelectionModeHotkey = "";
+    public String switchToSchematicExtraModeHotkey = "";
+    public String switchToSchematicWrongModeHotkey = "";
 
     public ConfigSchemaV3() {
         this.version = 3;

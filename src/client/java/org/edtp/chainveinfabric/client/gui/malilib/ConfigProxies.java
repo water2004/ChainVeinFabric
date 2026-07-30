@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.hotkeys.IHotkey;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import fi.dy.masa.malilib.util.StringUtils;
 
@@ -56,8 +57,33 @@ public class ConfigProxies {
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
     public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey("key.chainveinfabric.config", "V", "");
     public static final ConfigHotkey TOGGLE_CHAIN_VEIN = new ConfigHotkey("options.chainveinfabric.toggleChainVeinHotkey", "", "");
+    public static final ConfigHotkey CYCLE_MODE = new ConfigHotkey("options.chainveinfabric.cycleModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_MINE_MODE = new ConfigHotkey("options.chainveinfabric.switchToMineModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_PLANT_MODE = new ConfigHotkey("options.chainveinfabric.switchToPlantModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_UTILITY_MODE = new ConfigHotkey("options.chainveinfabric.switchToUtilityModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_SCHEMATIC_SELECTION_MODE = new ConfigHotkey("options.chainveinfabric.switchToSchematicSelectionModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_SCHEMATIC_EXTRA_MODE = new ConfigHotkey("options.chainveinfabric.switchToSchematicExtraModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_SCHEMATIC_WRONG_MODE = new ConfigHotkey("options.chainveinfabric.switchToSchematicWrongModeHotkey", "", "");
     public static final ConfigHotkey TOGGLE_TARGET_WHITELIST = new ConfigHotkey("options.chainveinfabric.toggleTargetWhitelistHotkey", "", "");
-    public static final List<IHotkey> HOTKEY_LIST = List.of(OPEN_CONFIG, TOGGLE_CHAIN_VEIN, TOGGLE_TARGET_WHITELIST);
+    public static final ConfigBoolean ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY = new ConfigBoolean(
+            "options.chainveinfabric.enableChainVeinOnModeHotkey", false, "");
+    private static final List<IHotkey> SCHEMATIC_MODE_HOTKEYS = List.of(
+            SWITCH_TO_SCHEMATIC_SELECTION_MODE,
+            SWITCH_TO_SCHEMATIC_EXTRA_MODE,
+            SWITCH_TO_SCHEMATIC_WRONG_MODE
+    );
+    public static final List<IHotkey> HOTKEY_LIST = List.of(
+            OPEN_CONFIG,
+            TOGGLE_CHAIN_VEIN,
+            CYCLE_MODE,
+            SWITCH_TO_MINE_MODE,
+            SWITCH_TO_PLANT_MODE,
+            SWITCH_TO_UTILITY_MODE,
+            SWITCH_TO_SCHEMATIC_SELECTION_MODE,
+            SWITCH_TO_SCHEMATIC_EXTRA_MODE,
+            SWITCH_TO_SCHEMATIC_WRONG_MODE,
+            TOGGLE_TARGET_WHITELIST
+    );
 
     private static boolean loading = false;
 
@@ -79,7 +105,15 @@ public class ConfigProxies {
         PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
         OPEN_CONFIG.setValueChangeCallback(c -> { if (!loading) save(); });
         TOGGLE_CHAIN_VEIN.setValueChangeCallback(c -> { if (!loading) save(); });
+        CYCLE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_MINE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_PLANT_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_UTILITY_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_SCHEMATIC_EXTRA_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_SCHEMATIC_WRONG_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         TOGGLE_TARGET_WHITELIST.setValueChangeCallback(c -> { if (!loading) save(); });
+        ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY.setValueChangeCallback(c -> { if (!loading) save(); });
     }
 
     public static void load() {
@@ -112,7 +146,15 @@ public class ConfigProxies {
             PACKET_INV.setIntegerValue(config.packetInterval);
             OPEN_CONFIG.setValueFromString(config.openConfigHotkey);
             TOGGLE_CHAIN_VEIN.setValueFromString(config.toggleChainVeinHotkey);
+            CYCLE_MODE.setValueFromString(config.cycleModeHotkey);
+            SWITCH_TO_MINE_MODE.setValueFromString(config.switchToMineModeHotkey);
+            SWITCH_TO_PLANT_MODE.setValueFromString(config.switchToPlantModeHotkey);
+            SWITCH_TO_UTILITY_MODE.setValueFromString(config.switchToUtilityModeHotkey);
+            SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueFromString(config.switchToSchematicSelectionModeHotkey);
+            SWITCH_TO_SCHEMATIC_EXTRA_MODE.setValueFromString(config.switchToSchematicExtraModeHotkey);
+            SWITCH_TO_SCHEMATIC_WRONG_MODE.setValueFromString(config.switchToSchematicWrongModeHotkey);
             TOGGLE_TARGET_WHITELIST.setValueFromString(config.toggleTargetWhitelistHotkey);
+            ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY.setBooleanValue(config.enableChainVeinOnModeHotkey);
         } finally {
             loading = false;
         }
@@ -138,7 +180,35 @@ public class ConfigProxies {
         config.packetInterval = PACKET_INV.getIntegerValue();
         config.openConfigHotkey = OPEN_CONFIG.getStringValue();
         config.toggleChainVeinHotkey = TOGGLE_CHAIN_VEIN.getStringValue();
+        config.cycleModeHotkey = CYCLE_MODE.getStringValue();
+        config.switchToMineModeHotkey = SWITCH_TO_MINE_MODE.getStringValue();
+        config.switchToPlantModeHotkey = SWITCH_TO_PLANT_MODE.getStringValue();
+        config.switchToUtilityModeHotkey = SWITCH_TO_UTILITY_MODE.getStringValue();
+        config.switchToSchematicSelectionModeHotkey = SWITCH_TO_SCHEMATIC_SELECTION_MODE.getStringValue();
+        config.switchToSchematicExtraModeHotkey = SWITCH_TO_SCHEMATIC_EXTRA_MODE.getStringValue();
+        config.switchToSchematicWrongModeHotkey = SWITCH_TO_SCHEMATIC_WRONG_MODE.getStringValue();
         config.toggleTargetWhitelistHotkey = TOGGLE_TARGET_WHITELIST.getStringValue();
+        config.enableChainVeinOnModeHotkey = ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY.getBooleanValue();
         config.save();
+    }
+
+    public static List<IHotkey> getAvailableHotkeys() {
+        if (LitematicaIntegration.isAvailable()) {
+            return HOTKEY_LIST;
+        }
+        return HOTKEY_LIST.stream()
+                .filter(hotkey -> !SCHEMATIC_MODE_HOTKEYS.contains(hotkey))
+                .toList();
+    }
+
+    public static ConfigHotkey getModeHotkey(ChainVeinConfig.ChainMode mode) {
+        return switch (mode) {
+            case CHAIN_MINE -> SWITCH_TO_MINE_MODE;
+            case CHAIN_PLANT -> SWITCH_TO_PLANT_MODE;
+            case CHAIN_UTILITY -> SWITCH_TO_UTILITY_MODE;
+            case SCHEMATIC_SELECTION -> SWITCH_TO_SCHEMATIC_SELECTION_MODE;
+            case SCHEMATIC_EXTRA -> SWITCH_TO_SCHEMATIC_EXTRA_MODE;
+            case SCHEMATIC_WRONG -> SWITCH_TO_SCHEMATIC_WRONG_MODE;
+        };
     }
 }
