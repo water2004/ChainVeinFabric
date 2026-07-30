@@ -137,7 +137,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 : "message.chainveinfabric.modeSwitched";
         Minecraft client = Minecraft.getInstance();
         if (client.gui != null) {
-            client.gui.hud.setOverlayMessage(Component.translatable(messageKey, modeName), false);
+            client.gui.setOverlayMessage(Component.translatable(messageKey, modeName), false);
         }
         return true;
     }
