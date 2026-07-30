@@ -193,6 +193,13 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
         if (this.openConfigHotkey == null) this.openConfigHotkey = "V";
         if (this.toggleChainVeinHotkey == null) this.toggleChainVeinHotkey = "";
         if (this.toggleTargetWhitelistHotkey == null) this.toggleTargetWhitelistHotkey = "";
+        if (this.cycleModeHotkey == null) this.cycleModeHotkey = "";
+        if (this.switchToMineModeHotkey == null) this.switchToMineModeHotkey = "";
+        if (this.switchToPlantModeHotkey == null) this.switchToPlantModeHotkey = "";
+        if (this.switchToUtilityModeHotkey == null) this.switchToUtilityModeHotkey = "";
+        if (this.switchToSchematicSelectionModeHotkey == null) this.switchToSchematicSelectionModeHotkey = "";
+        if (this.switchToSchematicExtraModeHotkey == null) this.switchToSchematicExtraModeHotkey = "";
+        if (this.switchToSchematicWrongModeHotkey == null) this.switchToSchematicWrongModeHotkey = "";
         if (this.activeWhitelists == null) this.activeWhitelists = new EnumMap<>(ChainMode.class);
     }
 

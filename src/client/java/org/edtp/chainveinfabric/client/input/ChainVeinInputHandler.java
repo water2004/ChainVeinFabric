@@ -21,10 +21,14 @@ import fi.dy.masa.malilib.hotkeys.IKeybindManager;
 import fi.dy.masa.malilib.hotkeys.IKeybindProvider;
 import fi.dy.masa.malilib.hotkeys.KeyAction;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class ChainVeinInputHandler implements IKeybindProvider {
@@ -33,6 +37,10 @@ public class ChainVeinInputHandler implements IKeybindProvider {
     private ChainVeinInputHandler() {
         ConfigProxies.OPEN_CONFIG.getKeybind().setCallback(new OpenConfigCallback());
         ConfigProxies.TOGGLE_CHAIN_VEIN.getKeybind().setCallback(new ToggleChainVeinCallback());
+        ConfigProxies.CYCLE_MODE.getKeybind().setCallback(new CycleModeCallback());
+        for (ChainVeinConfig.ChainMode mode : ChainVeinConfig.ChainMode.values()) {
+            ConfigProxies.getModeHotkey(mode).getKeybind().setCallback(new SwitchModeCallback(mode));
+        }
         ConfigProxies.TOGGLE_TARGET_WHITELIST.getKeybind().setCallback(new ToggleTargetWhitelistCallback());
     }
 
@@ -42,14 +50,18 @@ public class ChainVeinInputHandler implements IKeybindProvider {
 
     @Override
     public void addKeysToMap(IKeybindManager manager) {
-        for (IHotkey hotkey : ConfigProxies.HOTKEY_LIST) {
+        for (IHotkey hotkey : ConfigProxies.getAvailableHotkeys()) {
             manager.addKeybindToMap(hotkey.getKeybind());
         }
     }
 
     @Override
     public void addHotkeys(IKeybindManager manager) {
-        manager.addHotkeysForCategory("ChainVeinFabric", "key.category.chainveinfabric.general", ConfigProxies.HOTKEY_LIST);
+        manager.addHotkeysForCategory(
+                "ChainVeinFabric",
+                "key.category.chainveinfabric.general",
+                ConfigProxies.getAvailableHotkeys()
+        );
     }
 
     private static class OpenConfigCallback implements IHotkeyCallback {
@@ -80,6 +92,57 @@ public class ChainVeinInputHandler implements IKeybindProvider {
 
             return true;
         }
+    }
+
+    private static class CycleModeCallback implements IHotkeyCallback {
+        @Override
+        public boolean onKeyAction(KeyAction action, IKeybind key) {
+            if (ChainveinfabricClient.CONFIG == null) {
+                return false;
+            }
+
+            List<ChainVeinConfig.ChainMode> modes = Arrays.stream(ChainVeinConfig.ChainMode.values())
+                    .filter(ChainVeinInputHandler::isModeAvailable)
+                    .toList();
+            int currentIndex = modes.indexOf(ChainveinfabricClient.CONFIG.mode);
+            int nextIndex = currentIndex >= 0 ? (currentIndex + 1) % modes.size() : 0;
+            return switchMode(modes.get(nextIndex));
+        }
+    }
+
+    private record SwitchModeCallback(ChainVeinConfig.ChainMode mode) implements IHotkeyCallback {
+        @Override
+        public boolean onKeyAction(KeyAction action, IKeybind key) {
+            return switchMode(this.mode);
+        }
+    }
+
+    private static boolean switchMode(ChainVeinConfig.ChainMode mode) {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        if (config == null || !isModeAvailable(mode)) {
+            return false;
+        }
+
+        config.mode = mode;
+        if (config.enableChainVeinOnModeHotkey) {
+            config.isChainVeinEnabled = true;
+        }
+        config.save();
+
+        String suffix = mode.name().toLowerCase(Locale.ROOT).replace("chain_", "");
+        Component modeName = Component.translatable("options.chainveinfabric.mode." + suffix);
+        String messageKey = config.enableChainVeinOnModeHotkey
+                ? "message.chainveinfabric.modeSwitchedAndEnabled"
+                : "message.chainveinfabric.modeSwitched";
+        Minecraft client = Minecraft.getInstance();
+        if (client.gui != null) {
+            client.gui.hud.setOverlayMessage(Component.translatable(messageKey, modeName), false);
+        }
+        return true;
+    }
+
+    private static boolean isModeAvailable(ChainVeinConfig.ChainMode mode) {
+        return !mode.isSchematicMode() || LitematicaIntegration.isAvailable();
     }
 
     private static class ToggleTargetWhitelistCallback implements IHotkeyCallback {
