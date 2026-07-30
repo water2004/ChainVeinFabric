@@ -45,10 +45,12 @@ public class GuiChainVein extends GuiConfigsBase {
     private static final int CONTROL_HEIGHT = 20;
     private static final int CONTROL_GAP = 5;
     private static final int HEADER_TAB_Y = 10;
-    private static final int HEADER_SECOND_ROW_Y = 32;
-    private static final int HEADER_FIRST_CONTENT_Y = 40;
-    private static final int HEADER_SECOND_CONTENT_Y = 62;
+    private static final int HEADER_CONTENT_Y = 40;
+    private static final int HEADER_TAB_GAP = 10;
+    private static final int COMPACT_HEADER_TAB_GAP = 4;
     private static final int CONFIG_SWITCHER_WIDTH = 155;
+    private static final int COLLAPSED_TAB_WIDTH = 130;
+    private static final int SINGLE_ROW_COMPRESSION_ALLOWANCE = 25;
 
     private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
     private enum BasicPane { AVAILABLE, WHITELIST }
@@ -79,7 +81,15 @@ public class GuiChainVein extends GuiConfigsBase {
     ) {
     }
 
-    private record HeaderLayout(int tabX, int tabY, int tabWidth, int contentY) {
+    private record HeaderLayout(
+            int tabX,
+            int tabY,
+            int tabWidth,
+            int tabGap,
+            int contentY,
+            boolean hideTitle,
+            boolean collapsed
+    ) {
     }
 
     private Tab currentTab = Tab.BASIC;
@@ -157,6 +167,7 @@ public class GuiChainVein extends GuiConfigsBase {
     private WidgetSearchBar searchBar;
     private WidgetPresetList presetList;
     private BasicLayout basicLayout;
+    private boolean compactHeader;
 
     public GuiChainVein() {
         super(20, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
@@ -179,6 +190,13 @@ public class GuiChainVein extends GuiConfigsBase {
     @Override
     protected int getBrowserHeight() {
         return Math.max(40, this.height - this.getListY() - 40);
+    }
+
+    @Override
+    protected void drawTitle(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+        if (!this.compactHeader) {
+            super.drawTitle(ctx, mouseX, mouseY, partialTicks);
+        }
     }
 
     @Override
@@ -354,6 +372,7 @@ public class GuiChainVein extends GuiConfigsBase {
     @Override
     public void initGui() {
         HeaderLayout headerLayout = this.createHeaderLayout();
+        this.compactHeader = headerLayout.hideTitle;
         this.setListPosition(20, headerLayout.contentY);
         super.initGui();
         this.activeDropdowns.clear();
@@ -363,7 +382,7 @@ public class GuiChainVein extends GuiConfigsBase {
         this.presetList = null;
         this.basicLayout = null;
 
-        this.addTabButtons(headerLayout);
+        this.addTabNavigation(headerLayout);
 
         int topY = headerLayout.contentY;
         if (this.currentTab == Tab.BASIC) {
@@ -375,22 +394,62 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private HeaderLayout createHeaderLayout() {
         List<Tab> tabs = List.of(Tab.BASIC, Tab.SETTINGS, Tab.HOTKEYS, Tab.PRESETS);
-        int naturalWidth = 10 * (tabs.size() - 1);
+        int buttonWidth = 0;
         for (Tab tab : tabs) {
             String key = "options.chainveinfabric.tab." + tab.name().toLowerCase(Locale.ROOT);
-            naturalWidth += this.getStringWidth(StringUtils.translate(key)) + 10;
+            buttonWidth += this.getStringWidth(StringUtils.translate(key)) + 10;
         }
 
         int titleRight = 20 + this.getStringWidth(this.getTitleString()) + 12;
         int switcherLeft = this.width - CONFIG_SWITCHER_WIDTH - 8;
         int firstRowWidth = Math.max(0, switcherLeft - titleRight);
+        int normalWidth = buttonWidth + HEADER_TAB_GAP * (tabs.size() - 1);
 
-        if (naturalWidth <= firstRowWidth) {
-            return new HeaderLayout(titleRight, HEADER_TAB_Y, firstRowWidth, HEADER_FIRST_CONTENT_Y);
+        if (normalWidth <= firstRowWidth) {
+            return new HeaderLayout(titleRight, HEADER_TAB_Y, firstRowWidth,
+                HEADER_TAB_GAP, HEADER_CONTENT_Y, false, false);
         }
 
-        return new HeaderLayout(PAGE_MARGIN, HEADER_SECOND_ROW_Y,
-            Math.max(0, this.width - PAGE_MARGIN * 2), HEADER_SECOND_CONTENT_Y);
+        int compactRowWidth = Math.max(0, switcherLeft - PAGE_MARGIN);
+        int compactWidth = buttonWidth + COMPACT_HEADER_TAB_GAP * (tabs.size() - 1);
+        if (compactWidth <= compactRowWidth) {
+            return new HeaderLayout(PAGE_MARGIN, HEADER_TAB_Y, compactRowWidth,
+                COMPACT_HEADER_TAB_GAP, HEADER_CONTENT_Y, true, false);
+        }
+
+        int dropdownWidth = Math.min(COLLAPSED_TAB_WIDTH, compactRowWidth);
+        return new HeaderLayout(PAGE_MARGIN + Math.max(0, (compactRowWidth - dropdownWidth) / 2),
+            HEADER_TAB_Y, Math.max(1, dropdownWidth), 0, HEADER_CONTENT_Y, true, true);
+    }
+
+    private void addTabNavigation(HeaderLayout layout) {
+        if (layout.collapsed) {
+            this.addCollapsedTabDropdown(layout);
+        } else {
+            this.addTabButtons(layout);
+        }
+    }
+
+    private void addCollapsedTabDropdown(HeaderLayout layout) {
+        List<Tab> tabs = List.of(Tab.BASIC, Tab.SETTINGS, Tab.HOTKEYS, Tab.PRESETS);
+        MyDropdown<Tab> tabDropdown = new MyDropdown<Tab>(
+            layout.tabX, layout.tabY, layout.tabWidth, CONTROL_HEIGHT, 120, tabs.size(), tabs,
+            tab -> StringUtils.translate("options.chainveinfabric.tab." + tab.name().toLowerCase(Locale.ROOT))
+        ) {
+            @Override
+            protected void setSelectedEntry(int index) {
+                super.setSelectedEntry(index);
+                Tab selected = this.getSelectedEntry();
+                if (selected != null && selected != currentTab) {
+                    currentTab = selected;
+                    reCreateListWidget();
+                    initGui();
+                }
+            }
+        };
+        this.activeDropdowns.add(tabDropdown);
+        tabDropdown.setSelectedEntry(this.currentTab);
+        this.addWidget(tabDropdown);
     }
 
     private void addTabButtons(HeaderLayout layout) {
@@ -400,18 +459,10 @@ public class GuiChainVein extends GuiConfigsBase {
             tabButtons.add(this.createTabButton(tab));
         }
 
-        int gap = 10;
+        int gap = layout.tabGap;
         int totalWidth = -gap;
         for (ButtonGeneric button : tabButtons) {
             totalWidth += button.getWidth() + gap;
-        }
-
-        if (totalWidth > layout.tabWidth) {
-            gap = 4;
-            totalWidth = -gap;
-            for (ButtonGeneric button : tabButtons) {
-                totalWidth += button.getWidth() + gap;
-            }
         }
 
         int x = layout.tabX + Math.max(0, (layout.tabWidth - totalWidth) / 2);
@@ -564,7 +615,7 @@ public class GuiChainVein extends GuiConfigsBase {
         int controlsBottom;
 
         // Preserve the compact single-row layout whenever all visible controls fit.
-        if (rowWidth(preferredWidths) <= contentWidth) {
+        if (rowWidth(preferredWidths) <= contentWidth + SINGLE_ROW_COMPRESSION_ALLOWANCE) {
             LayoutRect[] row = centeredRow(contentX, topY, contentWidth, preferredWidths);
             int index = 0;
             modeRect = row[index++];
