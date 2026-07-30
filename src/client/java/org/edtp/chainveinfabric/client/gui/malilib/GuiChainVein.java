@@ -18,16 +18,16 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.Block;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
 import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
+import org.edtp.chainveinfabric.client.logic.PlantingItems;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 
 import fi.dy.masa.malilib.gui.LeftRight;
@@ -923,7 +923,7 @@ public class GuiChainVein extends GuiConfigsBase {
             list.addAll(getBlockItemList(whitelist));
         } else {
             for (Item item : BuiltInRegistries.ITEM) {
-                if (isPlantable(item) && !whitelist.contains(BuiltInRegistries.ITEM.getKey(item).toString())) {
+                if (PlantingItems.isPlantable(item) && !whitelist.contains(BuiltInRegistries.ITEM.getKey(item).toString())) {
                     list.add(new ItemStack(item));
                 }
             }
@@ -982,12 +982,4 @@ public class GuiChainVein extends GuiConfigsBase {
         }
     }
 
-    private boolean isPlantable(Item item) {
-        if (item == Items.NETHER_WART || item == Items.COCOA_BEANS || item == Items.SUGAR_CANE || item == Items.BAMBOO || item == Items.SWEET_BERRIES || item == Items.CHORUS_FRUIT) return true;
-        if (item instanceof BlockItem blockItem) {
-            Block b = blockItem.getBlock();
-            return b instanceof VegetationBlock || b instanceof CropBlock || b instanceof SaplingBlock || b instanceof StemBlock || b instanceof AttachedStemBlock || b instanceof AzaleaBlock || b instanceof SeaPickleBlock;
-        }
-        return false;
-    }
 }

@@ -48,6 +48,7 @@
   "message.chainveinfabric.whitelist.added": "Added %s to whitelist",
   "message.chainveinfabric.whitelist.removed": "Removed %s from whitelist",
   "message.chainveinfabric.whitelist.noTarget": "No target block",
+  "message.chainveinfabric.whitelist.noPlantableHeld": "No plantable item in the main hand",
   "message.chainveinfabric.whitelist.import.started": "Scanning the current mode scope for whitelist entries",
   "message.chainveinfabric.whitelist.import.cancelled": "Whitelist import cancelled because the world changed",
   "message.chainveinfabric.whitelist.import.completed": "Whitelist replaced: %d block types from %d matching positions; scanned %d loaded chunks and skipped %d unloaded chunks",

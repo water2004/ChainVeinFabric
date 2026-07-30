@@ -26,6 +26,8 @@ public class InteractLogic {
     }
 
     private static void handlePlanting(Minecraft client, BlockPos pos, BlockState state, ItemStack stack) {
+        if (stack.isEmpty() || !PlantingItems.isPlantable(stack.getItem())) return;
+
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         if (!ChainveinfabricClient.CONFIG.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_PLANT).contains(itemId)) return;
 
