@@ -48,6 +48,7 @@
   "message.chainveinfabric.whitelist.added": "已添加 %s 到白名单",
   "message.chainveinfabric.whitelist.removed": "已从白名单移除 %s",
   "message.chainveinfabric.whitelist.noTarget": "没有指向方块",
+  "message.chainveinfabric.whitelist.noPlantableHeld": "主手没有可种植物品",
   "message.chainveinfabric.whitelist.import.started": "正在从当前模式范围扫描白名单",
   "message.chainveinfabric.whitelist.import.cancelled": "白名单导入已取消：世界已切换",
   "message.chainveinfabric.whitelist.import.completed": "白名单已覆盖：%d 种方块，匹配 %d 个位置；扫描 %d 个已加载区块，跳过 %d 个未加载区块",

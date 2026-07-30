@@ -25,6 +25,7 @@ import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
+import org.edtp.chainveinfabric.client.logic.PlantingItems;
 
 import java.util.Arrays;
 import java.util.List;
@@ -153,16 +154,10 @@ public class ChainVeinInputHandler implements IKeybindProvider {
             }
 
             Minecraft client = Minecraft.getInstance();
-            if (client.level == null || client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
-                showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noTarget"));
-                return false;
-            }
-
-            BlockPos pos = ((BlockHitResult) client.hitResult).getBlockPos();
-            BlockState state = client.level.getBlockState(pos);
-            WhitelistTarget target = getWhitelistTarget(state);
+            WhitelistTarget target = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT
+                    ? getHeldPlantingTarget(client)
+                    : getTargetedBlock(client);
             if (target == null) {
-                showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noTarget"));
                 return false;
             }
 
@@ -188,10 +183,36 @@ public class ChainVeinInputHandler implements IKeybindProvider {
             return config.getWhitelist(config.mode);
         }
 
-        private static WhitelistTarget getWhitelistTarget(BlockState state) {
+        private static WhitelistTarget getHeldPlantingTarget(Minecraft client) {
+            if (client.player == null) {
+                showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noPlantableHeld"));
+                return null;
+            }
+
+            ItemStack stack = client.player.getMainHandItem();
+            if (stack.isEmpty() || !PlantingItems.isPlantable(stack.getItem())) {
+                showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noPlantableHeld"));
+                return null;
+            }
+
+            Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            return new WhitelistTarget(id.toString(), stack.getHoverName());
+        }
+
+        private static WhitelistTarget getTargetedBlock(Minecraft client) {
+            if (client.level == null || client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
+                showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noTarget"));
+                return null;
+            }
+
+            BlockPos pos = ((BlockHitResult) client.hitResult).getBlockPos();
+            BlockState state = client.level.getBlockState(pos);
             Block block = state.getBlock();
             Item item = block.asItem();
-            if (item == Items.AIR) return null;
+            if (item == Items.AIR) {
+                showOverlay(client, Component.translatable("message.chainveinfabric.whitelist.noTarget"));
+                return null;
+            }
 
             Identifier id = BuiltInRegistries.ITEM.getKey(item);
             return new WhitelistTarget(id.toString(), new ItemStack(item).getHoverName());
