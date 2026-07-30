@@ -38,9 +38,44 @@ import java.util.*;
 
 public class GuiChainVein extends GuiConfigsBase {
 
+    private static final int PAGE_MARGIN = 12;
+    private static final int BASIC_MAX_WIDTH = 445;
+    private static final int BASIC_BODY_MAX_WIDTH = 400;
+    private static final int DUAL_LIST_MIN_WIDTH = 360;
+    private static final int CONTROL_HEIGHT = 20;
+    private static final int CONTROL_GAP = 5;
+
     private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
+    private enum BasicPane { AVAILABLE, WHITELIST }
+
+    private record LayoutRect(int x, int y, int width, int height) {
+        private static LayoutRect hidden() {
+            return new LayoutRect(0, 0, 0, 0);
+        }
+
+        private boolean isVisible() {
+            return this.width > 0 && this.height > 0;
+        }
+    }
+
+    private record BasicLayout(
+            LayoutRect mode,
+            LayoutRect toggle,
+            LayoutRect outline,
+            LayoutRect importButton,
+            LayoutRect renderLayer,
+            LayoutRect availablePane,
+            LayoutRect whitelistPane,
+            LayoutRect search,
+            LayoutRect leftList,
+            LayoutRect rightList,
+            int titleY,
+            boolean singlePane
+    ) {
+    }
 
     private Tab currentTab = Tab.BASIC;
+    private BasicPane compactPane = BasicPane.AVAILABLE;
     private final List<IDropdown> activeDropdowns = new ArrayList<>();
     private ChainVeinConfig.ChainMode presetWhitelistMode = ChainVeinConfig.ChainMode.CHAIN_MINE;
 
@@ -113,6 +148,7 @@ public class GuiChainVein extends GuiConfigsBase {
     private WidgetChainList rightList;
     private WidgetSearchBar searchBar;
     private WidgetPresetList presetList;
+    private BasicLayout basicLayout;
 
     public GuiChainVein() {
         super(20, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
@@ -271,6 +307,11 @@ public class GuiChainVein extends GuiConfigsBase {
     public void initGui() {
         super.initGui();
         this.activeDropdowns.clear();
+        this.leftList = null;
+        this.rightList = null;
+        this.searchBar = null;
+        this.presetList = null;
+        this.basicLayout = null;
 
         int centerX = this.width / 2;
         int y = 10;
@@ -279,9 +320,9 @@ public class GuiChainVein extends GuiConfigsBase {
 
         int topY = 40;
         if (this.currentTab == Tab.BASIC) {
-            initBasicTab(centerX, topY);
+            initBasicTab(topY);
         } else if (this.currentTab == Tab.PRESETS) {
-            initPresetTab(centerX, topY);
+            initPresetTab(topY);
         }
     }
 
@@ -319,25 +360,21 @@ public class GuiChainVein extends GuiConfigsBase {
         return button;
     }
 
-    private void initBasicTab(int centerX, int topY) {
-        int leftX = centerX - 200;
-        int rightX = centerX + 5;
-        int controlsLeftX = centerX - 222;
-        int controlGap = 5;
-        int modeWidth = 170;
-        int outlineWidth = 80;
-        int importWidth = 50;
-        int renderLayerWidth = 85;
-        int toggleWidth = 40;
-        int outlineX = controlsLeftX + modeWidth + controlGap;
-        int importX = outlineX + outlineWidth + controlGap;
-        int renderLayerX = importX + importWidth + controlGap;
-        int toggleX = renderLayerX + renderLayerWidth + controlGap;
+    private void initBasicTab(int topY) {
+        ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
+        this.basicLayout = this.createBasicLayout(topY, mode);
 
         // Mode dropdown
         List<ChainVeinConfig.ChainMode> modes = getAvailableModes();
         MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-            controlsLeftX, topY, modeWidth, 20, 200, 5, modes, this::getModeString
+            this.basicLayout.mode.x,
+            this.basicLayout.mode.y,
+            this.basicLayout.mode.width,
+            this.basicLayout.mode.height,
+            200,
+            5,
+            modes,
+            this::getModeString
         ) {
             @Override
             protected void setSelectedEntry(int index) {
@@ -355,7 +392,8 @@ public class GuiChainVein extends GuiConfigsBase {
         this.addWidget(modeDropdown);
 
         // Toggle enabled
-        ButtonGeneric toggleBtn = new ButtonGeneric(toggleX, topY, toggleWidth, 20, getToggleString());
+        LayoutRect toggle = this.basicLayout.toggle;
+        ButtonGeneric toggleBtn = new ButtonGeneric(toggle.x, toggle.y, toggle.width, toggle.height, getToggleString());
         this.addButton(toggleBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.isChainVeinEnabled = !ChainveinfabricClient.CONFIG.isChainVeinEnabled;
             ChainveinfabricClient.CONFIG.save();
@@ -363,7 +401,8 @@ public class GuiChainVein extends GuiConfigsBase {
         });
 
         // Toggle outlines
-        ButtonGeneric outlineBtn = new ButtonGeneric(outlineX, topY, outlineWidth, 20, getOutlineToggleString());
+        LayoutRect outline = this.basicLayout.outline;
+        ButtonGeneric outlineBtn = new ButtonGeneric(outline.x, outline.y, outline.width, outline.height, getOutlineToggleString());
         this.addButton(outlineBtn, (button, mb) -> {
             ChainveinfabricClient.CONFIG.showBlockOutlines = !ChainveinfabricClient.CONFIG.showBlockOutlines;
             ChainveinfabricClient.CONFIG.save();
@@ -371,13 +410,13 @@ public class GuiChainVein extends GuiConfigsBase {
             button.setDisplayString(getOutlineToggleString());
         });
 
-        ChainVeinConfig.ChainMode mode = ChainveinfabricClient.CONFIG.mode;
-        if (mode.isSchematicMode()) {
+        if (this.basicLayout.importButton.isVisible()) {
+            LayoutRect importRect = this.basicLayout.importButton;
             ButtonGeneric importButton = new ButtonGeneric(
-                    importX,
-                    topY,
-                    importWidth,
-                    20,
+                    importRect.x,
+                    importRect.y,
+                    importRect.width,
+                    importRect.height,
                     StringUtils.translate("options.chainveinfabric.whitelist.import")
             );
             this.addButton(importButton, (button, mb) -> {
@@ -388,13 +427,13 @@ public class GuiChainVein extends GuiConfigsBase {
                 );
             });
 
-            if (mode == ChainVeinConfig.ChainMode.SCHEMATIC_EXTRA
-                    || mode == ChainVeinConfig.ChainMode.SCHEMATIC_WRONG) {
+            if (this.basicLayout.renderLayer.isVisible()) {
+                LayoutRect renderLayer = this.basicLayout.renderLayer;
                 ButtonGeneric renderLayerButton = new ButtonGeneric(
-                        renderLayerX,
-                        topY,
-                        renderLayerWidth,
-                        20,
+                        renderLayer.x,
+                        renderLayer.y,
+                        renderLayer.width,
+                        renderLayer.height,
                         getRenderLayerToggleString()
                 );
                 this.addButton(renderLayerButton, (button, mb) -> {
@@ -406,24 +445,202 @@ public class GuiChainVein extends GuiConfigsBase {
             }
         }
 
-        // Search Bar
-        this.searchBar = new WidgetSearchBar(leftX, topY + 30, 400, 20, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
+        if (this.basicLayout.singlePane) {
+            this.addCompactPaneButtons();
+        }
 
-        int listWidth = 200;
-        int listTopY = topY + 65;
-        int listHeight = this.height - listTopY - 20;
+        LayoutRect search = this.basicLayout.search;
+        this.searchBar = new WidgetSearchBar(search.x, search.y, search.width, search.height, 0, MaLiLibIcons.SEARCH, LeftRight.LEFT);
 
-        this.leftList = new WidgetChainList(leftX, listTopY, listWidth, listHeight, null, false, this::getLeftListData, this);
-        this.leftList.bindSearchBar(searchBar);
+        if (!this.basicLayout.singlePane || this.compactPane == BasicPane.AVAILABLE) {
+            LayoutRect list = this.basicLayout.leftList;
+            this.leftList = new WidgetChainList(list.x, list.y, list.width, list.height, null, false, this::getLeftListData, this);
+            this.leftList.bindSearchBar(this.searchBar);
+        }
 
-        this.rightList = new WidgetChainList(rightX, listTopY, listWidth, listHeight, null, true, this::getRightListData, this);
+        if (!this.basicLayout.singlePane || this.compactPane == BasicPane.WHITELIST) {
+            LayoutRect list = this.basicLayout.rightList;
+            this.rightList = new WidgetChainList(list.x, list.y, list.width, list.height, null, true, this::getRightListData, this);
+            this.rightList.bindSearchBar(this.searchBar);
+        }
 
         this.refreshLists();
     }
 
-    private void initPresetTab(int centerX, int topY) {
-        int listX = centerX - 200;
-        int listWidth = 400;
+    private BasicLayout createBasicLayout(int topY, ChainVeinConfig.ChainMode mode) {
+        int contentWidth = Math.max(1, Math.min(BASIC_MAX_WIDTH, this.width - PAGE_MARGIN * 2));
+        int contentX = (this.width - contentWidth) / 2;
+        boolean showImport = mode.isSchematicMode();
+        boolean showRenderLayer = mode == ChainVeinConfig.ChainMode.SCHEMATIC_EXTRA
+                || mode == ChainVeinConfig.ChainMode.SCHEMATIC_WRONG;
+
+        List<Integer> preferredWidths = new ArrayList<>();
+        preferredWidths.add(170);
+        preferredWidths.add(80);
+        if (showImport) preferredWidths.add(50);
+        if (showRenderLayer) preferredWidths.add(85);
+        preferredWidths.add(40);
+
+        LayoutRect modeRect;
+        LayoutRect outlineRect;
+        LayoutRect importRect = LayoutRect.hidden();
+        LayoutRect renderLayerRect = LayoutRect.hidden();
+        LayoutRect toggleRect;
+        int controlsBottom;
+
+        // Preserve the compact single-row layout whenever all visible controls fit.
+        if (rowWidth(preferredWidths) <= contentWidth) {
+            LayoutRect[] row = centeredRow(contentX, topY, contentWidth, preferredWidths);
+            int index = 0;
+            modeRect = row[index++];
+            outlineRect = row[index++];
+            if (showImport) importRect = row[index++];
+            if (showRenderLayer) renderLayerRect = row[index++];
+            toggleRect = row[index];
+            controlsBottom = topY + CONTROL_HEIGHT;
+        } else {
+            // Keep the mode selector usable and move the smaller actions together.
+            LayoutRect[] primaryRow = centeredRow(contentX, topY, contentWidth, List.of(170, 40));
+            modeRect = primaryRow[0];
+            toggleRect = primaryRow[1];
+
+            List<Integer> secondaryWidths = new ArrayList<>();
+            secondaryWidths.add(80);
+            if (showImport) secondaryWidths.add(50);
+            if (showRenderLayer) secondaryWidths.add(85);
+
+            int secondaryY = topY + CONTROL_HEIGHT + CONTROL_GAP;
+            LayoutRect[] secondaryRow = centeredRow(contentX, secondaryY, contentWidth, secondaryWidths);
+            int index = 0;
+            outlineRect = secondaryRow[index++];
+            if (showImport) importRect = secondaryRow[index++];
+            if (showRenderLayer) renderLayerRect = secondaryRow[index];
+            controlsBottom = secondaryY + CONTROL_HEIGHT;
+        }
+
+        int bodyWidth = Math.min(BASIC_BODY_MAX_WIDTH, contentWidth);
+        int bodyX = (this.width - bodyWidth) / 2;
+        // Two narrow columns leave no useful room for item names, so compact
+        // screens switch between the available-items and whitelist panes.
+        boolean singlePane = bodyWidth < DUAL_LIST_MIN_WIDTH;
+        LayoutRect availablePane = LayoutRect.hidden();
+        LayoutRect whitelistPane = LayoutRect.hidden();
+        int searchY = controlsBottom + 10;
+        int titleY = -1;
+        int listY;
+
+        if (singlePane) {
+            int leftPaneWidth = (bodyWidth - CONTROL_GAP) / 2;
+            int rightPaneWidth = bodyWidth - CONTROL_GAP - leftPaneWidth;
+            availablePane = new LayoutRect(bodyX, searchY, leftPaneWidth, CONTROL_HEIGHT);
+            whitelistPane = new LayoutRect(bodyX + leftPaneWidth + CONTROL_GAP, searchY, rightPaneWidth, CONTROL_HEIGHT);
+            searchY += CONTROL_HEIGHT + CONTROL_GAP;
+            listY = searchY + CONTROL_HEIGHT + CONTROL_GAP;
+        } else {
+            titleY = searchY + CONTROL_HEIGHT + 5;
+            listY = titleY + 12;
+        }
+
+        LayoutRect searchRect = new LayoutRect(bodyX, searchY, bodyWidth, CONTROL_HEIGHT);
+        int listHeight = Math.max(CONTROL_HEIGHT, this.height - listY - 20);
+        LayoutRect leftListRect;
+        LayoutRect rightListRect;
+        if (singlePane) {
+            leftListRect = new LayoutRect(bodyX, listY, bodyWidth, listHeight);
+            rightListRect = leftListRect;
+        } else {
+            int leftWidth = (bodyWidth - CONTROL_GAP) / 2;
+            int rightWidth = bodyWidth - CONTROL_GAP - leftWidth;
+            leftListRect = new LayoutRect(bodyX, listY, leftWidth, listHeight);
+            rightListRect = new LayoutRect(bodyX + leftWidth + CONTROL_GAP, listY, rightWidth, listHeight);
+        }
+
+        return new BasicLayout(
+                modeRect,
+                toggleRect,
+                outlineRect,
+                importRect,
+                renderLayerRect,
+                availablePane,
+                whitelistPane,
+                searchRect,
+                leftListRect,
+                rightListRect,
+                titleY,
+                singlePane
+        );
+    }
+
+    private static int rowWidth(List<Integer> widths) {
+        return widths.stream().mapToInt(Integer::intValue).sum()
+                + Math.max(0, widths.size() - 1) * CONTROL_GAP;
+    }
+
+    private static LayoutRect[] centeredRow(int contentX, int y, int contentWidth, List<Integer> preferredWidths) {
+        int count = preferredWidths.size();
+        int gapWidth = Math.max(0, count - 1) * CONTROL_GAP;
+        int availableForControls = Math.max(count, contentWidth - gapWidth);
+        int preferredTotal = preferredWidths.stream().mapToInt(Integer::intValue).sum();
+        int[] widths = new int[count];
+        int assigned = 0;
+
+        for (int i = 0; i < count; i++) {
+            int width = preferredWidths.get(i);
+            if (preferredTotal > availableForControls) {
+                width = Math.max(1, width * availableForControls / preferredTotal);
+            }
+            widths[i] = width;
+            assigned += width;
+        }
+
+        if (assigned < availableForControls && preferredTotal > availableForControls) {
+            widths[0] += availableForControls - assigned;
+        }
+
+        int actualWidth = Arrays.stream(widths).sum() + gapWidth;
+        int x = contentX + Math.max(0, (contentWidth - actualWidth) / 2);
+        LayoutRect[] row = new LayoutRect[count];
+        for (int i = 0; i < count; i++) {
+            row[i] = new LayoutRect(x, y, widths[i], CONTROL_HEIGHT);
+            x += widths[i] + CONTROL_GAP;
+        }
+        return row;
+    }
+
+    private void addCompactPaneButtons() {
+        LayoutRect available = this.basicLayout.availablePane;
+        ButtonGeneric availableButton = new ButtonGeneric(
+                available.x,
+                available.y,
+                available.width,
+                available.height,
+                StringUtils.translate("options.chainveinfabric.allBlocks")
+        );
+        availableButton.setEnabled(this.compactPane != BasicPane.AVAILABLE);
+        this.addButton(availableButton, (button, mb) -> this.switchCompactPane(BasicPane.AVAILABLE));
+
+        LayoutRect whitelist = this.basicLayout.whitelistPane;
+        ButtonGeneric whitelistButton = new ButtonGeneric(
+                whitelist.x,
+                whitelist.y,
+                whitelist.width,
+                whitelist.height,
+                StringUtils.translate(this.getWhitelistTitleKey())
+        );
+        whitelistButton.setEnabled(this.compactPane != BasicPane.WHITELIST);
+        this.addButton(whitelistButton, (button, mb) -> this.switchCompactPane(BasicPane.WHITELIST));
+    }
+
+    private void switchCompactPane(BasicPane pane) {
+        if (this.compactPane != pane) {
+            this.compactPane = pane;
+            this.initGui();
+        }
+    }
+
+    private void initPresetTab(int topY) {
+        int listWidth = Math.max(1, Math.min(BASIC_BODY_MAX_WIDTH, this.width - PAGE_MARGIN * 2));
+        int listX = (this.width - listWidth) / 2;
         int listY = topY;
         this.presetList = new WidgetPresetList(listX, listY, listWidth, this.height - listY - 20, this);
         this.presetList.refreshEntries();
@@ -538,21 +755,28 @@ public class GuiChainVein extends GuiConfigsBase {
         private final GuiChainVein parentScreen;
         private GuiTextFieldGeneric nameField;
         private String lastSavedName;
+        private int headerLabelWidth;
 
         private WidgetPresetEntry(int x, int y, int width, int height, boolean isOdd, PresetRow row, int listIndex, GuiChainVein parentScreen, WidgetPresetList parentList) {
             super(x, y, width, height, row, listIndex);
             this.isOdd = isOdd;
             this.parentScreen = parentScreen;
 
-            int buttonWidth = 58;
-            int nameWidth = Math.max(120, width - buttonWidth * 2 - 30);
+            int buttonWidth = Math.min(58, Math.max(36, (width - 50) / 2));
+            int nameWidth = Math.max(1, width - buttonWidth * 2 - 30);
             int buttonY = y + (height - 20) / 2;
 
             switch (row.type) {
                 case WHITELIST_HEADER -> {
                     List<ChainVeinConfig.ChainMode> modes = parentScreen.getAvailableModes();
+                    String header = StringUtils.translate("options.chainveinfabric.preset.whitelist");
+                    int preferredLabelWidth = this.textRenderer.width(header) + 10;
+                    int minimumDropdownWidth = Math.min(120, Math.max(70, width / 2));
+                    int labelWidth = Math.min(preferredLabelWidth, Math.max(50, width - minimumDropdownWidth - 4));
+                    int dropdownWidth = Math.max(1, width - labelWidth - 4);
+                    this.headerLabelWidth = Math.max(1, labelWidth - 4);
                     MyDropdown<ChainVeinConfig.ChainMode> modeDropdown = new MyDropdown<ChainVeinConfig.ChainMode>(
-                        x + 120, buttonY, 200, 20, 200, 5, modes, parentScreen::getModeString
+                        x + labelWidth, buttonY, dropdownWidth, 20, 200, 5, modes, parentScreen::getModeString
                     ) {
                         @Override
                         protected void setSelectedEntry(int index) {
@@ -651,13 +875,21 @@ public class GuiChainVein extends GuiConfigsBase {
         @Override
         public void render(GuiContext ctx, int mouseX, int mouseY, boolean selected) {
             if (this.entry != null && this.entry.type == PresetRow.Type.WHITELIST_HEADER) {
-                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.whitelist"));
+                String label = this.fitText(
+                        StringUtils.translate("options.chainveinfabric.preset.whitelist"),
+                        this.headerLabelWidth
+                );
+                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, label);
                 super.render(ctx, mouseX, mouseY, selected);
                 return;
             }
 
             if (this.entry != null && this.entry.type == PresetRow.Type.CONFIG_HEADER) {
-                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, StringUtils.translate("options.chainveinfabric.preset.config"));
+                String label = this.fitText(
+                        StringUtils.translate("options.chainveinfabric.preset.config"),
+                        Math.max(1, this.width - 4)
+                );
+                this.drawString(ctx, this.x + 2, this.y + 8, 0xFFFFFFFF, label);
                 return;
             }
 
@@ -672,6 +904,18 @@ public class GuiChainVein extends GuiConfigsBase {
             }
 
             super.render(ctx, mouseX, mouseY, selected);
+        }
+
+        private String fitText(String text, int maxWidth) {
+            if (this.textRenderer.width(text) <= maxWidth) {
+                return text;
+            }
+
+            String ellipsis = "…";
+            int contentWidth = maxWidth - this.textRenderer.width(ellipsis);
+            return contentWidth > 0
+                    ? this.textRenderer.plainSubstrByWidth(text, contentWidth) + ellipsis
+                    : "";
         }
 
         @Override
@@ -743,14 +987,10 @@ public class GuiChainVein extends GuiConfigsBase {
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
 
-            this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.width / 2 - 200, 105 - 12, 0xFFFFFF);
-            String rightTitle = switch (ChainveinfabricClient.CONFIG.mode) {
-                case CHAIN_MINE -> "options.chainveinfabric.whitelist";
-                case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
-                case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
-                case SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
-            };
-            this.drawString(ctx, StringUtils.translate(rightTitle), this.width / 2 + 5, 105 - 12, 0xFFFFFF);
+            if (this.basicLayout != null && !this.basicLayout.singlePane) {
+                this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.basicLayout.leftList.x, this.basicLayout.titleY, 0xFFFFFF);
+                this.drawString(ctx, StringUtils.translate(this.getWhitelistTitleKey()), this.basicLayout.rightList.x, this.basicLayout.titleY, 0xFFFFFF);
+            }
         } else if (currentTab == Tab.PRESETS) {
             if (this.presetList != null) this.presetList.drawContents(ctx, mouseX, mouseY, partialTicks);
         }
@@ -828,7 +1068,7 @@ public class GuiChainVein extends GuiConfigsBase {
         if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onKeyTyped(key)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onKeyTyped(key)) {
-                this.leftList.refreshEntries();
+                this.refreshLists();
                 return true;
             }
         } else if (currentTab == Tab.PRESETS && this.presetList != null) {
@@ -842,7 +1082,7 @@ public class GuiChainVein extends GuiConfigsBase {
         if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onCharTyped(character)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
             if (this.searchBar.onCharTyped(character)) {
-                this.leftList.refreshEntries();
+                this.refreshLists();
                 return true;
             }
         } else if (currentTab == Tab.PRESETS && this.presetList != null) {
@@ -903,6 +1143,14 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private String getModeString(ChainVeinConfig.ChainMode mode) {
         return StringUtils.translate("options.chainveinfabric.mode." + mode.name().toLowerCase().replace("chain_", ""));
+    }
+
+    private String getWhitelistTitleKey() {
+        return switch (ChainveinfabricClient.CONFIG.mode) {
+            case CHAIN_MINE, SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
+            case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
+            case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
+        };
     }
 
     private String getToggleString() {

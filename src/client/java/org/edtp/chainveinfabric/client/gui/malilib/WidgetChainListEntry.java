@@ -46,8 +46,17 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
             ctx.renderItem(this.entry, iconX, iconY);
 
             String itemName = this.entry.getHoverName().getString();
+            int textX = iconX + 24;
+            int maxTextWidth = Math.max(0, this.buttonsStartX - textX - 4);
+            if (this.textRenderer.width(itemName) > maxTextWidth) {
+                String ellipsis = "…";
+                int contentWidth = maxTextWidth - this.textRenderer.width(ellipsis);
+                itemName = contentWidth > 0
+                        ? this.textRenderer.plainSubstrByWidth(itemName, contentWidth) + ellipsis
+                        : "";
+            }
             int textY = this.y + (this.height - 8) / 2 + 1;
-            this.drawString(ctx, iconX + 24, textY, 0xFFFFFFFF, itemName);
+            this.drawString(ctx, textX, textY, 0xFFFFFFFF, itemName);
         }
 
         super.render(ctx, mouseX, mouseY, selected);
