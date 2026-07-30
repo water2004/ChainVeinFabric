@@ -44,6 +44,11 @@ public class GuiChainVein extends GuiConfigsBase {
     private static final int DUAL_LIST_MIN_WIDTH = 360;
     private static final int CONTROL_HEIGHT = 20;
     private static final int CONTROL_GAP = 5;
+    private static final int HEADER_TAB_Y = 10;
+    private static final int HEADER_SECOND_ROW_Y = 32;
+    private static final int HEADER_FIRST_CONTENT_Y = 40;
+    private static final int HEADER_SECOND_CONTENT_Y = 62;
+    private static final int CONFIG_SWITCHER_WIDTH = 155;
 
     private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
     private enum BasicPane { AVAILABLE, WHITELIST }
@@ -72,6 +77,9 @@ public class GuiChainVein extends GuiConfigsBase {
             int titleY,
             boolean singlePane
     ) {
+    }
+
+    private record HeaderLayout(int tabX, int tabY, int tabWidth, int contentY) {
     }
 
     private Tab currentTab = Tab.BASIC;
@@ -169,6 +177,11 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
+    protected int getBrowserHeight() {
+        return Math.max(40, this.height - this.getListY() - 40);
+    }
+
+    @Override
     protected WidgetListConfigOptions createListWidget(int listX, int listY) {
         if (this.currentTab != Tab.SETTINGS && this.currentTab != Tab.HOTKEYS) {
             return null;
@@ -178,8 +191,10 @@ public class GuiChainVein extends GuiConfigsBase {
 
             @Override
             protected fi.dy.masa.malilib.gui.widgets.WidgetConfigOption createListEntryWidget(int x, int y, int listIndex, boolean isOdd, ConfigOptionWrapper wrapper) {
+                int labelWidth = Math.min(this.maxLabelWidth,
+                    Math.max(40, this.browserEntryWidth - this.configWidth - 36));
                 return new DropdownConfigOption(x, y, this.browserEntryWidth, this.browserEntryHeight,
-                    this.maxLabelWidth, this.configWidth, wrapper, listIndex, GuiChainVein.this, this);
+                    labelWidth, this.configWidth, wrapper, listIndex, GuiChainVein.this, this);
             }
         };
     }
@@ -193,30 +208,32 @@ public class GuiChainVein extends GuiConfigsBase {
 
         @Override
         protected void addConfigOption(int x, int y, int labelWidth, int configWidth, fi.dy.masa.malilib.config.IConfigBase config) {
-            if (config.getType() == fi.dy.masa.malilib.config.ConfigType.OPTION_LIST) {
+            if (config.getType() == fi.dy.masa.malilib.config.ConfigType.HOTKEY) {
+                y += 1;
+                int controlsX = this.getControlsX(configWidth);
+                this.addResponsiveConfigLabel(x, y, controlsX - x - 10, config);
+                this.addHotkeyConfigElements(controlsX, y, configWidth, config.getName(),
+                    (fi.dy.masa.malilib.hotkeys.IHotkey) config);
+            } else if (config.getType() == fi.dy.masa.malilib.config.ConfigType.BOOLEAN) {
+                y += 1;
+                int controlsX = this.getControlsX(configWidth);
+                this.addResponsiveConfigLabel(x, y, controlsX - x - 10, config);
+
+                fi.dy.masa.malilib.config.IConfigBoolean booleanConfig =
+                    (fi.dy.masa.malilib.config.IConfigBoolean) config;
+                fi.dy.masa.malilib.gui.button.ConfigButtonBoolean button =
+                    new fi.dy.masa.malilib.gui.button.ConfigButtonBoolean(
+                        controlsX, y, configWidth, 20, booleanConfig);
+                this.addConfigButtonEntry(controlsX + configWidth + 2, y,
+                    (fi.dy.masa.malilib.config.IConfigResettable) config, button);
+            } else if (config.getType() == fi.dy.masa.malilib.config.ConfigType.OPTION_LIST) {
                 fi.dy.masa.malilib.config.IConfigOptionList optionList = (fi.dy.masa.malilib.config.IConfigOptionList) config;
                 fi.dy.masa.malilib.config.IConfigResettable resettable = (fi.dy.masa.malilib.config.IConfigResettable) config;
 
                 y += 1;
                 int configHeight = 20;
-
-                String configName = config.getConfigGuiDisplayName();
-                this.addLabel(x, y + 7, labelWidth, 8, 0xFFFFFFFF, configName);
-
-                String comment;
-                fi.dy.masa.malilib.gui.interfaces.IConfigInfoProvider infoProvider = this.host.getHoverInfoProvider();
-
-                if (infoProvider != null) {
-                    comment = infoProvider.getHoverInfo(config);
-                } else {
-                    comment = config.getComment();
-                }
-
-                if (comment != null) {
-                    this.addWidget(new fi.dy.masa.malilib.gui.widgets.WidgetHoverInfo(x, y + 5, labelWidth, 12, comment));
-                }
-
-                x += labelWidth + 10;
+                int controlsX = this.getControlsX(configWidth);
+                this.addResponsiveConfigLabel(x, y, controlsX - x - 10, config);
 
                 List<fi.dy.masa.malilib.config.IConfigOptionListEntry> entries = new ArrayList<>();
                 fi.dy.masa.malilib.config.IConfigOptionListEntry current = optionList.getOptionListValue();
@@ -228,11 +245,11 @@ public class GuiChainVein extends GuiConfigsBase {
                     } while (iter != current && iter != null && entries.size() < 100);
                 }
 
-                ButtonGeneric resetButton = this.createResetButton(x + configWidth + 2, y, resettable);
+                ButtonGeneric resetButton = this.createResetButton(controlsX + configWidth + 2, y, resettable);
 
                 MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry> dropdown =
                     new MyDropdown<fi.dy.masa.malilib.config.IConfigOptionListEntry>(
-                        x, y, configWidth, configHeight, 200, 5, entries,
+                        controlsX, y, configWidth, configHeight, 200, 5, entries,
                         entry -> entry.getDisplayName()
                     ) {
                         @Override
@@ -259,6 +276,37 @@ public class GuiChainVein extends GuiConfigsBase {
             } else {
                 super.addConfigOption(x, y, labelWidth, configWidth, config);
             }
+        }
+
+        private int getControlsX(int configWidth) {
+            // Config widgets use an additional 22 px for their settings/reset control.
+            return this.x + this.width - configWidth - 26;
+        }
+
+        private void addResponsiveConfigLabel(int x, int y, int availableWidth,
+            fi.dy.masa.malilib.config.IConfigBase config) {
+            int labelWidth = Math.max(0, availableWidth);
+            String configName = this.fitText(config.getConfigGuiDisplayName(), labelWidth);
+            this.addLabel(x, y + 7, labelWidth, 8, 0xFFFFFFFF, configName);
+
+            fi.dy.masa.malilib.gui.interfaces.IConfigInfoProvider infoProvider = this.host.getHoverInfoProvider();
+            String comment = infoProvider != null ? infoProvider.getHoverInfo(config) : config.getComment();
+            if (comment != null) {
+                this.addWidget(new fi.dy.masa.malilib.gui.widgets.WidgetHoverInfo(
+                    x, y + 5, labelWidth, 12, comment));
+            }
+        }
+
+        private String fitText(String text, int maxWidth) {
+            if (this.textRenderer.width(text) <= maxWidth) {
+                return text;
+            }
+
+            String ellipsis = "…";
+            int contentWidth = maxWidth - this.textRenderer.width(ellipsis);
+            return contentWidth > 0
+                ? this.textRenderer.plainSubstrByWidth(text, contentWidth) + ellipsis
+                : "";
         }
     }
 
@@ -305,6 +353,8 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     public void initGui() {
+        HeaderLayout headerLayout = this.createHeaderLayout();
+        this.setListPosition(20, headerLayout.contentY);
         super.initGui();
         this.activeDropdowns.clear();
         this.leftList = null;
@@ -313,12 +363,9 @@ public class GuiChainVein extends GuiConfigsBase {
         this.presetList = null;
         this.basicLayout = null;
 
-        int centerX = this.width / 2;
-        int y = 10;
+        this.addTabButtons(headerLayout);
 
-        this.addTabButtons(centerX, y);
-
-        int topY = 40;
+        int topY = headerLayout.contentY;
         if (this.currentTab == Tab.BASIC) {
             initBasicTab(topY);
         } else if (this.currentTab == Tab.PRESETS) {
@@ -326,7 +373,27 @@ public class GuiChainVein extends GuiConfigsBase {
         }
     }
 
-    private void addTabButtons(int centerX, int y) {
+    private HeaderLayout createHeaderLayout() {
+        List<Tab> tabs = List.of(Tab.BASIC, Tab.SETTINGS, Tab.HOTKEYS, Tab.PRESETS);
+        int naturalWidth = 10 * (tabs.size() - 1);
+        for (Tab tab : tabs) {
+            String key = "options.chainveinfabric.tab." + tab.name().toLowerCase(Locale.ROOT);
+            naturalWidth += this.getStringWidth(StringUtils.translate(key)) + 10;
+        }
+
+        int titleRight = 20 + this.getStringWidth(this.getTitleString()) + 12;
+        int switcherLeft = this.width - CONFIG_SWITCHER_WIDTH - 8;
+        int firstRowWidth = Math.max(0, switcherLeft - titleRight);
+
+        if (naturalWidth <= firstRowWidth) {
+            return new HeaderLayout(titleRight, HEADER_TAB_Y, firstRowWidth, HEADER_FIRST_CONTENT_Y);
+        }
+
+        return new HeaderLayout(PAGE_MARGIN, HEADER_SECOND_ROW_Y,
+            Math.max(0, this.width - PAGE_MARGIN * 2), HEADER_SECOND_CONTENT_Y);
+    }
+
+    private void addTabButtons(HeaderLayout layout) {
         List<Tab> tabs = List.of(Tab.BASIC, Tab.SETTINGS, Tab.HOTKEYS, Tab.PRESETS);
         List<ButtonGeneric> tabButtons = new ArrayList<>();
         for (Tab tab : tabs) {
@@ -339,11 +406,19 @@ public class GuiChainVein extends GuiConfigsBase {
             totalWidth += button.getWidth() + gap;
         }
 
-        int x = centerX - totalWidth / 2;
+        if (totalWidth > layout.tabWidth) {
+            gap = 4;
+            totalWidth = -gap;
+            for (ButtonGeneric button : tabButtons) {
+                totalWidth += button.getWidth() + gap;
+            }
+        }
+
+        int x = layout.tabX + Math.max(0, (layout.tabWidth - totalWidth) / 2);
         for (int i = 0; i < tabButtons.size(); i++) {
             ButtonGeneric button = tabButtons.get(i);
             Tab tab = tabs.get(i);
-            button.setPosition(x, y);
+            button.setPosition(x, layout.tabY);
             this.addButton(button, (btn, mouseButton) -> {
                 this.currentTab = tab;
                 this.reCreateListWidget();
