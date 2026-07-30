@@ -1,126 +1,123 @@
-# ChainVeinFabric / 连锁采集 Fabric
+# ChainVeinFabric
 
-A modern, efficient, and configurable Chain Mining & Interaction mod for Minecraft Fabric 1.21+.
-Compatible with vanilla servers (client-side mode) and enhanced when installed on the server.
+[简体中文](README_zh_CN.md)
 
-一个适用于 Minecraft Fabric 1.21+ 的现代、高效且可高度配置的连锁采集与交互模组。
-兼容原版服务器（客户端模式），并在服务端安装时提供增强功能。
+A modern, efficient, and configurable chain mining and interaction mod for Minecraft Fabric.
+It works on vanilla servers in client-side mode and gains additional capabilities when installed on the server.
 
----
-
-## ✨ Features / 功能特性
-
-*   **Configurable Chain Mining**: Mine connected blocks of the same type automatically.
-    *   **可配置的连锁采集**：自动采集相连的同类方块。
-*   **Chain Planting**: Quickly plant seeds on compatible soil. Supports wheat, carrots, potatoes, etc.
-    *   **连锁种植**：在兼容的耕地上快速补种。支持小麦、胡萝卜、马铃薯等作物。
-*   **Chain Wax/Scrape/Strip**: Batch process blocks using tools or items. Supports waxing copper, scraping rust, stripping logs, and tilling soil.
-    *   **连锁打蜡/除锈/去皮**：使用工具或物品批量处理方块。支持铜块打蜡、除锈、原木去皮以及耕地。
-*   **Multiple Search Shapes & Modes**: Support for various search algorithms including Cube, Sphere, and Adjacency (Face, Edge, Corner connections). Now supports directional limits (Horizontal, Vertical, Upward, Downward).
-    *   **多种搜索算法与形状**：支持包括立方体（Cube）、球形（Sphere），以及相邻扩散（面、棱、顶点连接）在内的多种搜索模式，并新增各维度的蔓延方向限制（水平、垂直、向上、向下）。
-*   **Anti-Kick Protection**: Set packet intervals for vanilla servers to prevent "Too many packets" kicks.
-    *   **防踢出保护**：针对原版服务器可设置自定义发包间隔，防止因操作过快被服务器踢出。
-*   **Visual Configuration GUI**: Press `V` to open a user-friendly configurable, scrollable screen. Smart UI elements will enable/disable based on server environment.
-    *   **可视化配置界面**：按 `V` 键打开友好、支持滚动的配置界面。UI 元素会根据服务器环境自动启用或禁用。
-*   **Whitelist Management**: Per-mode whitelists for mining, crops, and utility interactions.
-    *   **白名单管理**：针对采集、作物和工具交互分别提供独立的白名单。
-*   **Tool Protection**: Smartly calculates remaining durability. Instead of failing when durability is low, it now limits the max chain amount to your remaining durability (minus a safety buffer of 10) to prevent breaking. Properly ignores empty hands and zero-durability items.
-    *   **工具保护**：智能计算剩余耐久。当耐久度低时非但不会直接失效，而是将最大连锁数量动态限制为剩余耐久值（保留10点），防止工具损坏损坏。对空手与无耐久物品会自动正确豁免判定。
-*   **Unbreakable Block Filter**: Automatically filters out unbreakable blocks (like Bedrock or Barriers) in survival mode, maintaining game balance even with incorrect whitelists.
-    *   **防破坏基岩保护**：生存模式下自动过滤不可破坏方块（如基岩、屏障等），防止错误配置白名单导致的平衡性问题。
+> **Version support:** ChainVeinFabric 3.x supports the Minecraft 26.1.x and 26.2.x release lines. Version 3.x and later no longer support Minecraft 1.21.x; use ChainVeinFabric 2.2.1 for 1.21.x.
 
 ---
 
-## 📸 Screenshots / 截图
+## ✨ Features
+
+- **Chain Mining:** Mine connected matching or whitelisted blocks automatically.
+- **Chain Planting:** Plant compatible crops across matching soil. The planting whitelist accepts plantable items and the target-whitelist hotkey reads the item in your main hand.
+- **Chain Utility:** Batch wax copper, scrape oxidation, strip logs, till soil, and perform similar item interactions.
+- **Search Algorithms:** Same-type adjacency, whitelist adjacency, sphere, square plane, and cuboid searches. Edge and corner adjacency are configurable.
+- **Independent Whitelists and Presets:** Maintain a separate whitelist for every mode, create reusable whitelist presets, and save complete configuration presets.
+- **Mode Hotkeys:** Configure a key to cycle to the next available mode and a direct key for every mode. An optional setting immediately enables chaining after a mode hotkey is used.
+- **Search Outlines:** Preview the blocks found by the current search. Each Litematica mode has its own outline color.
+- **Tool Protection:** Dynamically limits the chain count to preserve a 10-durability safety buffer.
+- **Anti-Kick Protection:** Configure the packet interval used with vanilla servers.
+- **Optional Server Support:** A server installation enables efficient batch processing and Direct to Inventory.
+
+### Optional Litematica integration
+
+When Litematica is installed, ChainVeinFabric exposes three additional mining modes:
+
+- **Schematic: Selection Blocks:** Matches non-air world blocks inside the current Litematica area selection created with its stick selection tool. This mode uses the area selection, not a schematic placement.
+- **Schematic: Extra Blocks:** Matches placed world blocks where enabled schematic placements expect air.
+- **Schematic: Wrong Blocks:** Matches placed world blocks whose state differs from the non-air state expected by enabled schematic placements.
+
+The Extra and Wrong modes can optionally follow Litematica's current render-layer range. Their search and whitelist import both respect this setting. Litematica-only modes and direct hotkeys are hidden when Litematica is not installed, and mode cycling skips them.
+
+Every schematic mode supports manual whitelist editing and one-click import. Import replaces the active whitelist with the matching block types found in the current mode scope. It scans loaded chunks immediately and skips unloaded chunks without waiting for them.
+
+---
+
+## 📸 Screenshots
 
 ![Mining Config](screenshots/image.png)
 > *Description: Mining mode configuration with block whitelist.*
-> *描述：连锁采集模式下的方块白名单管理界面。*
 
 ![Chain Mine Result](screenshots/image-2.png)
 > *Description: Action Bar feedback after chain mining blocks.*
-> *描述：连锁采集后的动作栏反馈信息。*
 
 ![Planting Config](screenshots/image-3.png)
 > *Description: Chain Planting configuration showing the item whitelist (seeds/crops).*
-> *描述：连锁种植模式配置界面，展示种子/作物白名单。*
 
 ![Chain Planting](screenshots/image-4.png)
 > *Description: Chain planting carrots in a large area with a single click.*
-> *描述：一键在大范围内连锁种植胡萝卜。*
 
 ![Utility Config](screenshots/image-5.png)
 > *Description: Chain Wax/Scrape/Strip configuration showing the "Applicable Blocks" whitelist.*
-> *描述：连锁打蜡/除锈/去皮模式配置界面，展示“适用方块”白名单。*
 
 ![Chain Stripping](screenshots/image-6.png)
 > *Description: Stripping a whole stack of logs instantly using an axe.*
-> *描述：使用斧头瞬间连锁去皮整堆原木。*
 
 ---
 
-## 🛠️ Usage / 使用说明
+## 🛠️ Usage
 
-1.  **Open Config**: Press **`V`** to open the menu. Use the **Mode Dropdown** to switch between Mining, Planting, and Utility modes.
-    *   **打开配置**：按 **`V`** 键打开菜单。使用**模式下拉框**在采集、种植和交互模式间切换。
-2.  **Setup Whitelists**: 
-    *   **Mining**: Add blocks like `iron_ore` or `oak_log`.
-    *   **Planting**: Add items like `carrot` or `wheat_seeds`.
-    *   **Utility**: Add blocks you want to interact with, like `oak_log` (for stripping) or `grass_block` (for tilling).
-    *   **设置名单**：
-        *   **采集**：添加如 `iron_ore` 或 `oak_log` 等方块。
-        *   **种植**：添加如 `carrot` 或 `wheat_seeds` 等种子物品。
-        *   **交互**：添加想要交互的方块，如 `oak_log`（去皮）或 `grass_block`（耕地）。
-3.  **Perform**: 
-    *   **Mine**: Break a whitelisted block.
-    *   **Plant**: Right-click soil with seeds.
-    *   **Interact**: Right-click with tools (Axe/Hoe) or items (Honeycomb).
-    *   **执行**：
-        *   **采集**：挖掘白名单方块。
-        *   **种植**：手持种子右键耕地。
-        *   **交互**：手持工具（斧、锄）或物品（蜜脾）右键目标方块。
+1. Press **`V`** to open the configuration screen.
+2. Select Mining, Planting, or Utility mode. The three schematic modes also appear when Litematica is installed.
+3. Configure the active whitelist:
+   - In Planting mode, use a plantable item such as `carrot` or `wheat_seeds`. The target-whitelist hotkey adds or removes the plantable item held in your main hand.
+   - In other modes, the target-whitelist hotkey adds or removes the block under your crosshair.
+   - In a schematic mode, you may instead import and replace the whitelist from the current mode scope.
+4. Open the Hotkeys page to bind next-mode, direct-mode, chain toggle, and target-whitelist shortcuts. Enable **Enable Chaining after Mode Hotkey** if switching modes should also turn chaining on.
+5. Perform the corresponding action:
+   - Break a matching block to mine.
+   - Right-click compatible soil while holding a whitelisted plantable item to plant.
+   - Right-click with the relevant tool or item to run a utility interaction.
 
 ---
 
-## ⚙️ Configuration Options / 配置选项
+## ⚙️ Main Configuration Options
 
-| Option / 选项 | Description / 描述 |
+| Option | Description |
 | :--- | :--- |
-| **Chain Mode / 模式** | Toggle between Mine (挖掘), Plant (种植), and Wax/Scrape/Strip (交互). |
-| **Max Blocks / 数量上限** | Max blocks/crops per action. |
-| **Diagonal Edge / 斜边方向** | Toggle 12-way edge adjacency. (斜边连接模式). |
-| **Diagonal Corner / 斜角方向** | Toggle 8-way corner adjacency. (斜角连接模式). |
-| **Packet Interval / 发包间隔** | Ms delay between packets on vanilla servers. (原版服务器发包间隔). |
-| **Tool Protection / 工具保护** | Stops if durability <= 10. |
-| **Direct to Inv / 直接进包** | Requires Mod on Server. Automatically disabled if not present. |
+| **Chain Mode** | Mining, Planting, Utility, or one of the three optional Litematica modes. |
+| **Search Algorithm** | Same-type adjacency, whitelist adjacency, sphere, square plane, or cuboid. |
+| **Max Blocks** | Maximum number of blocks or interactions per action. |
+| **Max Radius** | Maximum distance from the initial position. |
+| **Diagonal Edge / Corner** | Include edge-connected or corner-connected neighbors in adjacency searches. |
+| **Packet Interval** | Delay between vanilla-server packets. |
+| **Tool Protection** | Limits the operation to preserve a 10-durability buffer. |
+| **Direct to Inventory** | Requires ChainVeinFabric on the server and is disabled otherwise. |
+| **Show Outlines** | Displays a preview of the current search result. |
+| **Respect Render Layer** | Extra/Wrong modes only; limits matching and import to Litematica's render range. |
+| **Mode Hotkeys** | Cycle to the next available mode or switch directly to any available mode. |
+| **Enable Chaining after Mode Hotkey** | Turns chaining on immediately after a mode shortcut is used. |
 
 ---
 
-## 🤝 Compatibility / 兼容性机制
+## 🤝 Compatibility
 
-This mod uses a smart networking system to determine how to break blocks:
-本模组使用智能网络系统来决定如何处理连锁操作：
+### Minecraft and dependencies
 
-1.  **Vanilla Server (No Mod Installed)**:
-    *   The client performs the search (BFS) and sends standard packet requests.
-    *   **Anti-Kick**: Use **Packet Interval** to slow down the process if needed.
-    *   **Direct to Inventory** is disabled.
-    *   **原版服务器（未安装模组）**：客户端进行 BFS 搜索计算，发送标准数据包。可以使用**发包间隔**来防止被踢出。不支持**直接进入背包**。
+- **Minecraft:** Current 3.x builds target Minecraft 26.1.x and 26.2.x. Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
+- **MaLiLib:** Required on the client.
+- **Litematica:** Optional. Only the three schematic modes depend on it.
+- **Mod Menu:** Optional configuration entry point.
 
-2.  **Modded Server (Mod Installed)**:
-    *   The client sends a single packet with the list of coordinates.
-    *   The server breaks them efficiently and supports **Direct to Inventory**.
-    *   **Packet Interval** is not required and will be disabled in config GUI.
-    *   **模组服务器（已安装模组）**：客户端发送包含坐标列表的单一数据包。服务端高效执行并支持**直接进入背包**。无需设置**发包间隔**。
+### Client and server behavior
+
+1. **Vanilla server (mod not installed):**
+   - The client performs the search and sends standard interaction packets.
+   - Use **Packet Interval** if a server rejects packets sent too quickly.
+   - **Direct to Inventory** is unavailable.
+2. **Modded server (mod installed):**
+   - The client sends the resolved positions through the ChainVein protocol.
+   - The server processes them efficiently and supports **Direct to Inventory**.
+   - The packet interval is not required.
 
 ---
 
-## Client Job API / 客户端作业 API
+## Client Job API
 
-Other client-side mods can submit resolved positions through the same queue used by
-ChainVein itself:
-
-其他客户端 Mod 可以把已经确定的坐标提交给 ChainVein 自身也在使用的统一队列：
+Other client-side mods can submit resolved positions through the same queue used by ChainVeinFabric:
 
 ```java
 ChainVeinClientApi.queueMineJobs(client, positions);
@@ -128,19 +125,10 @@ ChainVeinClientApi.queuePlantJobs(client, positions);
 ChainVeinClientApi.queueUseJobs(client, positions);
 ```
 
-The API deduplicates jobs, applies the current Direct to Inventory and Tool
-Protection settings, and automatically chooses the dedicated server protocol or
-vanilla client packets. Direct to Inventory only takes effect when the server has
-ChainVein installed; the public method signatures stay independent of config fields.
-
-API 会负责作业去重，并隐式读取当前的“直接进入背包”和“工具保护”设置，再自动选择
-服务端专用协议或原版客户端发包。“直接进入背包”仅在服务端安装 ChainVein 时生效，
-公共方法签名不与具体配置字段绑定。调用方应将 ChainVein 声明为客户端可选依赖，并只在
-确认 Mod 已加载后调用。
+The API deduplicates jobs, applies the current Direct to Inventory and Tool Protection settings, and automatically chooses the dedicated-server protocol or vanilla client packets. Direct to Inventory takes effect only when the server has ChainVeinFabric installed. Callers should declare ChainVeinFabric as an optional client dependency and invoke the API only after confirming that the mod is loaded.
 
 ---
 
-## 📝 License / 许可证
+## 📝 License
 
-This project is licensed under the GPL-3.0 License.
-本项目采用 GPL-3.0 许可证。
+ChainVeinFabric is licensed under the GPL-3.0 License.
