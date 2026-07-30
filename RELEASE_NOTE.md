@@ -23,6 +23,7 @@
 - 未安装 Litematica 时，不注册、不显示三个投影模式的直达快捷键，循环切换也会自动跳过这些模式
 - 种植模式下，目标白名单快捷键现在读取主手物品；只有可种植物品才能加入或移出白名单
 - GUI、白名单快捷键和实际连锁种植共用同一套可种植物品判定，避免配置与执行行为不一致
+- 配置界面改为响应式布局：高 GUI Scale 或较窄窗口下会自动换行控件、调整列表宽度，并在空间不足时切换为单列表页签；预设页和长方块名称也会自适应可用宽度
 - 更新项目文档：默认 README 改为英文，并提供完整的简体中文版本
 
 - Added a Next Mode hotkey that cycles through currently available modes only
@@ -31,4 +32,5 @@
 - When Litematica is absent, the three schematic direct hotkeys are neither registered nor shown, and mode cycling skips those modes
 - In Planting mode, the target-whitelist hotkey now reads the main-hand item and accepts only plantable items
 - The GUI, whitelist hotkey, and actual chain-planting execution now share one plantable-item check so configuration and behavior remain consistent
+- Made the configuration GUI responsive: high GUI scales and narrow windows now wrap controls, resize lists, switch to a single-list tab layout when needed, and keep preset rows and long block names within the available width
 - Updated the project documentation with English as the default README and a complete Simplified Chinese version
