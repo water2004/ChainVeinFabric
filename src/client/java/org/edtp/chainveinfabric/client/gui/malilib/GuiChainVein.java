@@ -306,7 +306,9 @@ public class GuiChainVein extends GuiConfigsBase {
                 this.addButton(resetButton, resetListener);
 
             } else {
-                super.addConfigOption(x, y, labelWidth, configWidth, config);
+                int controlsX = this.getControlsX(configWidth);
+                super.addConfigOption(x, y, Math.max(1, controlsX - x - CONFIG_LABEL_GAP),
+                    configWidth, config);
             }
         }
 
