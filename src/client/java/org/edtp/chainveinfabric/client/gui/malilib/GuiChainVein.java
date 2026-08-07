@@ -25,6 +25,7 @@ import net.minecraft.world.level.block.Block;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
 import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
 import org.edtp.chainveinfabric.client.logic.PlantingItems;
@@ -383,6 +384,9 @@ public class GuiChainVein extends GuiConfigsBase {
         configs.add(ConfigProxies.MAX_BLOCKS);
         configs.add(ConfigProxies.MAX_RADIUS);
         configs.add(ConfigProxies.DIRECT_INV);
+        if (QuickShulkerIntegration.isAvailable()) {
+            configs.add(ConfigProxies.QUICK_SHULKER_OVERFLOW);
+        }
         configs.add(ConfigProxies.TOOL_PROT);
         configs.add(ConfigProxies.DIAG_EDGE);
         configs.add(ConfigProxies.DIAG_CORNER);
