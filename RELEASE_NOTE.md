@@ -7,16 +7,12 @@
 
 ### 支持版本 / Supported versions
 
-- Minecraft 26.2：需要 MaLiLib 0.29.2 或更高版本
-- 可选安装 Litematica 0.28.4 或更高版本
-- 可选安装兼容的 Quick Shulker 3.0.2-26.2 或更高版本
-- Minecraft 26.1.x 继续使用 ChainVeinFabric 3.1.0
+- Minecraft 26.2：需要 MaLiLib 0.29.2 或更高版本；可选安装 Litematica 0.28.4 或更高版本、Quick Shulker 3.0.2-26.2 或更高版本
+- Minecraft 26.1.x：需要 MaLiLib 0.28.8 或更高版本；可选安装 Litematica 0.27.10 或更高版本、Quick Shulker 3.0.1-26.1 或更高版本
 - Minecraft 1.21.x 继续使用 ChainVeinFabric 2.2.1
 
-- Minecraft 26.2: requires MaLiLib 0.29.2 or newer
-- Litematica 0.28.4 or newer is optional
-- A compatible Quick Shulker 3.0.2-26.2 or newer is optional
-- Minecraft 26.1.x remains on ChainVeinFabric 3.1.0
+- Minecraft 26.2: requires MaLiLib 0.29.2 or newer; Litematica 0.28.4 or newer and Quick Shulker 3.0.2-26.2 or newer are optional
+- Minecraft 26.1.x: requires MaLiLib 0.28.8 or newer; Litematica 0.27.10 or newer and Quick Shulker 3.0.1-26.1 or newer are optional
 - Minecraft 1.21.x remains on ChainVeinFabric 2.2.1
 
 ### 相对 3.1.0 的变更 / Changes since 3.1.0
