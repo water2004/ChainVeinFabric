@@ -5,7 +5,7 @@
 A modern, efficient, and configurable chain mining and interaction mod for Minecraft Fabric.
 It works on vanilla servers in client-side mode and gains additional capabilities when installed on the server.
 
-> **Version support:** ChainVeinFabric 3.x supports the Minecraft 26.1.x and 26.2.x release lines. Version 3.x and later no longer support Minecraft 1.21.x; use ChainVeinFabric 2.2.1 for 1.21.x.
+> **Version support:** ChainVeinFabric 4.x currently targets Minecraft 26.2.x. Version 3.x supports the Minecraft 26.1.x and 26.2.x release lines. Version 3.x and later no longer support Minecraft 1.21.x; use ChainVeinFabric 2.2.1 for 1.21.x.
 
 ---
 
@@ -42,6 +42,8 @@ When the compatible [Quick Shulker fork](https://github.com/water2004/quickshulk
 This integration is currently available in the Minecraft 26.2 build.
 
 ChainVein first inserts drops into the normal player inventory, then tries carried shulker boxes in inventory order. It uses Quick Shulker's public insertion rules, so nested shulker boxes remain prohibited. Anything that still does not fit drops into the world normally. The integration is optional and its setting is hidden when Quick Shulker is absent.
+
+Enabling this option requires ChainVeinFabric 4.x on both the client and server. Older protocol versions automatically fall back to ChainVein's client-side mode instead of attempting to decode an incompatible packet.
 
 ---
 
@@ -107,11 +109,23 @@ ChainVein first inserts drops into the normal player inventory, then tries carri
 
 ### Minecraft and dependencies
 
-- **Minecraft:** Current 3.x builds target Minecraft 26.1.x and 26.2.x. Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
+- **Minecraft:** Current 4.x builds target Minecraft 26.2.x. Version 3.x remains available for Minecraft 26.1.x and 26.2.x, while Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
 - **MaLiLib:** Required on the client.
 - **Litematica:** Optional. Only the three schematic modes depend on it.
 - **Quick Shulker:** Optional. Enables shulker-box storage for Direct to Inventory overflow when installed on both sides.
 - **Mod Menu:** Optional configuration entry point.
+
+### Network compatibility
+
+The 4.x dedicated-server protocol is intentionally versioned separately from 1.x–3.x. Mismatched versions do not exchange ChainVein packets; the client automatically uses the same vanilla-packet fallback as an unmodded server. Compatibility applies only between builds for the same Minecraft version:
+
+| Client | Server | Behavior |
+| :--- | :--- | :--- |
+| 1.x–3.x | 4.x | Dedicated protocol unavailable; automatically uses client-side mode. |
+| 4.x | 4.x | Fully supported, including Quick Shulker overflow. |
+| 4.x | 1.x–3.x | Dedicated protocol unavailable; automatically uses client-side mode. |
+
+Client-side mode does not support **Direct to Inventory** or Quick Shulker overflow and uses **Packet Interval** for anti-kick protection. This protocol change does not alter the public `ChainVeinClientApi` methods.
 
 ### Client and server behavior
 
@@ -138,6 +152,8 @@ ChainVeinClientApi.queueUseJobs(client, positions);
 ```
 
 The API deduplicates jobs, applies the current Direct to Inventory and Tool Protection settings, and automatically chooses the dedicated-server protocol or vanilla client packets. Direct to Inventory takes effect only when the server has ChainVeinFabric installed. Callers should declare ChainVeinFabric as an optional client dependency and invoke the API only after confirming that the mod is loaded.
+
+The public method signatures are unchanged in 4.0.0.
 
 ---
 
