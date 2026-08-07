@@ -5,7 +5,7 @@
 A modern, efficient, and configurable chain mining and interaction mod for Minecraft Fabric.
 It works on vanilla servers in client-side mode and gains additional capabilities when installed on the server.
 
-> **Version support:** ChainVeinFabric 4.x currently targets Minecraft 26.2.x. Version 3.x supports the Minecraft 26.1.x and 26.2.x release lines. Version 3.x and later no longer support Minecraft 1.21.x; use ChainVeinFabric 2.2.1 for 1.21.x.
+> **Version support:** ChainVeinFabric 4.x supports the Minecraft 26.1.x and 26.2.x release lines. Version 3.x and later no longer support Minecraft 1.21.x; use ChainVeinFabric 2.2.1 for 1.21.x.
 
 ---
 
@@ -39,7 +39,7 @@ Every schematic mode supports manual whitelist editing and one-click import. Imp
 
 When the compatible [Quick Shulker fork](https://github.com/water2004/quickshulker) is installed on both the client and server, the Advanced page exposes **Overflow to Shulker Boxes**. This setting only applies when **Direct to Inventory** is enabled.
 
-This integration is currently available in the Minecraft 26.2 build.
+This integration is available in the Minecraft 26.1.x and 26.2.x builds.
 
 ChainVein first inserts drops into the normal player inventory, then tries carried shulker boxes in inventory order. It uses Quick Shulker's public insertion rules, so nested shulker boxes remain prohibited. Anything that still does not fit drops into the world normally. The integration is optional and its setting is hidden when Quick Shulker is absent.
 
@@ -109,7 +109,7 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 
 ### Minecraft and dependencies
 
-- **Minecraft:** Current 4.x builds target Minecraft 26.2.x. Version 3.x remains available for Minecraft 26.1.x and 26.2.x, while Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
+- **Minecraft:** Current 4.x builds target Minecraft 26.1.x and 26.2.x, while Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
 - **MaLiLib:** Required on the client.
 - **Litematica:** Optional. Only the three schematic modes depend on it.
 - **Quick Shulker:** Optional. Enables shulker-box storage for Direct to Inventory overflow when installed on both sides.

@@ -5,7 +5,7 @@
 一个适用于 Minecraft Fabric 的现代、高效且可高度配置的连锁采集与交互模组。
 它可以仅安装在客户端并兼容原版服务器；同时安装到服务端后可获得额外能力。
 
-> **版本支持：** ChainVeinFabric 4.x 目前面向 Minecraft 26.2.x；3.x 支持 Minecraft 26.1.x 和 26.2.x 版本线。3.x 及后续版本不再支持 Minecraft 1.21.x；1.21.x 请使用 ChainVeinFabric 2.2.1。
+> **版本支持：** ChainVeinFabric 4.x 支持 Minecraft 26.1.x 和 26.2.x 版本线。3.x 及后续版本不再支持 Minecraft 1.21.x；1.21.x 请使用 ChainVeinFabric 2.2.1。
 
 ---
 
@@ -39,7 +39,7 @@
 
 客户端和服务端都安装兼容的[快捷潜影盒分支](https://github.com/water2004/quickshulker)后，高级设置页面会显示**背包满后存入潜影盒**。该选项仅在开启**直接进入背包**时生效。
 
-该集成目前仅加入 Minecraft 26.2 构建。
+该集成适用于 Minecraft 26.1.x 与 26.2.x 构建。
 
 ChainVein 会先将掉落物放入普通玩家背包，再按背包槽位顺序尝试随身携带的潜影盒。插入过程遵循快捷潜影盒的公开 API 规则，因此不会把潜影盒嵌套放入潜影盒。最终仍无法容纳的物品会正常掉落到世界中。该集成为可选功能，未安装快捷潜影盒时不会显示对应选项。
 
@@ -109,7 +109,7 @@ ChainVein 会先将掉落物放入普通玩家背包，再按背包槽位顺序�
 
 ### Minecraft 与依赖
 
-- **Minecraft：** 当前 4.x 构建面向 Minecraft 26.2.x；3.x 继续提供 Minecraft 26.1.x 与 26.2.x 构建，Minecraft 1.21.x 停留在 ChainVeinFabric 2.2.1。
+- **Minecraft：** 当前 4.x 构建面向 Minecraft 26.1.x 与 26.2.x，Minecraft 1.21.x 停留在 ChainVeinFabric 2.2.1。
 - **MaLiLib：** 客户端必需依赖。
 - **Litematica：** 可选依赖，仅三个投影模式需要。
 - **快捷潜影盒：** 可选依赖；客户端和服务端都安装后，可收纳“直接进入背包”的溢出物。
