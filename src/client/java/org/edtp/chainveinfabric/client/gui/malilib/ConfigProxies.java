@@ -50,6 +50,8 @@ public class ConfigProxies {
     public static final ConfigOptionList CUBOID_POINT = new ConfigOptionList("options.chainveinfabric.miningPoint", MCuboidMiningPoint.CENTER, "");
 
     public static final ConfigBoolean DIRECT_INV = new ConfigBoolean("options.chainveinfabric.directToInventory", false, "");
+    public static final ConfigBoolean QUICK_SHULKER_OVERFLOW = new ConfigBoolean(
+            "options.chainveinfabric.quickShulkerOverflow", false, "");
     public static final ConfigBoolean TOOL_PROT = new ConfigBoolean("options.chainveinfabric.toolProtection", false, "");
     public static final ConfigBoolean DIAG_EDGE = new ConfigBoolean("options.chainveinfabric.diagonalEdge", false, "");
     public static final ConfigBoolean DIAG_CORNER = new ConfigBoolean("options.chainveinfabric.diagonalCorner", false, "");
@@ -98,6 +100,7 @@ public class ConfigProxies {
         CUBOID_H.setValueChangeCallback(c -> { if (!loading) save(); });
         CUBOID_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
         DIRECT_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+        QUICK_SHULKER_OVERFLOW.setValueChangeCallback(c -> { if (!loading) save(); });
         TOOL_PROT.setValueChangeCallback(c -> { if (!loading) save(); });
         DIAG_EDGE.setValueChangeCallback(c -> { if (!loading) save(); });
         DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
@@ -139,6 +142,7 @@ public class ConfigProxies {
                 CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
             }
             DIRECT_INV.setBooleanValue(config.directToInventory);
+            QUICK_SHULKER_OVERFLOW.setBooleanValue(config.quickShulkerOverflow);
             TOOL_PROT.setBooleanValue(config.toolProtection);
             DIAG_EDGE.setBooleanValue(config.diagonalEdge);
             DIAG_CORNER.setBooleanValue(config.diagonalCorner);
@@ -173,6 +177,7 @@ public class ConfigProxies {
         config.cuboidH = CUBOID_H.getIntegerValue();
         config.cuboidMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MCuboidMiningPoint)CUBOID_POINT.getOptionListValue()).name());
         config.directToInventory = DIRECT_INV.getBooleanValue();
+        config.quickShulkerOverflow = QUICK_SHULKER_OVERFLOW.getBooleanValue();
         config.toolProtection = TOOL_PROT.getBooleanValue();
         config.diagonalEdge = DIAG_EDGE.getBooleanValue();
         config.diagonalCorner = DIAG_CORNER.getBooleanValue();

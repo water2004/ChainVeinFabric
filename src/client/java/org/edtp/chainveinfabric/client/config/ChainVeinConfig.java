@@ -14,6 +14,7 @@ import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
 import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV2;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV3;
+import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV4;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -29,10 +30,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class ChainVeinConfig extends ConfigSchemaV3 {
+public class ChainVeinConfig extends ConfigSchemaV4 {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chainveinfabric.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int CURRENT_SCHEMA_VERSION = 3;
+    private static final int CURRENT_SCHEMA_VERSION = 4;
 
     public enum ChainMode {
         CHAIN_MINE,
@@ -89,7 +90,14 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
             int storedVersion = root.has("version") ? root.get("version").getAsInt() : 1;
             if (storedVersion == 2) {
                 ConfigSchemaV2 v2 = GSON.fromJson(root, ConfigSchemaV2.class);
-                ChainVeinConfig config = migrateV2ToV3(v2);
+                ChainVeinConfig config = migrateV3ToV4(migrateV2ToV3(v2));
+                config.save();
+                return config;
+            }
+
+            if (storedVersion == 3) {
+                ConfigSchemaV3 v3 = GSON.fromJson(root, ConfigSchemaV3.class);
+                ChainVeinConfig config = migrateV3ToV4(v3);
                 config.save();
                 return config;
             }
@@ -97,7 +105,7 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
             if (storedVersion == CURRENT_SCHEMA_VERSION) {
                 ChainVeinConfig config = GSON.fromJson(root, ChainVeinConfig.class);
                 if (config == null) config = createFresh();
-                boolean whitelistChanged = config.fixV3();
+                boolean whitelistChanged = config.fixV4();
                 if (whitelistChanged) config.save();
                 return config;
             }
@@ -112,48 +120,71 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
 
     private static ChainVeinConfig createFresh() {
         ChainVeinConfig config = new ChainVeinConfig();
-        config.fixV3Scalars();
+        config.fixV4Scalars();
         config.createDefaultPresets();
         config.applyActivePresets();
         return config;
     }
 
-    private static ChainVeinConfig migrateV2ToV3(ConfigSchemaV2 v2) {
-        if (v2 == null) return createFresh();
+    private static ConfigSchemaV3 migrateV2ToV3(ConfigSchemaV2 v2) {
+        if (v2 == null) return null;
+
+        ConfigSchemaV3 v3 = new ConfigSchemaV3();
+        copyV2Fields(v2, v3);
+        return v3;
+    }
+
+    private static ChainVeinConfig migrateV3ToV4(ConfigSchemaV3 v3) {
+        if (v3 == null) return createFresh();
 
         ChainVeinConfig config = new ChainVeinConfig();
-        config.version = CURRENT_SCHEMA_VERSION;
-        config.isChainVeinEnabled = v2.isChainVeinEnabled;
-        config.mode = v2.mode;
-        config.searchAlgorithm = v2.searchAlgorithm;
-        config.maxChainBlocks = v2.maxChainBlocks;
-        config.maxRadius = v2.maxRadius;
-        config.sphereRadius = v2.sphereRadius;
-        config.squareLength = v2.squareLength;
-        config.squareMiningPoint = v2.squareMiningPoint;
-        config.cuboidL = v2.cuboidL;
-        config.cuboidW = v2.cuboidW;
-        config.cuboidH = v2.cuboidH;
-        config.cuboidMiningPoint = v2.cuboidMiningPoint;
-        config.directToInventory = v2.directToInventory;
-        config.toolProtection = v2.toolProtection;
-        config.diagonalEdge = v2.diagonalEdge;
-        config.diagonalCorner = v2.diagonalCorner;
-        config.packetInterval = v2.packetInterval;
-        config.showBlockOutlines = v2.showBlockOutlines;
-        config.openConfigHotkey = v2.openConfigHotkey;
-        config.toggleChainVeinHotkey = v2.toggleChainVeinHotkey;
-        config.toggleTargetWhitelistHotkey = v2.toggleTargetWhitelistHotkey;
-        config.configPresets = v2.configPresets != null ? v2.configPresets : new ArrayList<>();
-        config.activeConfigPresetId = v2.activeConfigPresetId;
-        config.whitelistPresets = v2.whitelistPresets != null ? v2.whitelistPresets : new LinkedHashMap<>();
-        config.activeWhitelistPresetIds = v2.activeWhitelistPresetIds != null ? v2.activeWhitelistPresetIds : new LinkedHashMap<>();
-        config.fixV3();
+        copyV2Fields(v3, config);
+        config.respectSchematicRenderLayer = v3.respectSchematicRenderLayer;
+        config.enableChainVeinOnModeHotkey = v3.enableChainVeinOnModeHotkey;
+        config.cycleModeHotkey = v3.cycleModeHotkey;
+        config.switchToMineModeHotkey = v3.switchToMineModeHotkey;
+        config.switchToPlantModeHotkey = v3.switchToPlantModeHotkey;
+        config.switchToUtilityModeHotkey = v3.switchToUtilityModeHotkey;
+        config.switchToSchematicSelectionModeHotkey = v3.switchToSchematicSelectionModeHotkey;
+        config.switchToSchematicExtraModeHotkey = v3.switchToSchematicExtraModeHotkey;
+        config.switchToSchematicWrongModeHotkey = v3.switchToSchematicWrongModeHotkey;
+        config.quickShulkerOverflow = false;
+        config.fixV4();
         return config;
     }
 
-    private boolean fixV3() {
-        this.fixV3Scalars();
+    private static void copyV2Fields(ConfigSchemaV2 source, ConfigSchemaV2 target) {
+        target.isChainVeinEnabled = source.isChainVeinEnabled;
+        target.mode = source.mode;
+        target.searchAlgorithm = source.searchAlgorithm;
+        target.maxChainBlocks = source.maxChainBlocks;
+        target.maxRadius = source.maxRadius;
+        target.sphereRadius = source.sphereRadius;
+        target.squareLength = source.squareLength;
+        target.squareMiningPoint = source.squareMiningPoint;
+        target.cuboidL = source.cuboidL;
+        target.cuboidW = source.cuboidW;
+        target.cuboidH = source.cuboidH;
+        target.cuboidMiningPoint = source.cuboidMiningPoint;
+        target.directToInventory = source.directToInventory;
+        target.toolProtection = source.toolProtection;
+        target.diagonalEdge = source.diagonalEdge;
+        target.diagonalCorner = source.diagonalCorner;
+        target.packetInterval = source.packetInterval;
+        target.showBlockOutlines = source.showBlockOutlines;
+        target.openConfigHotkey = source.openConfigHotkey;
+        target.toggleChainVeinHotkey = source.toggleChainVeinHotkey;
+        target.toggleTargetWhitelistHotkey = source.toggleTargetWhitelistHotkey;
+        target.configPresets = source.configPresets != null ? source.configPresets : new ArrayList<>();
+        target.activeConfigPresetId = source.activeConfigPresetId;
+        target.whitelistPresets = source.whitelistPresets != null ? source.whitelistPresets : new LinkedHashMap<>();
+        target.activeWhitelistPresetIds = source.activeWhitelistPresetIds != null
+                ? source.activeWhitelistPresetIds
+                : new LinkedHashMap<>();
+    }
+
+    private boolean fixV4() {
+        this.fixV4Scalars();
         if (this.configPresets == null) this.configPresets = new ArrayList<>();
         if (this.whitelistPresets == null) this.whitelistPresets = new LinkedHashMap<>();
         if (this.activeWhitelistPresetIds == null) this.activeWhitelistPresetIds = new LinkedHashMap<>();
@@ -184,7 +215,7 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
         return whitelistChanged || structureChanged;
     }
 
-    private void fixV3Scalars() {
+    private void fixV4Scalars() {
         this.version = CURRENT_SCHEMA_VERSION;
         if (this.mode == null) this.mode = ChainMode.CHAIN_MINE;
         if (this.searchAlgorithm == null) this.searchAlgorithm = SearchAlgorithm.ADJACENT_SAME;
@@ -466,7 +497,7 @@ public class ChainVeinConfig extends ConfigSchemaV3 {
     }
 
     public void save() {
-        this.fixV3Scalars();
+        this.fixV4Scalars();
         this.syncActiveConfigPresetFromCurrent();
         for (ChainMode mode : ChainMode.values()) {
             this.ensureWhitelistPreset(mode);

@@ -23,6 +23,7 @@ public class ConfigPreset {
     public int cuboidH = 3;
     public ChainVeinConfig.MiningPoint cuboidMiningPoint = ChainVeinConfig.MiningPoint.CENTER;
     public boolean directToInventory = false;
+    public boolean quickShulkerOverflow = false;
     public boolean toolProtection = false;
     public boolean diagonalEdge = false;
     public boolean diagonalCorner = false;
@@ -52,6 +53,7 @@ public class ConfigPreset {
         this.cuboidH = config.cuboidH;
         this.cuboidMiningPoint = config.cuboidMiningPoint;
         this.directToInventory = config.directToInventory;
+        this.quickShulkerOverflow = config.quickShulkerOverflow;
         this.toolProtection = config.toolProtection;
         this.diagonalEdge = config.diagonalEdge;
         this.diagonalCorner = config.diagonalCorner;
@@ -74,6 +76,7 @@ public class ConfigPreset {
         config.cuboidH = this.cuboidH;
         config.cuboidMiningPoint = this.cuboidMiningPoint != null ? this.cuboidMiningPoint : ChainVeinConfig.MiningPoint.CENTER;
         config.directToInventory = this.directToInventory;
+        config.quickShulkerOverflow = this.quickShulkerOverflow;
         config.toolProtection = this.toolProtection;
         config.diagonalEdge = this.diagonalEdge;
         config.diagonalCorner = this.diagonalCorner;

@@ -31,6 +31,7 @@
   "options.chainveinfabric.maxBlocks": "Max Blocks",
   "options.chainveinfabric.maxRadius": "Search Radius",
   "options.chainveinfabric.directToInventory": "Direct to Inventory",
+  "options.chainveinfabric.quickShulkerOverflow": "Overflow to Shulker Boxes",
   "options.chainveinfabric.toolProtection": "Tool Protection",
   "options.chainveinfabric.diagonalEdge": "Diagonal Edges (12-way)",
   "options.chainveinfabric.diagonalCorner": "Diagonal Corners (8-way)",
