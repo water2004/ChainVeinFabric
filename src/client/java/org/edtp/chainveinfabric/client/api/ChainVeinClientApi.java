@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -56,10 +57,14 @@ public final class ChainVeinClientApi {
 
         boolean directToInventory = ChainveinfabricClient.CONFIG != null
                 && ChainveinfabricClient.CONFIG.directToInventory;
+        boolean quickShulkerOverflow = directToInventory
+                && ChainveinfabricClient.CONFIG.quickShulkerOverflow
+                && QuickShulkerIntegration.isAvailable();
         int protectionCapacity = getProtectedMineCapacity(client);
         int requestedNewJobs = countNewJobs(JobType.MINE, positions);
         int added = enqueuePrepared(
-                client, JobType.MINE, positions, directToInventory, protectionCapacity);
+                client, JobType.MINE, positions, directToInventory,
+                quickShulkerOverflow, protectionCapacity);
 
         if (protectionCapacity < requestedNewJobs) {
             client.gui.setOverlayMessage(
@@ -150,12 +155,13 @@ public final class ChainVeinClientApi {
         }
 
         return enqueuePrepared(
-                client, type, positions, directToInventory, Integer.MAX_VALUE);
+                client, type, positions, directToInventory, false, Integer.MAX_VALUE);
     }
 
     private static int enqueuePrepared(Minecraft client, JobType type,
                                        Collection<BlockPos> positions,
-                                       boolean directToInventory, int maxAdds) {
+                                       boolean directToInventory, boolean quickShulkerOverflow,
+                                       int maxAdds) {
         if (maxAdds <= 0) return 0;
 
         int added = 0;
@@ -167,7 +173,7 @@ public final class ChainVeinClientApi {
             JobKey key = new JobKey(type, immutablePos);
             if (!QUEUED_JOBS.add(key)) continue;
 
-            JOBS.addLast(new Job(type, immutablePos, directToInventory,
+            JOBS.addLast(new Job(type, immutablePos, directToInventory, quickShulkerOverflow,
                     client.level.getBlockState(immutablePos)));
             if (type == JobType.MINE) activeMineJobs++;
             added++;
@@ -234,7 +240,8 @@ public final class ChainVeinClientApi {
                 Job next = JOBS.peekFirst();
                 if (next == null
                         || next.type() != first.type()
-                        || next.directToInventory() != first.directToInventory()) {
+                        || next.directToInventory() != first.directToInventory()
+                        || next.quickShulkerOverflow() != first.quickShulkerOverflow()) {
                     break;
                 }
                 batch.add(poll());
@@ -266,8 +273,14 @@ public final class ChainVeinClientApi {
 
     private static void dispatchServerBatch(Job first, List<BlockPos> positions) {
         if (first.type() == JobType.MINE) {
-            ClientPlayNetworking.send(
-                    new Chainveinfabric.ChainMinePayload(positions, first.directToInventory()));
+            if (first.quickShulkerOverflow()
+                    && ClientPlayNetworking.canSend(Chainveinfabric.ChainMineWithShulkerPayload.ID)) {
+                ClientPlayNetworking.send(new Chainveinfabric.ChainMineWithShulkerPayload(
+                        positions, first.directToInventory()));
+            } else {
+                ClientPlayNetworking.send(
+                        new Chainveinfabric.ChainMinePayload(positions, first.directToInventory()));
+            }
         } else {
             ClientPlayNetworking.send(new Chainveinfabric.ChainInteractPayload(positions));
         }
@@ -330,6 +343,7 @@ public final class ChainVeinClientApi {
     }
 
     private record Job(JobType type, BlockPos pos, boolean directToInventory,
+                       boolean quickShulkerOverflow,
                        BlockState initialState) {
     }
 
