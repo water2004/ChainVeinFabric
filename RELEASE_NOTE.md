@@ -19,7 +19,7 @@
 - Minecraft 26.1.x remains on ChainVeinFabric 3.1.0
 - Minecraft 1.21.x remains on ChainVeinFabric 2.2.1
 
-### 主要更新 / Highlights
+### 相对 3.1.0 的变更 / Changes since 3.1.0
 
 - 新增可选的“背包满后存入潜影盒”：直接进入背包后仍无法容纳的掉落物会继续尝试放入随身潜影盒
 - 仅使用 Quick Shulker 的公开 API；未安装时不显示选项，也不会加载兼容实现
@@ -34,3 +34,15 @@
 - Upgraded the config schema to v4 with v3-to-v4 migration; existing configs and presets default the new feature to off
 - Versioned the dedicated-server protocol as `chainveinfabric:mine_v4` and `chainveinfabric:interact_v4`; older versions safely fall back to client-side mode
 - Kept all public `ChainVeinClientApi` method signatures unchanged
+
+### 升级须知 / Upgrade notes
+
+- 如需使用服务端专用发包、直接进入背包或快捷潜影盒溢出收纳，客户端与服务端必须同时升级到 4.x
+- 4.x 与 1.x～3.x 混用时不会断开连接，但只能使用纯客户端模式；纯客户端模式继续遵循发包间隔
+- v3 配置会在首次加载时自动迁移到 v4，新选项默认关闭；无需手动重建配置或预设
+- 快捷潜影盒仍是可选依赖；未安装时不会显示新选项，其他连锁功能不受影响
+
+- Both client and server must run 4.x to use the dedicated protocol, Direct to Inventory, or Quick Shulker overflow
+- Mixing 4.x with 1.x–3.x does not disconnect the player, but only client-side mode is available and continues to honor Packet Interval
+- v3 configurations migrate to v4 automatically on first load; the new option defaults to off, so configs and presets do not need to be recreated
+- Quick Shulker remains optional; without it the new option stays hidden and all other chaining features continue to work
