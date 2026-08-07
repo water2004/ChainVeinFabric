@@ -274,14 +274,8 @@ public final class ChainVeinClientApi {
 
     private static void dispatchServerBatch(Job first, List<BlockPos> positions) {
         if (first.type() == JobType.MINE) {
-            if (first.quickShulkerOverflow()
-                    && ClientPlayNetworking.canSend(Chainveinfabric.ChainMineWithShulkerPayload.ID)) {
-                ClientPlayNetworking.send(new Chainveinfabric.ChainMineWithShulkerPayload(
-                        positions, first.directToInventory()));
-            } else {
-                ClientPlayNetworking.send(
-                        new Chainveinfabric.ChainMinePayload(positions, first.directToInventory()));
-            }
+            ClientPlayNetworking.send(new Chainveinfabric.ChainMinePayload(
+                    positions, first.directToInventory(), first.quickShulkerOverflow()));
         } else {
             ClientPlayNetworking.send(new Chainveinfabric.ChainInteractPayload(positions));
         }

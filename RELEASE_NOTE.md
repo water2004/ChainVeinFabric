@@ -1,36 +1,36 @@
-## ChainVeinFabric v3.1.0
+## ChainVeinFabric v4.0.0
 
 > [!IMPORTANT]
-> **兼容性说明：3.x 及以后版本不再支持 Minecraft 1.21.x。** `2.2.1` 是 Minecraft 1.21.x 系列的最终版本。3.1.0 仅提供 Minecraft 26.2 与 26.1.x 构建。
+> **网络兼容性：** 4.x 服务端专用协议与 1.x～3.x 明确不兼容。版本不匹配时不会发送或解码 ChainVein 专用数据包，客户端会自动退回纯客户端模式；直接进入背包和快捷潜影盒溢出收纳将不可用。
 >
-> **Compatibility: Minecraft 1.21.x is no longer supported starting with the 3.x series.** `2.2.1` is the final release for Minecraft 1.21.x. Version 3.1.0 is released only for Minecraft 26.2 and 26.1.x.
+> **Network compatibility:** The 4.x dedicated-server protocol is intentionally incompatible with 1.x–3.x. Mismatched versions do not send or decode ChainVein payloads and automatically fall back to client-side mode, where Direct to Inventory and Quick Shulker overflow are unavailable.
 
 ### 支持版本 / Supported versions
 
-- Minecraft 26.2：需要 MaLiLib 0.29.2 或更高版本；可选安装 Litematica 0.28.4 或更高版本
-- Minecraft 26.1.x：需要 MaLiLib 0.28.8 或更高版本；可选安装 Litematica 0.27.10 或更高版本
-- 未安装 Litematica 时，三个投影模式及其直达快捷键不会显示，其他功能不受影响
+- Minecraft 26.2：需要 MaLiLib 0.29.2 或更高版本
+- 可选安装 Litematica 0.28.4 或更高版本
+- 可选安装兼容的 Quick Shulker 3.0.2-26.2 或更高版本
+- Minecraft 26.1.x 继续使用 ChainVeinFabric 3.1.0
+- Minecraft 1.21.x 继续使用 ChainVeinFabric 2.2.1
 
-- Minecraft 26.2: requires MaLiLib 0.29.2 or newer; Litematica 0.28.4 or newer is optional
-- Minecraft 26.1.x: requires MaLiLib 0.28.8 or newer; Litematica 0.27.10 or newer is optional
-- Without Litematica installed, the three schematic modes and their direct hotkeys remain hidden; all other features continue to work
+- Minecraft 26.2: requires MaLiLib 0.29.2 or newer
+- Litematica 0.28.4 or newer is optional
+- A compatible Quick Shulker 3.0.2-26.2 or newer is optional
+- Minecraft 26.1.x remains on ChainVeinFabric 3.1.0
+- Minecraft 1.21.x remains on ChainVeinFabric 2.2.1
 
 ### 主要更新 / Highlights
 
-- 新增“切换到下一个模式”快捷键；循环切换只经过当前可用的模式
-- 为六种模式分别新增直达快捷键，可一键切换至采集、种植、交互或任一投影模式
-- 快捷键页面新增“模式快捷键切换后开启连锁”开关，可在切换模式的同时立即启用连锁
-- 未安装 Litematica 时，不注册、不显示三个投影模式的直达快捷键，循环切换也会自动跳过这些模式
-- 种植模式下，目标白名单快捷键现在读取主手物品；只有可种植物品才能加入或移出白名单
-- GUI、白名单快捷键和实际连锁种植共用同一套可种植物品判定，避免配置与执行行为不一致
-- 配置界面改为响应式布局：高 GUI Scale 或较窄窗口下会自动压缩或折叠页眉与操作控件、为滚动条保留空间、调整列表宽度，并在空间不足时切换为单列表页签；预设页和长方块名称也会自适应可用宽度
-- 更新项目文档：默认 README 改为英文，并提供完整的简体中文版本
+- 新增可选的“背包满后存入潜影盒”：直接进入背包后仍无法容纳的掉落物会继续尝试放入随身潜影盒
+- 仅使用 Quick Shulker 的公开 API；未安装时不显示选项，也不会加载兼容实现
+- 玩家背包和潜影盒都无法容纳的剩余物仍会正常掉落，不会吞物品
+- 配置 schema 升级到 v4，并处理 v3 到 v4 的迁移；现有配置和配置预设默认关闭新功能
+- 服务端专用协议升级为 `chainveinfabric:mine_v4` 与 `chainveinfabric:interact_v4`；旧版本会安全退回纯客户端模式
+- `ChainVeinClientApi` 的公开方法签名保持不变
 
-- Added a Next Mode hotkey that cycles through currently available modes only
-- Added a direct hotkey for each of the six modes, allowing one-key switching to Mining, Planting, Utility, or any schematic mode
-- Added an Enable Chaining after Mode Hotkey option that can turn chaining on immediately when a mode hotkey is used
-- When Litematica is absent, the three schematic direct hotkeys are neither registered nor shown, and mode cycling skips those modes
-- In Planting mode, the target-whitelist hotkey now reads the main-hand item and accepts only plantable items
-- The GUI, whitelist hotkey, and actual chain-planting execution now share one plantable-item check so configuration and behavior remain consistent
-- Made the configuration GUI responsive: high GUI scales and narrow windows now compact or collapse header/action controls, reserve scrollbar space, resize lists, switch to a single-list tab layout when needed, and keep preset rows and long block names within the available width
-- Updated the project documentation with English as the default README and a complete Simplified Chinese version
+- Added optional **Overflow to Shulker Boxes** storage after Direct to Inventory fills the player inventory
+- Uses only Quick Shulker's public API; the option and linked implementation stay unavailable when the mod is absent
+- Items that fit in neither the player inventory nor carried shulker boxes still drop normally
+- Upgraded the config schema to v4 with v3-to-v4 migration; existing configs and presets default the new feature to off
+- Versioned the dedicated-server protocol as `chainveinfabric:mine_v4` and `chainveinfabric:interact_v4`; older versions safely fall back to client-side mode
+- Kept all public `ChainVeinClientApi` method signatures unchanged

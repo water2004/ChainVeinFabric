@@ -23,31 +23,21 @@ import java.util.List;
 
 public class Chainveinfabric implements ModInitializer {
 
-    public static final Identifier MINE_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "mine");
-    public static final Identifier MINE_SHULKER_PACKET_ID = Identifier.fromNamespaceAndPath(
-            "chainveinfabric", "mine_shulker_overflow");
-    public static final Identifier INTERACT_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "interact");
+    public static final Identifier MINE_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "mine_v4");
+    public static final Identifier INTERACT_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "interact_v4");
 
     @Override
     public void onInitialize() {
         // Register Payloads
         PayloadTypeRegistry.serverboundPlay().register(ChainMinePayload.ID, ChainMinePayload.CODEC);
-        PayloadTypeRegistry.serverboundPlay().register(
-                ChainMineWithShulkerPayload.ID, ChainMineWithShulkerPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ChainInteractPayload.ID, ChainInteractPayload.CODEC);
         
         // Register Mine Receiver
         ServerPlayNetworking.registerGlobalReceiver(ChainMinePayload.ID, (payload, context) -> {
             context.server().execute(() -> handleMine(
-                    context.player(), payload.positions(), payload.directToInventory(), false));
+                    context.player(), payload.positions(), payload.directToInventory(),
+                    payload.quickShulkerOverflow()));
         });
-
-        if (QuickShulkerIntegration.isAvailable()) {
-            ServerPlayNetworking.registerGlobalReceiver(ChainMineWithShulkerPayload.ID, (payload, context) -> {
-                context.server().execute(() -> handleMine(
-                        context.player(), payload.positions(), payload.directToInventory(), true));
-            });
-        }
 
         // Register Interact Receiver (Handles Planting, Waxing, Stripping, etc.)
         ServerPlayNetworking.registerGlobalReceiver(ChainInteractPayload.ID, (payload, context) -> {
@@ -135,30 +125,15 @@ public class Chainveinfabric implements ModInitializer {
         }
     }
 
-    public record ChainMinePayload(List<BlockPos> positions, boolean directToInventory) implements CustomPacketPayload {
+    public record ChainMinePayload(List<BlockPos> positions, boolean directToInventory,
+                                   boolean quickShulkerOverflow) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ChainMinePayload> ID = new CustomPacketPayload.Type<>(MINE_PACKET_ID);
         public static final StreamCodec<RegistryFriendlyByteBuf, ChainMinePayload> CODEC = StreamCodec.composite(
                 BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list()), ChainMinePayload::positions,
                 ByteBufCodecs.BOOL, ChainMinePayload::directToInventory,
+                ByteBufCodecs.BOOL, ChainMinePayload::quickShulkerOverflow,
                 ChainMinePayload::new
         );
-
-        @Override
-        public Type<? extends CustomPacketPayload> type() { return ID; }
-    }
-
-    public record ChainMineWithShulkerPayload(
-            List<BlockPos> positions, boolean directToInventory) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<ChainMineWithShulkerPayload> ID =
-                new CustomPacketPayload.Type<>(MINE_SHULKER_PACKET_ID);
-        public static final StreamCodec<RegistryFriendlyByteBuf, ChainMineWithShulkerPayload> CODEC =
-                StreamCodec.composite(
-                        BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list()),
-                        ChainMineWithShulkerPayload::positions,
-                        ByteBufCodecs.BOOL,
-                        ChainMineWithShulkerPayload::directToInventory,
-                        ChainMineWithShulkerPayload::new
-                );
 
         @Override
         public Type<? extends CustomPacketPayload> type() { return ID; }
