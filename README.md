@@ -21,6 +21,7 @@ It works on vanilla servers in client-side mode and gains additional capabilitie
 - **Tool Protection:** Dynamically limits the chain count to preserve a 10-durability safety buffer.
 - **Anti-Kick Protection:** Configure the packet interval used with vanilla servers.
 - **Optional Server Support:** A server installation enables efficient batch processing and Direct to Inventory.
+- **Optional Quick Shulker Overflow:** After Direct to Inventory fills the player inventory, remaining drops can be stored in carried shulker boxes.
 
 ### Optional Litematica integration
 
@@ -33,6 +34,14 @@ When Litematica is installed, ChainVeinFabric exposes three additional mining mo
 The Extra and Wrong modes can optionally follow Litematica's current render-layer range. Their search and whitelist import both respect this setting. Litematica-only modes and direct hotkeys are hidden when Litematica is not installed, and mode cycling skips them.
 
 Every schematic mode supports manual whitelist editing and one-click import. Import replaces the active whitelist with the matching block types found in the current mode scope. It scans loaded chunks immediately and skips unloaded chunks without waiting for them.
+
+### Optional Quick Shulker integration
+
+When the compatible [Quick Shulker fork](https://github.com/water2004/quickshulker) is installed on both the client and server, the Advanced page exposes **Overflow to Shulker Boxes**. This setting only applies when **Direct to Inventory** is enabled.
+
+This integration is currently available in the Minecraft 26.2 build.
+
+ChainVein first inserts drops into the normal player inventory, then tries carried shulker boxes in inventory order. It uses Quick Shulker's public insertion rules, so nested shulker boxes remain prohibited. Anything that still does not fit drops into the world normally. The integration is optional and its setting is hidden when Quick Shulker is absent.
 
 ---
 
@@ -86,6 +95,7 @@ Every schematic mode supports manual whitelist editing and one-click import. Imp
 | **Packet Interval** | Delay between vanilla-server packets. |
 | **Tool Protection** | Limits the operation to preserve a 10-durability buffer. |
 | **Direct to Inventory** | Requires ChainVeinFabric on the server and is disabled otherwise. |
+| **Overflow to Shulker Boxes** | Requires Quick Shulker on both sides; stores Direct to Inventory overflow in carried shulker boxes. |
 | **Show Outlines** | Displays a preview of the current search result. |
 | **Respect Render Layer** | Extra/Wrong modes only; limits matching and import to Litematica's render range. |
 | **Mode Hotkeys** | Cycle to the next available mode or switch directly to any available mode. |
@@ -100,6 +110,7 @@ Every schematic mode supports manual whitelist editing and one-click import. Imp
 - **Minecraft:** Current 3.x builds target Minecraft 26.1.x and 26.2.x. Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
 - **MaLiLib:** Required on the client.
 - **Litematica:** Optional. Only the three schematic modes depend on it.
+- **Quick Shulker:** Optional. Enables shulker-box storage for Direct to Inventory overflow when installed on both sides.
 - **Mod Menu:** Optional configuration entry point.
 
 ### Client and server behavior
@@ -111,6 +122,7 @@ Every schematic mode supports manual whitelist editing and one-click import. Imp
 2. **Modded server (mod installed):**
    - The client sends the resolved positions through the ChainVein protocol.
    - The server processes them efficiently and supports **Direct to Inventory**.
+   - With compatible Quick Shulker installations on both sides, overflow can be stored in carried shulker boxes.
    - The packet interval is not required.
 
 ---
