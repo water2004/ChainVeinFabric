@@ -179,6 +179,11 @@ public class GuiChainVein extends GuiConfigsBase {
     public GuiChainVein() {
         super(20, 40, "chainveinfabric", null, "options.chainveinfabric.chainVein");
         this.setConfigWidth(108);
+        this.setHoverInfoProvider(config -> {
+            String key = config.getName() + ".comment";
+            String comment = StringUtils.translate(key);
+            return comment.equals(key) ? null : comment;
+        });
         ConfigProxies.load();
         ConfigProxies.ALGO.setValueChangeCallback((config) -> {
             ConfigProxies.save();
