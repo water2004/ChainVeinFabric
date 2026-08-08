@@ -52,15 +52,41 @@ public final class ChainVeinClientApi {
                 && ChainveinfabricClient.CONFIG.quickShulkerOverflow
                 && QuickShulkerIntegration.isAvailable();
         int protectionCapacity = getProtectedMineCapacity(client);
-        int added = enqueuePrepared(
-                client, JobType.MINE, positions, directToInventory,
-                quickShulkerOverflow, protectionCapacity);
+        int added;
+        if (canUseServerProtocol(JobType.MINE)) {
+            added = dispatchMineServerBatchImmediately(
+                    positions, directToInventory, quickShulkerOverflow, protectionCapacity);
+        } else {
+            added = enqueuePrepared(
+                    client, JobType.MINE, positions, directToInventory,
+                    quickShulkerOverflow, protectionCapacity);
+        }
 
         if (protectionCapacity < positions.size()) {
             client.gui.setOverlayMessage(
                     Component.translatable("message.chainveinfabric.protection"), false);
         }
         return added;
+    }
+
+    private static int dispatchMineServerBatchImmediately(Collection<BlockPos> positions,
+                                                           boolean directToInventory,
+                                                           boolean quickShulkerOverflow,
+                                                           int maxAdds) {
+        if (maxAdds <= 0) return 0;
+
+        List<BlockPos> batch = new ArrayList<>();
+        int limit = Math.min(MAX_QUEUED_JOBS, maxAdds);
+        for (BlockPos pos : positions) {
+            if (batch.size() >= limit) break;
+            if (pos != null) batch.add(pos.immutable());
+        }
+
+        if (!batch.isEmpty()) {
+            ClientPlayNetworking.send(new Chainveinfabric.ChainMinePayload(
+                    batch, directToInventory, quickShulkerOverflow));
+        }
+        return batch.size();
     }
 
     public static int queuePlantJobs(Minecraft client, Collection<BlockPos> positions) {
