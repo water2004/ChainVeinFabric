@@ -11,7 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
@@ -20,30 +19,22 @@ import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * ChainVein 的客户端作业 API。
  *
- * <p>搜索逻辑和外部 Mod 都只向这里提交已经确定的坐标。API 统一负责坐标去重、
- * 作业排队、服务端协议批量发送，以及服务端未安装 ChainVein 时的原版客户端发包回退。</p>
+ * <p>搜索逻辑和外部 Mod 都只向这里提交已经确定的坐标。API 统一负责作业排队、
+ * 服务端协议批量发送，以及服务端未安装 ChainVein 时的原版客户端发包回退。</p>
  */
 @Environment(EnvType.CLIENT)
 public final class ChainVeinClientApi {
     public static final int MAX_QUEUED_JOBS = 10_000;
 
     private static final ArrayDeque<Job> JOBS = new ArrayDeque<>();
-    private static final Set<JobKey> QUEUED_JOBS = new HashSet<>();
-    private static final Map<BlockPos, PendingMine> PENDING_MINES = new HashMap<>();
 
     private static ClientLevel queuedLevel;
     private static int tickCounter;
-    private static long clientTick;
     private static int activeMineJobs;
     private static boolean dispatching;
 
@@ -61,12 +52,11 @@ public final class ChainVeinClientApi {
                 && ChainveinfabricClient.CONFIG.quickShulkerOverflow
                 && QuickShulkerIntegration.isAvailable();
         int protectionCapacity = getProtectedMineCapacity(client);
-        int requestedNewJobs = countNewJobs(JobType.MINE, positions);
         int added = enqueuePrepared(
                 client, JobType.MINE, positions, directToInventory,
                 quickShulkerOverflow, protectionCapacity);
 
-        if (protectionCapacity < requestedNewJobs) {
+        if (protectionCapacity < positions.size()) {
             client.gui.setOverlayMessage(
                     Component.translatable("message.chainveinfabric.protection"), false);
         }
@@ -104,9 +94,6 @@ public final class ChainVeinClientApi {
             queuedLevel = client.level;
         }
 
-        clientTick++;
-        updatePendingMines(client);
-
         if (JOBS.isEmpty()) {
             tickCounter = 0;
             return;
@@ -139,11 +126,8 @@ public final class ChainVeinClientApi {
 
     public static void clear() {
         JOBS.clear();
-        QUEUED_JOBS.clear();
-        PENDING_MINES.clear();
         queuedLevel = null;
         tickCounter = 0;
-        clientTick = 0L;
         activeMineJobs = 0;
         dispatching = false;
     }
@@ -170,11 +154,7 @@ public final class ChainVeinClientApi {
             if (pos == null) continue;
 
             BlockPos immutablePos = pos.immutable();
-            JobKey key = new JobKey(type, immutablePos);
-            if (!QUEUED_JOBS.add(key)) continue;
-
-            JOBS.addLast(new Job(type, immutablePos, directToInventory, quickShulkerOverflow,
-                    client.level.getBlockState(immutablePos)));
+            JOBS.addLast(new Job(type, immutablePos, directToInventory, quickShulkerOverflow));
             if (type == JobType.MINE) activeMineJobs++;
             added++;
         }
@@ -193,23 +173,11 @@ public final class ChainVeinClientApi {
         return true;
     }
 
-    private static int countNewJobs(JobType type, Collection<BlockPos> positions) {
-        Set<JobKey> newJobs = new HashSet<>();
-        for (BlockPos pos : positions) {
-            if (pos == null) continue;
-            JobKey key = new JobKey(type, pos);
-            if (!QUEUED_JOBS.contains(key)) {
-                newJobs.add(key);
-            }
-        }
-        return newJobs.size();
-    }
-
     /**
      * 返回在当前工具保护设置下还能安全接收的挖掘作业数。
      *
-     * <p>activeMineJobs 同时包含尚未发出的作业和等待世界状态确认的作业，
-     * 因此连续调用公共 API 也不会绕过耐久余量。</p>
+     * <p>activeMineJobs 包含尚未发出的作业，避免同一客户端 tick 内连续提交
+     * 多批任务时绕过耐久余量。</p>
      */
     private static int getProtectedMineCapacity(Minecraft client) {
         if (ChainveinfabricClient.CONFIG == null
@@ -248,18 +216,16 @@ public final class ChainVeinClientApi {
             }
 
             dispatchServerBatch(first, batch.stream().map(Job::pos).toList());
-            for (Job job : batch) markPendingMine(job);
             return;
         }
 
         dispatchClientJob(client, first);
-        markPendingMine(first);
     }
 
     private static Job poll() {
         Job job = JOBS.pollFirst();
-        if (job != null && job.type() != JobType.MINE) {
-            QUEUED_JOBS.remove(new JobKey(job.type(), job.pos()));
+        if (job != null && job.type() == JobType.MINE) {
+            activeMineJobs = Math.max(0, activeMineJobs - 1);
         }
         return job;
     }
@@ -302,26 +268,6 @@ public final class ChainVeinClientApi {
         }
     }
 
-    private static void markPendingMine(Job job) {
-        if (job.type() != JobType.MINE) return;
-        PENDING_MINES.put(job.pos(),
-                new PendingMine(job.initialState(), clientTick + 100L));
-    }
-
-    private static void updatePendingMines(Minecraft client) {
-        Iterator<Map.Entry<BlockPos, PendingMine>> iterator = PENDING_MINES.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<BlockPos, PendingMine> entry = iterator.next();
-            PendingMine pending = entry.getValue();
-            if (clientTick >= pending.expiresAtTick()
-                    || !client.level.getBlockState(entry.getKey()).equals(pending.initialState())) {
-                iterator.remove();
-                QUEUED_JOBS.remove(new JobKey(JobType.MINE, entry.getKey()));
-                activeMineJobs = Math.max(0, activeMineJobs - 1);
-            }
-        }
-    }
-
     private static boolean isClientReady(Minecraft client) {
         return client != null
                 && client.level != null
@@ -337,13 +283,7 @@ public final class ChainVeinClientApi {
     }
 
     private record Job(JobType type, BlockPos pos, boolean directToInventory,
-                       boolean quickShulkerOverflow,
-                       BlockState initialState) {
+                       boolean quickShulkerOverflow) {
     }
 
-    private record JobKey(JobType type, BlockPos pos) {
-    }
-
-    private record PendingMine(BlockState initialState, long expiresAtTick) {
-    }
 }
