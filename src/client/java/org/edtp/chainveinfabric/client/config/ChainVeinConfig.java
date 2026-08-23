@@ -87,30 +87,9 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
 
         try (FileReader reader = new FileReader(CONFIG_PATH.toFile())) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            int storedVersion = root.has("version") ? root.get("version").getAsInt() : 1;
-            if (storedVersion == 2) {
-                ConfigSchemaV2 v2 = GSON.fromJson(root, ConfigSchemaV2.class);
-                ChainVeinConfig config = migrateV3ToV4(migrateV2ToV3(v2));
-                config.save();
-                return config;
-            }
-
-            if (storedVersion == 3) {
-                ConfigSchemaV3 v3 = GSON.fromJson(root, ConfigSchemaV3.class);
-                ChainVeinConfig config = migrateV3ToV4(v3);
-                config.save();
-                return config;
-            }
-
-            if (storedVersion == CURRENT_SCHEMA_VERSION) {
-                ChainVeinConfig config = GSON.fromJson(root, ChainVeinConfig.class);
-                if (config == null) config = createFresh();
-                boolean whitelistChanged = config.fixV4();
-                if (whitelistChanged) config.save();
-                return config;
-            }
-
-            return createFresh();
+            DecodedConfig decoded = decode(root);
+            if (decoded.needsSave()) decoded.config().save();
+            return decoded.config();
         } catch (Exception e) {
             // Config file is invalid, create a new one with default values.
             ChainVeinConfig config = createFresh();
@@ -489,6 +468,33 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
         if (preset.id.equals(this.getActiveWhitelistPresetId(mode))) {
             this.activeWhitelists.put(mode, preset.entries);
         }
+    }
+
+    static DecodedConfig decode(JsonObject root) {
+        int storedVersion = root != null && root.has("version")
+                ? root.get("version").getAsInt()
+                : 1;
+
+        if (storedVersion == 2) {
+            ConfigSchemaV2 v2 = GSON.fromJson(root, ConfigSchemaV2.class);
+            return new DecodedConfig(migrateV3ToV4(migrateV2ToV3(v2)), true);
+        }
+
+        if (storedVersion == 3) {
+            ConfigSchemaV3 v3 = GSON.fromJson(root, ConfigSchemaV3.class);
+            return new DecodedConfig(migrateV3ToV4(v3), true);
+        }
+
+        if (storedVersion == CURRENT_SCHEMA_VERSION) {
+            ChainVeinConfig config = GSON.fromJson(root, ChainVeinConfig.class);
+            if (config == null) config = createFresh();
+            return new DecodedConfig(config, config.fixV4());
+        }
+
+        return new DecodedConfig(createFresh(), false);
+    }
+
+    record DecodedConfig(ChainVeinConfig config, boolean needsSave) {
     }
 
     private static String sanitizePresetName(String name, String fallback) {

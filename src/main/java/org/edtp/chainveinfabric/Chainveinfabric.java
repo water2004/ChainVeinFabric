@@ -69,8 +69,8 @@ public class Chainveinfabric implements ModInitializer {
         });
     }
 
-    private static void handleMine(ServerPlayer player, List<BlockPos> positions,
-                                   boolean directToInventory, boolean quickShulkerOverflow) {
+    static void handleMine(ServerPlayer player, List<BlockPos> positions,
+                           boolean directToInventory, boolean quickShulkerOverflow) {
         ServerLevel world = (ServerLevel) player.level();
         ItemStack tool = player.getMainHandItem();
         boolean isCreative = player.isCreative();
