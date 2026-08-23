@@ -13,6 +13,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.logic.InteractionBatchPlanner;
 
 import java.util.List;
 
@@ -41,8 +42,6 @@ public class InteractLogic {
             client.level.getBlockState(p).is(targetSoil) && 
             client.level.getBlockState(p.above()).isAir()
         );
-
-        if (targets.size() <= 1) return;
 
         executeInteract(client, pos, targets, stack, "message.chainveinfabric.planted", true);
     }
@@ -73,8 +72,6 @@ public class InteractLogic {
             return true;
         });
 
-        if (targets.size() <= 1) return;
-
         executeInteract(client, pos, targets, stack, "message.chainveinfabric.processed", false);
     }
 
@@ -84,36 +81,34 @@ public class InteractLogic {
 
         boolean isEmptyHand = stack.isEmpty();
         boolean isDamageable = stack.isDamageableItem();
-        int configLimit = ChainveinfabricClient.CONFIG.maxChainBlocks;
-        int available = client.player.isCreative() ? configLimit : (isEmptyHand || isDamageable ? configLimit : stack.getCount());
-        boolean limitedByDurability = false;
-        
-        if (!client.player.isCreative() && isDamageable && ChainveinfabricClient.CONFIG.toolProtection) {
-            int remainingDurability = stack.getMaxDamage() - stack.getDamageValue();
-            int safeLimit = Math.max(0, remainingDurability - 10);
-            if (safeLimit < available) {
-                available = safeLimit;
-                limitedByDurability = true;
-            }
-        }
-        
-        int count = Math.min(targets.size(), available);
-        List<BlockPos> finalSubList = targets.subList(0, count);
+        int remainingDurability = isDamageable
+                ? stack.getMaxDamage() - stack.getDamageValue()
+                : Integer.MAX_VALUE;
+        InteractionBatchPlanner.Plan plan = InteractionBatchPlanner.create(
+                targets,
+                startPos,
+                ChainveinfabricClient.CONFIG.maxChainBlocks,
+                stack.getCount(),
+                client.player.isCreative(),
+                isEmptyHand,
+                isDamageable,
+                ChainveinfabricClient.CONFIG.toolProtection,
+                remainingDurability
+        );
 
-        if (limitedByDurability && targets.size() > available) {
+        if (plan.limitedByDurability()) {
             client.gui.hud.setOverlayMessage(Component.translatable("message.chainveinfabric.protection"), false);
         }
 
-        List<BlockPos> queuedPositions = new java.util.ArrayList<>(finalSubList);
-        queuedPositions.remove(startPos);
+        List<BlockPos> queuedPositions = plan.queuedPositions();
+        if (queuedPositions.isEmpty()) return;
+
         if (planting) {
             ChainVeinClientApi.queuePlantJobs(client, queuedPositions);
         } else {
             ChainVeinClientApi.queueUseJobs(client, queuedPositions);
         }
 
-        if (finalSubList.size() > 1) {
-            client.gui.hud.setOverlayMessage(Component.translatable(translationKey, finalSubList.size()), false);
-        }
+        client.gui.hud.setOverlayMessage(Component.translatable(translationKey, plan.affectedCount()), false);
     }
 }
