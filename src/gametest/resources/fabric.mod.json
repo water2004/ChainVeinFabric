@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "chainveinfabric-gametest",
+  "version": "1.0.0",
+  "name": "ChainVeinFabric Game Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "org.edtp.chainveinfabric.ChainVeinServerGameTests"
+    ],
+    "fabric-client-gametest": [
+      "org.edtp.chainveinfabric.gametest.PlantingClientGameTest"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*",
+    "chainveinfabric": "*"
+  }
+}
