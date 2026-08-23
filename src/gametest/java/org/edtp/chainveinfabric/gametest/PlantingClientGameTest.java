@@ -3,6 +3,7 @@ package org.edtp.chainveinfabric.gametest;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -57,6 +58,7 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                     && client.player.getMainHandItem().getCount() == FIELD_SIZE * FIELD_SIZE);
 
             context.runOnClient(client -> {
+                client.player.lookAt(EntityAnchorArgument.Anchor.EYES, START.getCenter());
                 ChainVeinConfig config = ChainveinfabricClient.CONFIG;
                 config.isChainVeinEnabled = true;
                 config.mode = ChainVeinConfig.ChainMode.CHAIN_PLANT;
@@ -71,7 +73,6 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                 ChainVeinClientApi.clear();
             });
 
-            context.getInput().lookAt(START);
             context.waitTick();
             context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
                     && hit.getBlockPos().equals(START));
@@ -136,6 +137,7 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                 && client.player.getMainHandItem().getItem() == Items.DIAMOND_SHOVEL);
 
         context.runOnClient(client -> {
+            client.player.lookAt(EntityAnchorArgument.Anchor.EYES, MINE_START.getCenter());
             ChainVeinConfig config = ChainveinfabricClient.CONFIG;
             config.isChainVeinEnabled = true;
             config.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
@@ -151,7 +153,6 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             ChainVeinClientApi.clear();
         });
 
-        context.getInput().lookAt(MINE_START);
         context.waitTick();
         BlockPos aim = context.computeOnClient(client -> {
             if (client.hitResult instanceof BlockHitResult hit) {

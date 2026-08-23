@@ -1,8 +1,10 @@
 package org.edtp.chainveinfabric;
 
+import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -12,6 +14,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import java.util.UUID;
 
 public final class ChainVeinServerGameTests {
     @GameTest
@@ -29,7 +32,16 @@ public final class ChainVeinServerGameTests {
             helper.setBlock(target, Blocks.DIRT);
         }
 
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = new ServerPlayer(
+                helper.getLevel().getServer(),
+                helper.getLevel(),
+                new GameProfile(UUID.randomUUID(), "chainvein-gametest"),
+                ClientInformation.createDefault()) {
+            @Override
+            public GameType gameMode() {
+                return GameType.SURVIVAL;
+            }
+        };
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
         Vec3 center = Vec3.atCenterOf(absoluteTargets.getFirst());
         // Fabric's mock player intentionally has no network connection. Use the
