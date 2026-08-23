@@ -68,6 +68,10 @@ test {
     useJUnitPlatform()
 }
 
+tasks.named("runClientGameTest") {
+    jvmArgs "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
+}
+
 processResources {
     inputs.property "version", project.version
     inputs.property "minecraft_version", project.minecraft_version
