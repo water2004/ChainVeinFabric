@@ -22,10 +22,15 @@ public final class MineLogic {
     private MineLogic() {
     }
 
-    public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
+    /**
+     * Starts a chain search and returns whether the server protocol took
+     * ownership of the clicked block. Callers must suppress vanilla's second
+     * destroy path when this returns true.
+     */
+    public static boolean perform(Minecraft client, BlockPos pos, BlockState targetState) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
         if (config == null || client.level == null || client.player == null
-                || !config.mode.isManualMiningMode()) return;
+                || !config.mode.isManualMiningMode()) return false;
 
         SearchConfig searchConfig = SearchConfig.from(config);
         LitematicaContext litematicaContext = LitematicaIntegration.createContext(
@@ -36,12 +41,11 @@ public final class MineLogic {
                     && !litematicaContext.matches(client.level, pos))
                 || (!client.player.isCreative()
                     && targetState.getDestroySpeed(client.level, pos) < 0.0F)) {
-            return;
+            return false;
         }
+        boolean serverHandledOrigin = false;
         if (ChainVeinClientApi.canUseServerMiningProtocol()) {
-            // Preserve packet ordering: the origin must reach the server before
-            // vanilla's STOP_DESTROY_BLOCK packet produced by the outer action.
-            ChainVeinClientApi.queueMineJobs(client, List.of(pos));
+            serverHandledOrigin = ChainVeinClientApi.queueMineJobs(client, List.of(pos)) == 1;
         }
         SearchRequest request = SearchRequest.targeted(
                 (ClientLevel) client.level, pos, targetState, client.player.getDirection(),
@@ -50,6 +54,7 @@ public final class MineLogic {
         ChainveinfabricClient.getSearchService().submit(
                 request, SearchService.Priority.ACTION, result -> result,
                 result -> applyResult(client, result));
+        return serverHandledOrigin;
     }
 
     private static void applyResult(Minecraft client, SearchResult result) {

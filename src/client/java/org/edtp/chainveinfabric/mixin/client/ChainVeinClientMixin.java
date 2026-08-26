@@ -28,7 +28,7 @@ public abstract class ChainVeinClientMixin {
 
     private BlockState capturedState;
 
-    @Inject(method = "destroyBlock", at = @At("HEAD"))
+    @Inject(method = "destroyBlock", at = @At("HEAD"), cancellable = true)
     private void onBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (ChainVeinClientApi.isDispatching() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
@@ -38,7 +38,9 @@ public abstract class ChainVeinClientMixin {
         }
 
         BlockState state = minecraft.level.getBlockState(pos);
-        MineLogic.perform(minecraft, pos, state);
+        if (MineLogic.perform(minecraft, pos, state)) {
+            cir.setReturnValue(true);
+        }
     }
 
     @Inject(method = "useItemOn", at = @At("HEAD"))
