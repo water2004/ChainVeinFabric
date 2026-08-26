@@ -6,7 +6,8 @@
   "environment": "*",
   "entrypoints": {
     "fabric-gametest": [
-      "org.edtp.chainveinfabric.ChainVeinServerGameTests"
+      "org.edtp.chainveinfabric.ChainVeinServerGameTests",
+      "org.edtp.chainveinfabric.QuickShulkerServerGameTests"
     ],
     "fabric-client-gametest": [
       "org.edtp.chainveinfabric.gametest.PlantingClientGameTest"
@@ -16,6 +17,7 @@
     "fabricloader": "*",
     "fabric-api": "*",
     "minecraft": "*",
-    "chainveinfabric": "*"
+    "chainveinfabric": "*",
+    "quickshulker": "*"
   }
 }
