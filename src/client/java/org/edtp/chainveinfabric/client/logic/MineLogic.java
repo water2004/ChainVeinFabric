@@ -22,12 +22,17 @@ public final class MineLogic {
     private MineLogic() {
     }
 
+    public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
+        performAndClaimOrigin(client, pos, targetState);
+    }
+
     /**
      * Starts a chain search and returns whether the server protocol took
      * ownership of the clicked block. Callers must suppress vanilla's second
      * destroy path when this returns true.
      */
-    public static boolean perform(Minecraft client, BlockPos pos, BlockState targetState) {
+    public static boolean performAndClaimOrigin(
+            Minecraft client, BlockPos pos, BlockState targetState) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
         if (config == null || client.level == null || client.player == null
                 || !config.mode.isManualMiningMode()) return false;
