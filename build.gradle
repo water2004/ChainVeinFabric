@@ -61,7 +61,20 @@ dependencies {
     compileOnly "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
     compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
 
-    gametestImplementation "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
+    def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
+            .orElse("legacy").get()
+    def quickShulkerGameTestJar = providers.gradleProperty("quickshulkerGameTestJar")
+            .orNull
+    if (quickShulkerGameTestMode == "new") {
+        if (quickShulkerGameTestJar == null || !file(quickShulkerGameTestJar).exists()) {
+            throw new GradleException("new Quick Shulker GameTest requires -PquickshulkerGameTestJar=<jar>")
+        }
+        gametestImplementation files(quickShulkerGameTestJar)
+    } else if (quickShulkerGameTestMode == "legacy") {
+        gametestImplementation "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
+    } else if (quickShulkerGameTestMode != "none") {
+        throw new GradleException("quickshulkerGameTestMode must be none, legacy, or new")
+    }
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
 
@@ -71,6 +84,10 @@ test {
 
 tasks.named("runClientGameTest") {
     jvmArgs "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
+}
+
+tasks.named("runGameTest") {
+    jvmArgs "-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}"
 }
 
 processResources {
