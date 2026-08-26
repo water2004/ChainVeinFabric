@@ -1,82 +1,79 @@
 package org.edtp.chainveinfabric.client.logic;
 
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
+
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
+import org.edtp.chainveinfabric.client.logic.search.SearchConfig;
+import org.edtp.chainveinfabric.client.logic.search.SearchRequest;
+import org.edtp.chainveinfabric.client.logic.search.SearchResult;
+import org.edtp.chainveinfabric.client.logic.search.SearchService;
 
-import java.util.List;
+public final class MineLogic {
+    private MineLogic() {
+    }
 
-public class MineLogic {
     public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        var whitelist = config.getWhitelist(config.mode);
+        if (config == null || client.level == null || client.player == null
+                || !config.mode.isManualMiningMode()) return;
+
+        SearchConfig searchConfig = SearchConfig.from(config);
         LitematicaContext litematicaContext = LitematicaIntegration.createContext(
-                config.mode,
-                config.respectSchematicRenderLayer
-        );
-        Direction face = Direction.UP;
-        if (client.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit) {
-            face = hit.getDirection();
+                config.mode, config.respectSchematicRenderLayer);
+        String targetId = ChainVeinConfig.getWhitelistItemId(targetState.getBlock());
+        if (targetId == null || !searchConfig.whitelist().contains(targetId)
+                || (config.mode.isSchematicMode()
+                    && !litematicaContext.matches(client.level, pos))
+                || (!client.player.isCreative()
+                    && targetState.getDestroySpeed(client.level, pos) < 0.0F)) {
+            return;
         }
-
-        java.util.function.Predicate<BlockPos> predicate = p -> {
-            BlockState s = client.level.getBlockState(p);
-            String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
-
-            if (id == null || !whitelist.contains(id)) {
-                return false;
-            }
-
-            if (config.mode.isSchematicMode() && !litematicaContext.matches(client.level, p)) {
-                return false;
-            }
-
-            if (config.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
-                return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
-            }
-            return true;
-        };
-
-        if (!predicate.test(pos)) return;
-
-        List<BlockPos> toBreak = ChainSearcher.search(client, pos, face, predicate);
-
-        if (toBreak.isEmpty()) return;
-
-        boolean isCreative = client.player.isCreative();
-        
-        if (!isCreative) {
-            toBreak.removeIf(p -> {
-                BlockState s = client.level.getBlockState(p);
-                return s.getDestroySpeed(client.level, p) < 0.0F;
-            });
+        if (ChainVeinClientApi.canUseServerMiningProtocol()) {
+            // Preserve packet ordering: the origin must reach the server before
+            // vanilla's STOP_DESTROY_BLOCK packet produced by the outer action.
+            ChainVeinClientApi.queueMineJobs(client, List.of(pos));
         }
+        SearchRequest request = SearchRequest.targeted(
+                (ClientLevel) client.level, pos, targetState, client.player.getDirection(),
+                searchConfig, litematicaContext, client.player.isCreative());
 
-        if (toBreak.isEmpty()) return;
+        ChainveinfabricClient.getSearchService().submit(
+                request, SearchService.Priority.ACTION, result -> result,
+                result -> applyResult(client, result));
+    }
 
-        int maxBlocks = ChainveinfabricClient.CONFIG.maxChainBlocks;
+    private static void applyResult(Minecraft client, SearchResult result) {
+        if (!isStillValid(client, result.request())) return;
 
-        List<BlockPos> finalBreakList = toBreak;
-        if (toBreak.size() > maxBlocks) {
-            finalBreakList = toBreak.subList(0, maxBlocks);
-        }
-
-        if (finalBreakList.isEmpty()) return;
-
-        int affectedCount = finalBreakList.size();
-        int queuedCount = ChainVeinClientApi.queueMineJobs(client, finalBreakList);
-
-        if (queuedCount == affectedCount && affectedCount > 1) {
+        List<BlockPos> remaining = result.positions().stream()
+                .filter(pos -> !pos.equals(result.request().origin()))
+                .toList();
+        int affectedCount = remaining.size() + 1;
+        int queuedCount = ChainVeinClientApi.queueMineJobs(client, remaining);
+        if (queuedCount == remaining.size() && affectedCount > 1) {
             client.gui.setOverlayMessage(
                     Component.translatable("message.chainveinfabric.broken", affectedCount), false);
         }
     }
 
+    private static boolean isStillValid(Minecraft client, SearchRequest request) {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        if (config == null || client.level != request.level() || client.player == null
+                || !config.isChainVeinEnabled || !config.mode.isManualMiningMode()
+                || !SearchConfig.from(config).equals(request.config())) return false;
+
+        LitematicaContext currentContext = LitematicaIntegration.createContext(
+                config.mode, config.respectSchematicRenderLayer);
+        return currentContext.fingerprint() == request.litematicaContext().fingerprint();
+    }
 }

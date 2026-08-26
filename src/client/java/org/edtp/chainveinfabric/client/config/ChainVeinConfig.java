@@ -15,6 +15,7 @@ import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV2;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV3;
 import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV4;
+import org.edtp.chainveinfabric.client.config.schema.ConfigSchemaV5;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -30,13 +31,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class ChainVeinConfig extends ConfigSchemaV4 {
+public class ChainVeinConfig extends ConfigSchemaV5 {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chainveinfabric.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int CURRENT_SCHEMA_VERSION = 4;
+    private static final int CURRENT_SCHEMA_VERSION = 5;
 
     public enum ChainMode {
         CHAIN_MINE,
+        AUTO_MINE,
         CHAIN_PLANT,
         CHAIN_UTILITY,
         SCHEMATIC_SELECTION,
@@ -44,7 +46,11 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
         SCHEMATIC_WRONG;
 
         public boolean isMiningMode() {
-            return this == CHAIN_MINE || this.isSchematicMode();
+            return this == CHAIN_MINE || this == AUTO_MINE || this.isSchematicMode();
+        }
+
+        public boolean isManualMiningMode() {
+            return this != AUTO_MINE && this.isMiningMode();
         }
 
         public boolean isInteractionMode() {
@@ -99,7 +105,7 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
 
     private static ChainVeinConfig createFresh() {
         ChainVeinConfig config = new ChainVeinConfig();
-        config.fixV4Scalars();
+        config.fixV5Scalars();
         config.createDefaultPresets();
         config.applyActivePresets();
         return config;
@@ -113,23 +119,38 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
         return v3;
     }
 
-    private static ChainVeinConfig migrateV3ToV4(ConfigSchemaV3 v3) {
-        if (v3 == null) return createFresh();
+    private static ConfigSchemaV4 migrateV3ToV4(ConfigSchemaV3 v3) {
+        if (v3 == null) return null;
+
+        ConfigSchemaV4 v4 = new ConfigSchemaV4();
+        copyV2Fields(v3, v4);
+        copyV3Fields(v3, v4);
+        v4.quickShulkerOverflow = false;
+        return v4;
+    }
+
+    private static ChainVeinConfig migrateV4ToV5(ConfigSchemaV4 v4) {
+        if (v4 == null) return createFresh();
 
         ChainVeinConfig config = new ChainVeinConfig();
-        copyV2Fields(v3, config);
-        config.respectSchematicRenderLayer = v3.respectSchematicRenderLayer;
-        config.enableChainVeinOnModeHotkey = v3.enableChainVeinOnModeHotkey;
-        config.cycleModeHotkey = v3.cycleModeHotkey;
-        config.switchToMineModeHotkey = v3.switchToMineModeHotkey;
-        config.switchToPlantModeHotkey = v3.switchToPlantModeHotkey;
-        config.switchToUtilityModeHotkey = v3.switchToUtilityModeHotkey;
-        config.switchToSchematicSelectionModeHotkey = v3.switchToSchematicSelectionModeHotkey;
-        config.switchToSchematicExtraModeHotkey = v3.switchToSchematicExtraModeHotkey;
-        config.switchToSchematicWrongModeHotkey = v3.switchToSchematicWrongModeHotkey;
-        config.quickShulkerOverflow = false;
-        config.fixV4();
+        copyV2Fields(v4, config);
+        copyV3Fields(v4, config);
+        config.quickShulkerOverflow = v4.quickShulkerOverflow;
+        config.switchToAutoMineModeHotkey = "";
+        config.fixV5();
         return config;
+    }
+
+    private static void copyV3Fields(ConfigSchemaV3 source, ConfigSchemaV3 target) {
+        target.respectSchematicRenderLayer = source.respectSchematicRenderLayer;
+        target.enableChainVeinOnModeHotkey = source.enableChainVeinOnModeHotkey;
+        target.cycleModeHotkey = source.cycleModeHotkey;
+        target.switchToMineModeHotkey = source.switchToMineModeHotkey;
+        target.switchToPlantModeHotkey = source.switchToPlantModeHotkey;
+        target.switchToUtilityModeHotkey = source.switchToUtilityModeHotkey;
+        target.switchToSchematicSelectionModeHotkey = source.switchToSchematicSelectionModeHotkey;
+        target.switchToSchematicExtraModeHotkey = source.switchToSchematicExtraModeHotkey;
+        target.switchToSchematicWrongModeHotkey = source.switchToSchematicWrongModeHotkey;
     }
 
     private static void copyV2Fields(ConfigSchemaV2 source, ConfigSchemaV2 target) {
@@ -162,8 +183,8 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
                 : new LinkedHashMap<>();
     }
 
-    private boolean fixV4() {
-        this.fixV4Scalars();
+    private boolean fixV5() {
+        this.fixV5Scalars();
         if (this.configPresets == null) this.configPresets = new ArrayList<>();
         if (this.whitelistPresets == null) this.whitelistPresets = new LinkedHashMap<>();
         if (this.activeWhitelistPresetIds == null) this.activeWhitelistPresetIds = new LinkedHashMap<>();
@@ -194,7 +215,7 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
         return whitelistChanged || structureChanged;
     }
 
-    private void fixV4Scalars() {
+    private void fixV5Scalars() {
         this.version = CURRENT_SCHEMA_VERSION;
         if (this.mode == null) this.mode = ChainMode.CHAIN_MINE;
         if (this.searchAlgorithm == null) this.searchAlgorithm = SearchAlgorithm.ADJACENT_SAME;
@@ -205,6 +226,7 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
         if (this.toggleTargetWhitelistHotkey == null) this.toggleTargetWhitelistHotkey = "";
         if (this.cycleModeHotkey == null) this.cycleModeHotkey = "";
         if (this.switchToMineModeHotkey == null) this.switchToMineModeHotkey = "";
+        if (this.switchToAutoMineModeHotkey == null) this.switchToAutoMineModeHotkey = "";
         if (this.switchToPlantModeHotkey == null) this.switchToPlantModeHotkey = "";
         if (this.switchToUtilityModeHotkey == null) this.switchToUtilityModeHotkey = "";
         if (this.switchToSchematicSelectionModeHotkey == null) this.switchToSchematicSelectionModeHotkey = "";
@@ -477,18 +499,23 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
 
         if (storedVersion == 2) {
             ConfigSchemaV2 v2 = GSON.fromJson(root, ConfigSchemaV2.class);
-            return new DecodedConfig(migrateV3ToV4(migrateV2ToV3(v2)), true);
+            return new DecodedConfig(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(v2))), true);
         }
 
         if (storedVersion == 3) {
             ConfigSchemaV3 v3 = GSON.fromJson(root, ConfigSchemaV3.class);
-            return new DecodedConfig(migrateV3ToV4(v3), true);
+            return new DecodedConfig(migrateV4ToV5(migrateV3ToV4(v3)), true);
+        }
+
+        if (storedVersion == 4) {
+            ConfigSchemaV4 v4 = GSON.fromJson(root, ConfigSchemaV4.class);
+            return new DecodedConfig(migrateV4ToV5(v4), true);
         }
 
         if (storedVersion == CURRENT_SCHEMA_VERSION) {
             ChainVeinConfig config = GSON.fromJson(root, ChainVeinConfig.class);
             if (config == null) config = createFresh();
-            return new DecodedConfig(config, config.fixV4());
+            return new DecodedConfig(config, config.fixV5());
         }
 
         return new DecodedConfig(createFresh(), false);
@@ -503,7 +530,7 @@ public class ChainVeinConfig extends ConfigSchemaV4 {
     }
 
     public void save() {
-        this.fixV4Scalars();
+        this.fixV5Scalars();
         this.syncActiveConfigPresetFromCurrent();
         for (ChainMode mode : ChainMode.values()) {
             this.ensureWhitelistPreset(mode);

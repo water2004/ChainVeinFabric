@@ -109,6 +109,10 @@ public final class ChainVeinClientApi {
         return activeMineJobs > 0;
     }
 
+    public static boolean canUseServerMiningProtocol() {
+        return canUseServerProtocol(JobType.MINE);
+    }
+
     public static void tick(Minecraft client) {
         if (!isClientReady(client)) {
             clear();
