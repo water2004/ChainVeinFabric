@@ -1,35 +1,14 @@
 package org.edtp.chainveinfabric.client.logic;
 
-import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 public class ChainSearcher {
-
-    public static List<BlockPos> search(Minecraft client, BlockPos pos, Direction side, Predicate<BlockPos> predicate) {
-        Set<BlockPos> result;
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        Level world = client.level;
-
-        switch (config.searchAlgorithm) {
-            case SPHERE -> result = findSphere(world, pos, config.sphereRadius, s -> predicate.test(s));
-            case SQUARE -> result = findSquare(world, pos, config.squareLength, config.squareMiningPoint, client.player, s -> predicate.test(s));
-            case CUBOID -> result = findCuboid(world, pos, config.cuboidL, config.cuboidW, config.cuboidH, config.cuboidMiningPoint, client.player, s -> predicate.test(s));
-            default -> result = findBlocks(world, pos, config.maxChainBlocks, config.maxRadius, s -> predicate.test(s), config.diagonalEdge, config.diagonalCorner);
-        }
-
-        return result.stream()
-                .sorted(Comparator.comparingDouble(p -> p.distSqr(pos)))
-                .collect(Collectors.toList());
-    }
 
     public static Set<BlockPos> findBlocks(Level world, BlockPos startPos, int maxBlocks, int maxRadius, Predicate<BlockPos> predicate, boolean diagonalEdge, boolean diagonalCorner) {
         Set<BlockPos> result = new HashSet<>();
@@ -82,16 +61,8 @@ public class ChainSearcher {
         return result;
     }
 
-    public static Set<BlockPos> findSquare(Level world, BlockPos startPos, int length, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate) {
-        return findSquare(world, startPos, length, point, player.getDirection(), predicate);
-    }
-
     public static Set<BlockPos> findSquare(Level world, BlockPos startPos, int length, ChainVeinConfig.MiningPoint point, Direction facing, Predicate<BlockPos> predicate) {
         return findCuboidInternal(world, startPos, length, length, 1, point, facing, predicate, true);
-    }
-
-    public static Set<BlockPos> findCuboid(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Player player, Predicate<BlockPos> predicate) {
-        return findCuboid(world, startPos, l, w, h, point, player.getDirection(), predicate);
     }
 
     public static Set<BlockPos> findCuboid(Level world, BlockPos startPos, int l, int w, int h, ChainVeinConfig.MiningPoint point, Direction facing, Predicate<BlockPos> predicate) {

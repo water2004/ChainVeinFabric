@@ -4,53 +4,34 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
-import java.util.function.Predicate;
 
 import fi.dy.masa.malilib.util.data.Color4f;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
-import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
-import org.edtp.chainveinfabric.client.logic.ChainSearcher;
+import org.edtp.chainveinfabric.client.logic.search.SearchRequest;
+import org.edtp.chainveinfabric.client.logic.search.SearchResult;
+import org.edtp.chainveinfabric.client.logic.search.SearchService;
 
-public class SearchWorker implements Runnable {
+/** Owns preview state while delegating the actual search to the shared worker. */
+public class SearchWorker {
 
     private static final float LINE_WIDTH = 2.0f;
     private static final double EXPAND = 0.001;
     private static final Color4f COLOR_MINE = new Color4f(0.0f, 1.0f, 1.0f, 0.7f);
     private static final Color4f COLOR_PLANT = new Color4f(0.0f, 1.0f, 0.0f, 0.7f);
     private static final Color4f COLOR_UTILITY = new Color4f(1.0f, 1.0f, 0.0f, 0.7f);
+    private static final Color4f COLOR_AUTO_MINE = new Color4f(1.0f, 0.55f, 0.0f, 0.7f);
     private static final Color4f COLOR_SCHEMATIC_SELECTION = new Color4f(0.0f, 1.0f, 1.0f, 0.7f);
     private static final Color4f COLOR_SCHEMATIC_EXTRA = new Color4f(1.0f, 0.0f, 0.8f, 0.7f);
     private static final Color4f COLOR_SCHEMATIC_WRONG = new Color4f(1.0f, 0.2f, 0.2f, 0.7f);
 
-    private final Thread thread;
-    private volatile boolean running = true;
+    private final SearchService searchService;
     private volatile OutlineData currentData;
 
-    // Signalled by main thread, consumed by worker
-    private final AtomicInteger generation = new AtomicInteger(0);
-    private volatile ConfigSnapshot configSnapshot;
-    private volatile BlockPos targetPos;
-    private volatile BlockState targetState;
-    private volatile Direction hitFace;
-    private volatile Direction playerFacing;
-    private volatile ClientLevel world;
-    private volatile LitematicaContext litematicaContext = LitematicaContext.NONE;
-
-    public SearchWorker() {
-        this.thread = new Thread(this, "ChainVeinFabric-OutlineWorker");
-        this.thread.setDaemon(true);
-    }
-
-    public void start() {
-        this.thread.start();
+    public SearchWorker(SearchService searchService) {
+        this.searchService = searchService;
     }
 
     public OutlineData getCurrentData() {
@@ -61,139 +42,33 @@ public class SearchWorker implements Runnable {
      * Called from main thread to immediately clear rendered outlines.
      */
     public void clear() {
+        this.searchService.nextPreviewGeneration();
         this.currentData = null;
     }
 
     /**
      * Called from main thread (ClientTick) to trigger a new search.
      */
-    public void signal(int gen, ConfigSnapshot config, BlockPos target,
-                        BlockState state, Direction face, Direction pFacing,
-                        ClientLevel level, LitematicaContext context) {
-        this.configSnapshot = config;
-        this.targetPos = target;
-        this.targetState = state;
-        this.hitFace = face;
-        this.playerFacing = pFacing;
-        this.world = level;
-        this.litematicaContext = context;
-        this.generation.set(gen);
-        LockSupport.unpark(this.thread);
+    public void signal(SearchRequest request) {
+        int generation = this.searchService.nextPreviewGeneration();
+        this.searchService.submitPreview(
+                request,
+                generation,
+                result -> toOutline(result, generation),
+                data -> this.currentData = data);
     }
 
-    @Override
-    public void run() {
-        int lastProcessedGen = -1;
-
-        while (running) {
-            LockSupport.park();
-
-            if (!running) break;
-
-            int currentGen = generation.get();
-            if (currentGen == lastProcessedGen) continue; // spurious wakeup
-
-            lastProcessedGen = currentGen;
-
-            ConfigSnapshot snap = this.configSnapshot;
-            BlockPos pos = this.targetPos;
-            BlockState state = this.targetState;
-            Direction face = this.hitFace;
-            Direction pFacing = this.playerFacing;
-            ClientLevel level = this.world;
-            LitematicaContext context = this.litematicaContext;
-
-            if (snap == null || pos == null || state == null || level == null) continue;
-
-            try {
-                Predicate<BlockPos> predicate = buildPredicate(level, pos, snap, state, context);
-                List<BlockPos> searchResult = doSearch(level, pos, pFacing, snap, predicate);
-
-                if (searchResult.isEmpty()) {
-                    this.currentData = null;
-                    continue;
-                }
-
-                Set<BlockPos> resultSet = new HashSet<>(searchResult);
-                Color4f color = colorForMode(snap.mode());
-                List<LineSegment> lines = buildOutlineLines(resultSet, color);
-
-                this.currentData = new OutlineData(List.copyOf(lines), currentGen);
-            } catch (Exception e) {
-                // World read inconsistency or chunk unload — discard this result
-                this.currentData = null;
-            }
-        }
-    }
-
-    // ─── Search dispatch (uses snapshot + Direction, no Minecraft/Player access) ───
-
-    private List<BlockPos> doSearch(ClientLevel level, BlockPos pos, Direction playerFacing,
-                                     ConfigSnapshot snap, Predicate<BlockPos> predicate) {
-        if (!predicate.test(pos)) return List.of();
-
-        Set<BlockPos> result = switch (snap.searchAlgorithm()) {
-            case SPHERE -> ChainSearcher.findSphere(level, pos, snap.sphereRadius(), predicate);
-            case SQUARE -> ChainSearcher.findSquare(level, pos, snap.squareLength(),
-                    snap.squareMiningPoint(), playerFacing, predicate);
-            case CUBOID -> ChainSearcher.findCuboid(level, pos, snap.cuboidL(), snap.cuboidW(),
-                    snap.cuboidH(), snap.cuboidMiningPoint(), playerFacing, predicate);
-            default -> ChainSearcher.findBlocks(level, pos, snap.maxChainBlocks(), snap.maxRadius(),
-                    predicate, snap.diagonalEdge(), snap.diagonalCorner());
-        };
-
-        List<BlockPos> sorted = new ArrayList<>(result);
-        sorted.sort(java.util.Comparator.comparingDouble(p -> p.distSqr(pos)));
-        return sorted;
-    }
-
-    // ─── Predicate building (same as MineLogic/InteractLogic) ───
-
-    private Predicate<BlockPos> buildPredicate(ClientLevel world, BlockPos targetPos,
-                                                ConfigSnapshot snap, BlockState targetState,
-                                                LitematicaContext context) {
-        return switch (snap.mode()) {
-            case CHAIN_MINE -> {
-                yield p -> {
-                    BlockState s = world.getBlockState(p);
-                    String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
-                    if (id == null || !snap.whitelist().contains(id)) return false;
-                    if (snap.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME)
-                        return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
-                    return true;
-                };
-            }
-            case CHAIN_PLANT -> {
-                Block targetSoil = targetState.getBlock();
-                yield p -> world.getBlockState(p).is(targetSoil)
-                        && world.getBlockState(p.above()).isAir();
-            }
-            case CHAIN_UTILITY -> {
-                yield p -> {
-                    BlockState s = world.getBlockState(p);
-                    String id = ChainVeinConfig.getWhitelistItemId(s.getBlock());
-                    if (id == null || !snap.whitelist().contains(id)) return false;
-                    if (snap.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME)
-                        return id.equals(ChainVeinConfig.getWhitelistItemId(targetState.getBlock()));
-                    return true;
-                };
-            }
-            case SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> {
-                String targetId = ChainVeinConfig.getWhitelistItemId(targetState.getBlock());
-                yield p -> {
-                    BlockState state = world.getBlockState(p);
-                    String id = ChainVeinConfig.getWhitelistItemId(state.getBlock());
-                    if (id == null || !snap.whitelist().contains(id) || !context.matches(world, p)) return false;
-                    return snap.searchAlgorithm() != ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME
-                            || id.equals(targetId);
-                };
-            }
-        };
+    private OutlineData toOutline(SearchResult result, int generation) {
+        if (result.positions().isEmpty()) return null;
+        Set<BlockPos> resultSet = new HashSet<>(result.positions());
+        Color4f color = colorForMode(result.request().config().mode());
+        return new OutlineData(List.copyOf(buildOutlineLines(resultSet, color)), generation);
     }
 
     private static Color4f colorForMode(ChainVeinConfig.ChainMode mode) {
         return switch (mode) {
             case CHAIN_MINE -> COLOR_MINE;
+            case AUTO_MINE -> COLOR_AUTO_MINE;
             case CHAIN_PLANT -> COLOR_PLANT;
             case CHAIN_UTILITY -> COLOR_UTILITY;
             case SCHEMATIC_SELECTION -> COLOR_SCHEMATIC_SELECTION;

@@ -20,8 +20,11 @@ import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
-import org.edtp.chainveinfabric.client.renderer.ConfigSnapshot;
 import org.edtp.chainveinfabric.client.renderer.SearchWorker;
+import org.edtp.chainveinfabric.client.logic.AutoMiningController;
+import org.edtp.chainveinfabric.client.logic.search.SearchConfig;
+import org.edtp.chainveinfabric.client.logic.search.SearchRequest;
+import org.edtp.chainveinfabric.client.logic.search.SearchService;
 import fi.dy.masa.malilib.event.InputEventHandler;
 
 public class ChainveinfabricClient implements ClientModInitializer {
@@ -31,8 +34,15 @@ public class ChainveinfabricClient implements ClientModInitializer {
     // Outline preview state
     private static BlockPos outlineLastTarget = null;
     private static long outlineLastConfigHash = 0;
-    private static int outlineGeneration = 0;
+    private static Direction outlineLastFacing;
+    private static int outlineAutoRefreshTicks;
+    private static SearchService searchService;
+    private static AutoMiningController autoMiningController;
     private static SearchWorker outlineWorker;
+
+    public static SearchService getSearchService() {
+        return searchService;
+    }
 
     @Override
     public void onInitializeClient() {
@@ -44,13 +54,16 @@ public class ChainveinfabricClient implements ClientModInitializer {
         InputEventHandler.getKeybindManager().registerKeybindProvider(ChainVeinInputHandler.getInstance());
         InputEventHandler.getKeybindManager().updateUsedKeys();
 
-        outlineWorker = new SearchWorker();
-        outlineWorker.start();
+        searchService = new SearchService(Minecraft.getInstance());
+        searchService.start();
+        autoMiningController = new AutoMiningController(searchService);
+        outlineWorker = new SearchWorker(searchService);
         RenderEventHandler.getInstance().registerWorldLastRenderer(new BlockOutlineRenderer(outlineWorker));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ChainVeinClientApi.tick(client);
             WhitelistImportService.tick(client);
+            autoMiningController.tick(client);
             onOutlineTick(client);
         });
 
@@ -73,26 +86,40 @@ public class ChainveinfabricClient implements ClientModInitializer {
     private static void onOutlineTick(Minecraft client) {
         if (CONFIG == null || !CONFIG.isChainVeinEnabled || !CONFIG.showBlockOutlines) {
             outlineLastTarget = null;
+            outlineLastFacing = null;
+            outlineAutoRefreshTicks = 0;
             if (outlineWorker != null) outlineWorker.clear();
             return;
         }
 
-        BlockPos target = null;
-        Direction face = Direction.UP;
-        if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
-            BlockHitResult blockHit = (BlockHitResult) client.hitResult;
-            target = blockHit.getBlockPos();
-            face = blockHit.getDirection();
+        if (client.level == null || client.player == null) {
+            outlineLastTarget = null;
+            outlineLastFacing = null;
+            outlineAutoRefreshTicks = 0;
+            if (outlineWorker != null) outlineWorker.clear();
+            return;
+        }
+
+        boolean automatic = CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE;
+        boolean periodicRefresh = automatic && ++outlineAutoRefreshTicks >= 5;
+        if (!automatic) outlineAutoRefreshTicks = 0;
+        BlockPos target = automatic ? client.player.blockPosition() : null;
+        if (!automatic && client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
+            target = ((BlockHitResult) client.hitResult).getBlockPos();
         }
 
         if (target == null || client.level == null || client.player == null) {
             outlineLastTarget = null;
+            outlineLastFacing = null;
+            outlineAutoRefreshTicks = 0;
             if (outlineWorker != null) outlineWorker.clear();
             return;
         }
 
-        if (client.level.getBlockState(target).isAir()) {
+        if (!automatic && client.level.getBlockState(target).isAir()) {
             outlineLastTarget = null;
+            outlineLastFacing = null;
+            outlineAutoRefreshTicks = 0;
             if (outlineWorker != null) outlineWorker.clear();
             return;
         }
@@ -104,22 +131,23 @@ public class ChainveinfabricClient implements ClientModInitializer {
         long configHash = computeOutlineConfigHash(CONFIG, litematicaContext);
         boolean configChanged = (configHash != outlineLastConfigHash);
         boolean targetChanged = !target.equals(outlineLastTarget);
+        boolean facingChanged = client.player.getDirection() != outlineLastFacing;
 
-        if (!configChanged && !targetChanged) return;
+        if (!configChanged && !targetChanged && !facingChanged && !periodicRefresh) return;
 
         outlineLastTarget = target;
+        outlineLastFacing = client.player.getDirection();
+        outlineAutoRefreshTicks = 0;
         outlineLastConfigHash = configHash;
 
-        outlineWorker.signal(
-            ++outlineGeneration,
-            ConfigSnapshot.from(CONFIG),
-            target,
-            client.level.getBlockState(target),
-            face,
-            client.player.getDirection(),
-            (ClientLevel) client.level,
-            litematicaContext
-        );
+        SearchConfig searchConfig = SearchConfig.from(CONFIG);
+        SearchRequest request = automatic
+                ? SearchRequest.automatic((ClientLevel) client.level, target,
+                        client.player.getDirection(), searchConfig, client.player.isCreative())
+                : SearchRequest.targeted((ClientLevel) client.level, target,
+                        client.level.getBlockState(target), client.player.getDirection(),
+                        searchConfig, litematicaContext, client.player.isCreative());
+        outlineWorker.signal(request);
     }
 
     private static long computeOutlineConfigHash(ChainVeinConfig config, LitematicaContext litematicaContext) {

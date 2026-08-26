@@ -32,7 +32,7 @@ public abstract class ChainVeinClientMixin {
     private void onBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (ChainVeinClientApi.isDispatching() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
-            !ChainveinfabricClient.CONFIG.mode.isMiningMode() ||
+            !ChainveinfabricClient.CONFIG.mode.isManualMiningMode() ||
             minecraft.level == null || minecraft.player == null) {
             return;
         }

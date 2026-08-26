@@ -367,6 +367,7 @@ public class GuiChainVein extends GuiConfigsBase {
         }
 
         configs.add(ConfigProxies.ALGO);
+        boolean automatic = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE;
 
         switch ((ConfigProxies.MAlgo) ConfigProxies.ALGO.getOptionListValue()) {
             case SPHERE:
@@ -374,13 +375,13 @@ public class GuiChainVein extends GuiConfigsBase {
                 break;
             case SQUARE:
                 configs.add(ConfigProxies.SQUARE_LENGTH);
-                configs.add(ConfigProxies.SQUARE_POINT);
+                if (!automatic) configs.add(ConfigProxies.SQUARE_POINT);
                 break;
             case CUBOID:
                 configs.add(ConfigProxies.CUBOID_L);
                 configs.add(ConfigProxies.CUBOID_W);
                 configs.add(ConfigProxies.CUBOID_H);
-                configs.add(ConfigProxies.CUBOID_POINT);
+                if (!automatic) configs.add(ConfigProxies.CUBOID_POINT);
                 break;
             default:
                 break;
@@ -1384,7 +1385,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private String getWhitelistTitleKey() {
         return switch (ChainveinfabricClient.CONFIG.mode) {
-            case CHAIN_MINE, SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
+            case CHAIN_MINE, AUTO_MINE, SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
             case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
             case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
         };

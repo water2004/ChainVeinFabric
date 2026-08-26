@@ -17,7 +17,13 @@ public class ConfigProxies {
     public enum MAlgo implements IConfigOptionListEntry {
         ADJACENT_SAME, ADJACENT_WHITELIST, SPHERE, SQUARE, CUBOID;
         @Override public String getStringValue() { return this.name(); }
-        @Override public String getDisplayName() { return StringUtils.translate("options.chainveinfabric.searchAlgorithm." + this.name().toLowerCase()); }
+        @Override public String getDisplayName() {
+            if (this == ADJACENT_SAME && ChainveinfabricClient.CONFIG != null
+                    && ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE) {
+                return StringUtils.translate("options.chainveinfabric.searchAlgorithm.adjacent_same.autoUnavailable");
+            }
+            return StringUtils.translate("options.chainveinfabric.searchAlgorithm." + this.name().toLowerCase());
+        }
         @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
         @Override public IConfigOptionListEntry fromString(String value) { try { return valueOf(value); } catch(Exception e) { return ADJACENT_SAME; } }
     }
@@ -61,6 +67,7 @@ public class ConfigProxies {
     public static final ConfigHotkey TOGGLE_CHAIN_VEIN = new ConfigHotkey("options.chainveinfabric.toggleChainVeinHotkey", "", "");
     public static final ConfigHotkey CYCLE_MODE = new ConfigHotkey("options.chainveinfabric.cycleModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_MINE_MODE = new ConfigHotkey("options.chainveinfabric.switchToMineModeHotkey", "", "");
+    public static final ConfigHotkey SWITCH_TO_AUTO_MINE_MODE = new ConfigHotkey("options.chainveinfabric.switchToAutoMineModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_PLANT_MODE = new ConfigHotkey("options.chainveinfabric.switchToPlantModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_UTILITY_MODE = new ConfigHotkey("options.chainveinfabric.switchToUtilityModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_SCHEMATIC_SELECTION_MODE = new ConfigHotkey("options.chainveinfabric.switchToSchematicSelectionModeHotkey", "", "");
@@ -79,6 +86,7 @@ public class ConfigProxies {
             TOGGLE_CHAIN_VEIN,
             CYCLE_MODE,
             SWITCH_TO_MINE_MODE,
+            SWITCH_TO_AUTO_MINE_MODE,
             SWITCH_TO_PLANT_MODE,
             SWITCH_TO_UTILITY_MODE,
             SWITCH_TO_SCHEMATIC_SELECTION_MODE,
@@ -110,6 +118,7 @@ public class ConfigProxies {
         TOGGLE_CHAIN_VEIN.setValueChangeCallback(c -> { if (!loading) save(); });
         CYCLE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_MINE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
+        SWITCH_TO_AUTO_MINE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_PLANT_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_UTILITY_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
@@ -152,6 +161,7 @@ public class ConfigProxies {
             TOGGLE_CHAIN_VEIN.setValueFromString(config.toggleChainVeinHotkey);
             CYCLE_MODE.setValueFromString(config.cycleModeHotkey);
             SWITCH_TO_MINE_MODE.setValueFromString(config.switchToMineModeHotkey);
+            SWITCH_TO_AUTO_MINE_MODE.setValueFromString(config.switchToAutoMineModeHotkey);
             SWITCH_TO_PLANT_MODE.setValueFromString(config.switchToPlantModeHotkey);
             SWITCH_TO_UTILITY_MODE.setValueFromString(config.switchToUtilityModeHotkey);
             SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueFromString(config.switchToSchematicSelectionModeHotkey);
@@ -187,6 +197,7 @@ public class ConfigProxies {
         config.toggleChainVeinHotkey = TOGGLE_CHAIN_VEIN.getStringValue();
         config.cycleModeHotkey = CYCLE_MODE.getStringValue();
         config.switchToMineModeHotkey = SWITCH_TO_MINE_MODE.getStringValue();
+        config.switchToAutoMineModeHotkey = SWITCH_TO_AUTO_MINE_MODE.getStringValue();
         config.switchToPlantModeHotkey = SWITCH_TO_PLANT_MODE.getStringValue();
         config.switchToUtilityModeHotkey = SWITCH_TO_UTILITY_MODE.getStringValue();
         config.switchToSchematicSelectionModeHotkey = SWITCH_TO_SCHEMATIC_SELECTION_MODE.getStringValue();
@@ -209,6 +220,7 @@ public class ConfigProxies {
     public static ConfigHotkey getModeHotkey(ChainVeinConfig.ChainMode mode) {
         return switch (mode) {
             case CHAIN_MINE -> SWITCH_TO_MINE_MODE;
+            case AUTO_MINE -> SWITCH_TO_AUTO_MINE_MODE;
             case CHAIN_PLANT -> SWITCH_TO_PLANT_MODE;
             case CHAIN_UTILITY -> SWITCH_TO_UTILITY_MODE;
             case SCHEMATIC_SELECTION -> SWITCH_TO_SCHEMATIC_SELECTION_MODE;
