@@ -48,6 +48,7 @@
   "narration.allblocks.usage": "所有可用方块",
   "narration.allitems.usage": "所有可用物品",
   "hud.chainveinfabric.active": "连锁模式已开启",
+  "hud.chainveinfabric.autoMineActive": "警告：自动挖掘正在运行",
   "message.chainveinfabric.broken": "连锁采集了 %d 个方块",
   "message.chainveinfabric.planted": "连锁种植了 %d 个作物",
   "message.chainveinfabric.processed": "连锁处理了 %d 个方块",
