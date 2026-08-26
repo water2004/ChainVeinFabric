@@ -38,7 +38,7 @@ public abstract class ChainVeinClientMixin {
         }
 
         BlockState state = minecraft.level.getBlockState(pos);
-        if (MineLogic.perform(minecraft, pos, state)) {
+        if (MineLogic.performAndClaimOrigin(minecraft, pos, state)) {
             cir.setReturnValue(true);
         }
     }
