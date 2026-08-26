@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChainVeinConfigTest {
     @Test
-    void migratesV2ThroughV3ToV4() {
+    void migratesV2ThroughV3AndV4ToV5() {
         ChainVeinConfig.DecodedConfig decoded = decode("""
                 {
                   "version": 2,
@@ -27,7 +27,7 @@ class ChainVeinConfigTest {
 
         ChainVeinConfig config = decoded.config();
         assertTrue(decoded.needsSave());
-        assertEquals(4, config.version);
+        assertEquals(5, config.version);
         assertTrue(config.isChainVeinEnabled);
         assertEquals(ChainVeinConfig.ChainMode.CHAIN_PLANT, config.mode);
         assertEquals(ChainVeinConfig.SearchAlgorithm.SPHERE, config.searchAlgorithm);
@@ -57,7 +57,7 @@ class ChainVeinConfigTest {
 
         ChainVeinConfig config = decoded.config();
         assertTrue(decoded.needsSave());
-        assertEquals(4, config.version);
+        assertEquals(5, config.version);
         assertFalse(config.respectSchematicRenderLayer);
         assertTrue(config.enableChainVeinOnModeHotkey);
         assertEquals("R", config.cycleModeHotkey);
@@ -65,10 +65,11 @@ class ChainVeinConfigTest {
     }
 
     @Test
-    void repairsIncompleteV4StructureWithoutLegacyRuntimeBranches() {
+    void migratesV4ToV5AndCreatesAutomaticMiningState() {
         ChainVeinConfig.DecodedConfig decoded = decode("""
                 {
                   "version": 4,
+                  "quickShulkerOverflow": true,
                   "mode": null,
                   "searchAlgorithm": null,
                   "configPresets": [],
@@ -79,14 +80,20 @@ class ChainVeinConfigTest {
 
         ChainVeinConfig config = decoded.config();
         assertTrue(decoded.needsSave());
+        assertEquals(5, config.version);
         assertEquals(ChainVeinConfig.ChainMode.CHAIN_MINE, config.mode);
         assertEquals(ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME, config.searchAlgorithm);
+        assertEquals("", config.switchToAutoMineModeHotkey);
+        assertTrue(config.quickShulkerOverflow);
+        assertNotNull(config.getActiveWhitelistPreset(ChainVeinConfig.ChainMode.AUTO_MINE));
         assertNotNull(config.getActiveConfigPreset());
     }
 
     @Test
     void modeCapabilitiesStayDisjoint() {
         assertTrue(ChainVeinConfig.ChainMode.CHAIN_MINE.isMiningMode());
+        assertTrue(ChainVeinConfig.ChainMode.AUTO_MINE.isMiningMode());
+        assertFalse(ChainVeinConfig.ChainMode.AUTO_MINE.isManualMiningMode());
         assertTrue(ChainVeinConfig.ChainMode.CHAIN_PLANT.isInteractionMode());
         assertTrue(ChainVeinConfig.ChainMode.CHAIN_UTILITY.isInteractionMode());
 

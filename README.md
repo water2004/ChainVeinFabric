@@ -12,12 +12,14 @@ It works on vanilla servers in client-side mode and gains additional capabilitie
 ## ✨ Features
 
 - **Chain Mining:** Mine connected matching or whitelisted blocks automatically.
+- **Automatic Mining:** Continuously searches from the player's current block position and mines nearby whitelisted blocks. It uses the existing whitelist and shape algorithms; Same-type adjacency is intentionally unavailable because there is no targeted block type.
 - **Chain Planting:** Plant compatible crops across matching soil. The planting whitelist accepts plantable items and the target-whitelist hotkey reads the item in your main hand.
 - **Chain Utility:** Batch wax copper, scrape oxidation, strip logs, till soil, and perform similar item interactions.
 - **Search Algorithms:** Same-type adjacency, whitelist adjacency, sphere, square plane, and cuboid searches. Edge and corner adjacency are configurable.
 - **Independent Whitelists and Presets:** Maintain a separate whitelist for every mode, create reusable whitelist presets, and save complete configuration presets.
 - **Mode Hotkeys:** Configure a key to cycle to the next available mode and a direct key for every mode. An optional setting immediately enables chaining after a mode hotkey is used.
-- **Search Outlines:** Preview the blocks found by the current search. Each Litematica mode has its own outline color.
+- **Unified Asynchronous Search:** Preview, manual actions, and automatic mining use the same prioritized search worker so large searches do not run on the client thread.
+- **Search Outlines:** Preview the blocks found by the current search. Automatic mining and each Litematica mode have distinct outline colors.
 - **Tool Protection:** Dynamically limits the chain count to preserve a 10-durability safety buffer.
 - **Anti-Kick Protection:** Configure the packet interval used with vanilla servers.
 - **Optional Server Support:** A server installation enables efficient batch processing and Direct to Inventory.
@@ -72,7 +74,7 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 ## 🛠️ Usage
 
 1. Press **`V`** to open the configuration screen.
-2. Select Mining, Planting, or Utility mode. The three schematic modes also appear when Litematica is installed.
+2. Select Mining, Automatic Mining, Planting, or Utility mode. The three schematic modes also appear when Litematica is installed.
 3. Configure the active whitelist:
    - In Planting mode, use a plantable item such as `carrot` or `wheat_seeds`. The target-whitelist hotkey adds or removes the plantable item held in your main hand.
    - In other modes, the target-whitelist hotkey adds or removes the block under your crosshair.
@@ -80,6 +82,7 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 4. Open the Hotkeys page to bind next-mode, direct-mode, chain toggle, and target-whitelist shortcuts. Enable **Enable Chaining after Mode Hotkey** if switching modes should also turn chaining on.
 5. Perform the corresponding action:
    - Break a matching block to mine.
+   - In Automatic Mining, move near whitelisted blocks; the mod searches continuously from your current block position and mines reachable results.
    - Right-click compatible soil while holding a whitelisted plantable item to plant.
    - Right-click with the relevant tool or item to run a utility interaction.
 
@@ -89,8 +92,8 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 
 | Option | Description |
 | :--- | :--- |
-| **Chain Mode** | Mining, Planting, Utility, or one of the three optional Litematica modes. |
-| **Search Algorithm** | Same-type adjacency, whitelist adjacency, sphere, square plane, or cuboid. |
+| **Chain Mode** | Mining, Automatic Mining, Planting, Utility, or one of the three optional Litematica modes. |
+| **Search Algorithm** | Same-type adjacency, whitelist adjacency, sphere, square plane, or cuboid. Same-type adjacency is unavailable in Automatic Mining; square and cuboid searches are centered on the player. |
 | **Max Blocks** | Maximum number of blocks or interactions per action. |
 | **Max Radius** | Maximum distance from the initial position. |
 | **Diagonal Edge / Corner** | Include edge-connected or corner-connected neighbors in adjacency searches. |
@@ -151,7 +154,7 @@ ChainVeinClientApi.queuePlantJobs(client, positions);
 ChainVeinClientApi.queueUseJobs(client, positions);
 ```
 
-The API deduplicates jobs, applies the current Direct to Inventory and Tool Protection settings, and automatically chooses the dedicated-server protocol or vanilla client packets. Direct to Inventory takes effect only when the server has ChainVeinFabric installed. Callers should declare ChainVeinFabric as an optional client dependency and invoke the API only after confirming that the mod is loaded.
+The API queues jobs, applies the current Direct to Inventory and Tool Protection settings, and automatically chooses the dedicated-server protocol or vanilla client packets. Direct to Inventory takes effect only when the server has ChainVeinFabric installed. Callers should declare ChainVeinFabric as an optional client dependency and invoke the API only after confirming that the mod is loaded.
 
 The public method signatures are unchanged in 4.0.0.
 

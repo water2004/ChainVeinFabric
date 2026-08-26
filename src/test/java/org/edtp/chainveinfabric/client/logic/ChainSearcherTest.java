@@ -32,6 +32,20 @@ class ChainSearcherTest {
     }
 
     @Test
+    void adjacentWhitelistCanTraverseFromANonMatchingSyntheticOrigin() {
+        Set<BlockPos> result = ChainSearcher.findBlocks(
+                null, START, 4, 4,
+                pos -> pos.getY() == -1 && pos.getZ() == 0 && Math.abs(pos.getX()) <= 1,
+                false, false);
+
+        assertEquals(Set.of(
+                START,
+                new BlockPos(0, -1, 0),
+                new BlockPos(-1, -1, 0),
+                new BlockPos(1, -1, 0)), result);
+    }
+
+    @Test
     void sphereUsesAnInclusiveEuclideanRadius() {
         Set<BlockPos> result = ChainSearcher.findSphere(
                 null, START, 2, pos -> true);
