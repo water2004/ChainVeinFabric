@@ -20,6 +20,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
     private static final BlockPos START = new BlockPos(3, FIELD_Y, 0);
     private static final int MINE_SIZE = 5;
     private static final BlockPos MINE_START = new BlockPos(18, FIELD_Y, 0);
+    private static final int AUTO_SIZE = 3;
+    private static final BlockPos AUTO_CENTER = new BlockPos(32, FIELD_Y, 0);
 
     @Override
     public void runTest(ClientGameTestContext context) {
@@ -99,9 +101,80 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             }
 
             testServerMining(context, singleplayer);
+            testAutomaticMining(context, singleplayer);
         } finally {
             context.runOnClient(client -> ChainVeinClientApi.clear());
         }
+    }
+
+    private static void testAutomaticMining(ClientGameTestContext context,
+                                            TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new ItemStack(Items.DIAMOND_SHOVEL));
+            for (int x = -1; x <= 1; x++) {
+                for (int z = -1; z <= 1; z++) {
+                    level.setBlockAndUpdate(AUTO_CENTER.offset(x, 0, z), Blocks.DIRT.defaultBlockState());
+                }
+            }
+            level.setBlockAndUpdate(AUTO_CENTER.offset(2, 0, 0), Blocks.STONE.defaultBlockState());
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        singleplayer.getServer().runCommand("tp @p 32.5 66 0.5");
+
+        context.waitTicks(5);
+        context.waitFor(client -> client.level != null
+                && client.level.getBlockState(AUTO_CENTER).is(Blocks.DIRT)
+                && client.player != null
+                && client.player.blockPosition().getX() == AUTO_CENTER.getX());
+        context.runOnClient(client -> {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            config.isChainVeinEnabled = true;
+            config.mode = ChainVeinConfig.ChainMode.AUTO_MINE;
+            config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.SPHERE;
+            config.sphereRadius = 4;
+            config.maxChainBlocks = AUTO_SIZE * AUTO_SIZE;
+            config.directToInventory = true;
+            config.toolProtection = false;
+            config.getWhitelist(ChainVeinConfig.ChainMode.AUTO_MINE).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.AUTO_MINE).add("minecraft:dirt");
+            ChainVeinClientApi.clear();
+        });
+        context.waitTicks(30);
+
+        int remaining = singleplayer.getServer().computeOnServer(server -> {
+            int count = 0;
+            for (int x = -1; x <= 1; x++) {
+                for (int z = -1; z <= 1; z++) {
+                    if (server.overworld().getBlockState(AUTO_CENTER.offset(x, 0, z)).is(Blocks.DIRT)) {
+                        count++;
+                    }
+                }
+            }
+            if (!server.overworld().getBlockState(AUTO_CENTER.offset(2, 0, 0)).is(Blocks.STONE)) {
+                throw new AssertionError("Automatic mining broke a non-whitelisted block");
+            }
+            return count;
+        });
+        if (remaining != 0) {
+            throw new AssertionError("Automatic mining left " + remaining + " whitelisted blocks");
+        }
+
+        singleplayer.getServer().runOnServer(server ->
+                server.overworld().setBlockAndUpdate(AUTO_CENTER, Blocks.DIRT.defaultBlockState()));
+        context.waitFor(client -> client.level.getBlockState(AUTO_CENTER).is(Blocks.DIRT));
+        context.runOnClient(client ->
+                ChainveinfabricClient.CONFIG.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME);
+        context.waitTicks(15);
+        boolean stillPresent = singleplayer.getServer().computeOnServer(server ->
+                server.overworld().getBlockState(AUTO_CENTER).is(Blocks.DIRT));
+        if (!stillPresent) {
+            throw new AssertionError("Adjacent Same must not run in Automatic Mining mode");
+        }
+        context.runOnClient(client -> ChainveinfabricClient.CONFIG.isChainVeinEnabled = false);
     }
 
     private static void testServerMining(ClientGameTestContext context,
