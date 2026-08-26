@@ -48,6 +48,7 @@
   "narration.allblocks.usage": "All Available Blocks",
   "narration.allitems.usage": "All Available Items",
   "hud.chainveinfabric.active": "Chain Mode Active",
+  "hud.chainveinfabric.autoMineActive": "WARNING: AUTOMATIC MINING ACTIVE",
   "message.chainveinfabric.broken": "Chain mined %d blocks",
   "message.chainveinfabric.planted": "Chain planted %d crops",
   "message.chainveinfabric.processed": "Chain processed %d blocks",

@@ -19,6 +19,7 @@ import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
+import org.edtp.chainveinfabric.client.renderer.AutoMiningHazardHud;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
 import org.edtp.chainveinfabric.client.renderer.SearchWorker;
 import org.edtp.chainveinfabric.client.logic.AutoMiningController;
@@ -70,6 +71,10 @@ public class ChainveinfabricClient implements ClientModInitializer {
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
             if (CONFIG != null && CONFIG.isChainVeinEnabled) {
+                if (CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE) {
+                    AutoMiningHazardHud.render(context, Minecraft.getInstance().font);
+                    return;
+                }
                 Component activeText = Component.translatable("hud.chainveinfabric.active");
                 int width = context.guiWidth();
                 context.centeredText(
