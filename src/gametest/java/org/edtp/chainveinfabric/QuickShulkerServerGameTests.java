@@ -2,6 +2,7 @@ package org.edtp.chainveinfabric;
 
 import java.util.List;
 import java.util.UUID;
+import java.lang.reflect.Field;
 
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -34,6 +35,7 @@ public final class QuickShulkerServerGameTests {
     @GameTest
     public void filledShulkerFromChestRemainsIntactWhenItCannotBeNested(
             GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
         BlockPos target = new BlockPos(2, 2, 2);
         ChestBlockEntity chest = placeChest(helper, target);
         ServerPlayer player = createPlayer(helper, target);
@@ -71,6 +73,7 @@ public final class QuickShulkerServerGameTests {
 
     @GameTest
     public void chestOverflowFitsCompletelyInsideCarriedShulker(GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
         BlockPos target = new BlockPos(2, 2, 2);
         ChestBlockEntity chest = placeChest(helper, target);
         fillContainer(chest, Items.DIAMOND, 20);
@@ -97,6 +100,7 @@ public final class QuickShulkerServerGameTests {
     @GameTest
     public void excessBeyondInventoryAndShulkerCapacityRemainsOnGround(
             GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
         List<BlockPos> targets = List.of(
                 new BlockPos(1, 2, 2),
                 new BlockPos(3, 2, 2));
@@ -136,6 +140,50 @@ public final class QuickShulkerServerGameTests {
         helper.assertTrue(droppedChests > 0,
                 "Chest items beyond inventory and shulker capacity must remain on the ground");
         helper.succeed();
+    }
+
+    @GameTest
+    public void configuredQuickShulkerPathIsActuallyAvailable(GameTestHelper helper) {
+        String mode = quickShulkerMode();
+        if (mode.equals("none")) {
+            helper.assertTrue(!QuickShulkerIntegration.isAvailable(),
+                    "Quick Shulker integration must remain safely disabled when the mod is absent");
+            ItemStack remainder = new ItemStack(Items.STONE, 7);
+            ServerPlayer player = createPlayer(helper, new BlockPos(1, 1, 1));
+            helper.assertValueEqual(QuickShulkerIntegration.insertOverflow(player, remainder), 0,
+                    "Absent integration must not claim any items");
+            helper.assertValueEqual(remainder.getCount(), 7,
+                    "Absent integration must preserve the complete remainder");
+            helper.succeed();
+            return;
+        }
+
+        helper.assertTrue(QuickShulkerIntegration.isAvailable(),
+                "Configured Quick Shulker integration should be available");
+        boolean direct = directPathSelected();
+        helper.assertValueEqual(direct, mode.equals("new"),
+                "The adapter selected the wrong Quick Shulker path");
+        helper.succeed();
+    }
+
+    private static boolean skipWithoutQuickShulker(GameTestHelper helper) {
+        if (!quickShulkerMode().equals("none")) return false;
+        helper.succeed();
+        return true;
+    }
+
+    private static String quickShulkerMode() {
+        return System.getProperty("chainveinfabric.gametest.quickshulker", "legacy");
+    }
+
+    private static boolean directPathSelected() {
+        try {
+            Field field = QuickShulkerIntegration.class.getDeclaredField("directAvailable");
+            field.setAccessible(true);
+            return field.getBoolean(null);
+        } catch (ReflectiveOperationException error) {
+            throw new AssertionError("Unable to inspect the encapsulated adapter in GameTest", error);
+        }
     }
 
     private static ChestBlockEntity placeChest(GameTestHelper helper, BlockPos position) {

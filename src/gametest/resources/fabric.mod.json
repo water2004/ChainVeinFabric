@@ -17,7 +17,9 @@
     "fabricloader": "*",
     "fabric-api": "*",
     "minecraft": "*",
-    "chainveinfabric": "*",
+    "chainveinfabric": "*"
+  },
+  "suggests": {
     "quickshulker": "*"
   }
 }

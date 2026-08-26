@@ -14,27 +14,38 @@ import net.minecraft.world.item.ItemStack;
 public final class QuickShulkerIntegration {
     public static final String MOD_ID = "quickshulker";
 
-    private static boolean available = detectAvailability();
+    private static boolean legacyAvailable = detectLegacyAvailability();
+    private static boolean directAvailable = FabricLoader.getInstance().isModLoaded(MOD_ID)
+            && QuickStorageDirectBridge.isUsable();
 
     private QuickShulkerIntegration() {
     }
 
     public static boolean isAvailable() {
-        return available;
+        return directAvailable || legacyAvailable;
     }
 
     public static int insertOverflow(ServerPlayer player, ItemStack remainder) {
-        if (!available || remainder.isEmpty()) return 0;
+        if (!isAvailable() || remainder.isEmpty()) return 0;
 
-        try {
-            return QuickShulkerBridge.insertIntoCarriedShulkerBoxes(player, remainder);
-        } catch (LinkageError error) {
-            available = false;
-            return 0;
+        if (directAvailable) {
+            try {
+                return QuickStorageDirectBridge.insertIntoCarriedShulkerBoxes(player, remainder);
+            } catch (RuntimeException | LinkageError error) {
+                directAvailable = false;
+            }
         }
+        if (legacyAvailable) {
+            try {
+                return QuickShulkerBridge.insertIntoCarriedShulkerBoxes(player, remainder);
+            } catch (RuntimeException | LinkageError error) {
+                legacyAvailable = false;
+            }
+        }
+        return 0;
     }
 
-    private static boolean detectAvailability() {
+    private static boolean detectLegacyAvailability() {
         if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) return false;
 
         try {
