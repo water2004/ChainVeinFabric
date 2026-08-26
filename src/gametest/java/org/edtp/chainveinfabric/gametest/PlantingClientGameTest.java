@@ -21,6 +21,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
     private static final BlockPos MINE_START = new BlockPos(18, FIELD_Y, 0);
     private static final int AUTO_SIZE = 3;
     private static final BlockPos AUTO_CENTER = new BlockPos(32, FIELD_Y, 0);
+    private static final int ICE_COUNT = 3;
+    private static final BlockPos ICE_START = new BlockPos(48, FIELD_Y, 0);
 
     @Override
     public void runTest(ClientGameTestContext context) {
@@ -100,9 +102,83 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             }
 
             testServerMining(context, singleplayer);
+            testIceMining(context, singleplayer);
             testAutomaticMining(context, singleplayer);
         } finally {
             context.runOnClient(client -> ChainVeinClientApi.clear());
+        }
+    }
+
+    private static void testIceMining(ClientGameTestContext context,
+                                      TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new ItemStack(Items.DIAMOND_PICKAXE));
+            for (int x = 0; x < ICE_COUNT; x++) {
+                BlockPos target = ICE_START.offset(x, 0, 0);
+                level.setBlockAndUpdate(target.below(), Blocks.STONE.defaultBlockState());
+                level.setBlockAndUpdate(target, Blocks.ICE.defaultBlockState());
+                level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
+            }
+            for (int x = 47; x <= 52; x++) {
+                level.setBlockAndUpdate(new BlockPos(x, FIELD_Y, -2),
+                        Blocks.STONE.defaultBlockState());
+                level.setBlockAndUpdate(new BlockPos(x, FIELD_Y, -1),
+                        Blocks.AIR.defaultBlockState());
+            }
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        singleplayer.getServer().runCommand("tp @p 49.5 66 -1.5");
+
+        context.waitTicks(5);
+        context.waitFor(client -> client.level != null
+                && client.level.getBlockState(ICE_START).is(Blocks.ICE)
+                && client.player != null
+                && client.player.getMainHandItem().getItem() == Items.DIAMOND_PICKAXE);
+        context.runOnClient(client -> {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            config.isChainVeinEnabled = true;
+            config.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+            config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
+            config.maxChainBlocks = ICE_COUNT;
+            config.maxRadius = 10;
+            config.directToInventory = false;
+            config.toolProtection = false;
+            config.diagonalEdge = false;
+            config.diagonalCorner = false;
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).add("minecraft:ice");
+            ChainVeinClientApi.clear();
+        });
+
+        context.getInput().lookAt(ICE_START);
+        context.waitTick();
+        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
+                && hit.getBlockPos().equals(ICE_START));
+        context.getInput().holdMouseFor(0, 40);
+        context.waitTicks(20);
+
+        IceResult result = singleplayer.getServer().computeOnServer(server -> {
+            int water = 0;
+            int ice = 0;
+            int air = 0;
+            StringBuilder states = new StringBuilder();
+            for (int x = 0; x < ICE_COUNT; x++) {
+                var state = server.overworld().getBlockState(ICE_START.offset(x, 0, 0));
+                if (state.is(Blocks.WATER)) water++;
+                if (state.is(Blocks.ICE)) ice++;
+                if (state.isAir()) air++;
+                if (!states.isEmpty()) states.append(", ");
+                states.append(state);
+            }
+            return new IceResult(water, ice, air, states.toString());
+        });
+        if (result.water() != ICE_COUNT) {
+            throw new AssertionError("Expected clicked and chained ice to leave "
+                    + ICE_COUNT + " water blocks, got " + result);
         }
     }
 
@@ -266,5 +342,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
     }
 
     private record MiningResult(int remainingBlocks, int collectedDirt) {
+    }
+
+    private record IceResult(int water, int ice, int air, String states) {
     }
 }
