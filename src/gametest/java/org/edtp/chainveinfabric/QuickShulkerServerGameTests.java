@@ -1,17 +1,19 @@
 package org.edtp.chainveinfabric;
 
 import java.util.List;
+import java.util.UUID;
 
+import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.kyrptonaught.quickshulker.api.QuickOpenableRegistry;
 import net.kyrptonaught.quickshulker.api.QuickShulkerData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -26,8 +28,8 @@ public final class QuickShulkerServerGameTests {
     private static final int CONTAINER_SLOTS = 27;
     private static final int STACK_SIZE = 64;
     private static final int SHULKER_CAPACITY = CONTAINER_SLOTS * STACK_SIZE;
-    private static final Item OVERFLOW_BOX_ITEM = Items.DYED_SHULKER_BOX.pick(DyeColor.BLUE);
-    private static final Item CONTAINED_BOX_ITEM = Items.DYED_SHULKER_BOX.pick(DyeColor.RED);
+    private static final Item OVERFLOW_BOX_ITEM = Items.BLUE_SHULKER_BOX;
+    private static final Item CONTAINED_BOX_ITEM = Items.RED_SHULKER_BOX;
 
     @GameTest
     public void filledShulkerFromChestRemainsIntactWhenItCannotBeNested(
@@ -147,7 +149,17 @@ public final class QuickShulkerServerGameTests {
     }
 
     private static ServerPlayer createPlayer(GameTestHelper helper, BlockPos near) {
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = new ServerPlayer(
+                helper.getLevel().getServer(),
+                helper.getLevel(),
+                new GameProfile(UUID.randomUUID(), "quickshulker-gametest"),
+                ClientInformation.createDefault()) {
+            @Override
+            public GameType gameMode() {
+                return GameType.SURVIVAL;
+            }
+        };
+        GameType.SURVIVAL.updatePlayerAbilities(player.getAbilities());
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(near));
         player.setPosRaw(center.x, center.y + 1.0, center.z);
         return player;
