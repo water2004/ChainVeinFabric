@@ -11,12 +11,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
+import org.edtp.chainveinfabric.server.DirectDropCollector;
 
 import java.util.List;
 
@@ -72,55 +69,22 @@ public class Chainveinfabric implements ModInitializer {
     static void handleMine(ServerPlayer player, List<BlockPos> positions,
                            boolean directToInventory, boolean quickShulkerOverflow) {
         ServerLevel world = (ServerLevel) player.level();
-        ItemStack tool = player.getMainHandItem();
         boolean isCreative = player.isCreative();
-        boolean startedWithEmptyHand = tool.isEmpty();
+        boolean startedWithEmptyHand = player.getMainHandItem().isEmpty();
 
         for (BlockPos pos : positions) {
             if (player.distanceToSqr(pos.getCenter()) > 100) continue;
-            if (!isCreative && !startedWithEmptyHand && tool.isEmpty()) break;
+            if (!isCreative && !startedWithEmptyHand && player.getMainHandItem().isEmpty()) break;
 
             BlockState state = world.getBlockState(pos);
             if (state.isAir()) continue;
 
-            BlockEntity blockEntity = world.getBlockEntity(pos);
-            boolean canHarvest = player.hasCorrectToolForDrops(state);
-
-            state.getBlock().playerWillDestroy(world, pos, state, player);
-
-            boolean removed = world.removeBlock(pos, false);
-            if (!removed) continue;
-
-            state.getBlock().destroy(world, pos, state);
-
-            if (!isCreative) {
-                if (canHarvest) {
-                    if (directToInventory) {
-                        List<ItemStack> drops = Block.getDrops(state, world, pos, blockEntity, player, tool);
-                        for (ItemStack drop : drops) {
-                            deliverDrop(player, world, pos, drop, quickShulkerOverflow);
-                        }
-                        state.spawnAfterBreak(world, pos, tool, true);
-                    } else {
-                        Block.dropResources(state, world, pos, blockEntity, player, tool);
-                    }
-                }
-                tool.mineBlock(world, state, pos, player);
-                if (tool.isEmpty()) {
-                    player.onEquippedItemBroken(tool.getItem(), EquipmentSlot.MAINHAND);
-                }
+            if (directToInventory && !isCreative) {
+                DirectDropCollector.run(
+                        player, quickShulkerOverflow, () -> player.gameMode.destroyBlock(pos));
+            } else {
+                player.gameMode.destroyBlock(pos);
             }
-        }
-    }
-
-    private static void deliverDrop(ServerPlayer player, ServerLevel world, BlockPos pos,
-                                    ItemStack drop, boolean quickShulkerOverflow) {
-        player.getInventory().add(drop);
-        if (!drop.isEmpty() && quickShulkerOverflow) {
-            QuickShulkerIntegration.insertOverflow(player, drop);
-        }
-        if (!drop.isEmpty()) {
-            Block.popResource(world, pos, drop);
         }
     }
 
