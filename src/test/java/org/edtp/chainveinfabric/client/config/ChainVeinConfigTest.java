@@ -65,7 +65,7 @@ class ChainVeinConfigTest {
     }
 
     @Test
-    void migratesV4ToV5AndCreatesAutomaticMiningState() {
+    void migratesV4ToFinalV5AutomaticMiningSettings() {
         ChainVeinConfig.DecodedConfig decoded = decode("""
                 {
                   "version": 4,
@@ -83,17 +83,15 @@ class ChainVeinConfigTest {
         assertEquals(5, config.version);
         assertEquals(ChainVeinConfig.ChainMode.CHAIN_MINE, config.mode);
         assertEquals(ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME, config.searchAlgorithm);
-        assertEquals("", config.switchToAutoMineModeHotkey);
+        assertEquals(40, config.autoMineCooldownTicks);
         assertTrue(config.quickShulkerOverflow);
-        assertNotNull(config.getActiveWhitelistPreset(ChainVeinConfig.ChainMode.AUTO_MINE));
         assertNotNull(config.getActiveConfigPreset());
     }
 
     @Test
     void modeCapabilitiesStayDisjoint() {
         assertTrue(ChainVeinConfig.ChainMode.CHAIN_MINE.isMiningMode());
-        assertTrue(ChainVeinConfig.ChainMode.AUTO_MINE.isMiningMode());
-        assertFalse(ChainVeinConfig.ChainMode.AUTO_MINE.isManualMiningMode());
+        assertTrue(ChainVeinConfig.ChainMode.CHAIN_MINE.isManualMiningMode());
         assertTrue(ChainVeinConfig.ChainMode.CHAIN_PLANT.isInteractionMode());
         assertTrue(ChainVeinConfig.ChainMode.CHAIN_UTILITY.isInteractionMode());
 

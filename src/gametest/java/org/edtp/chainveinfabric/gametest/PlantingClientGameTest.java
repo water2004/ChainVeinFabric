@@ -114,6 +114,7 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
         singleplayer.getServer().runOnServer(server -> {
             var level = server.overworld();
             var player = server.getPlayerList().getPlayers().getFirst();
+            player.setInvulnerable(true);
             player.getInventory().clearContent();
             player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
                     new ItemStack(Items.DIAMOND_PICKAXE));
@@ -208,16 +209,39 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> {
             ChainVeinConfig config = ChainveinfabricClient.CONFIG;
             config.isChainVeinEnabled = true;
-            config.mode = ChainVeinConfig.ChainMode.AUTO_MINE;
+            config.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
             config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.SPHERE;
             config.sphereRadius = 4;
             config.maxChainBlocks = AUTO_SIZE * AUTO_SIZE;
+            config.autoMineCooldownTicks = 10;
             config.directToInventory = true;
             config.toolProtection = false;
-            config.getWhitelist(ChainVeinConfig.ChainMode.AUTO_MINE).clear();
-            config.getWhitelist(ChainVeinConfig.ChainMode.AUTO_MINE).add("minecraft:dirt");
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).add("minecraft:dirt");
             ChainVeinClientApi.clear();
+            ChainveinfabricClient.disarmAutoMining();
+            if (!ChainveinfabricClient.toggleAutoMining()) {
+                throw new AssertionError("Failed to arm automatic mining");
+            }
         });
+        context.waitTicks(10);
+
+        int beforeClick = singleplayer.getServer().computeOnServer(server -> {
+            int count = 0;
+            for (int x = -1; x <= 1; x++) {
+                for (int z = -1; z <= 1; z++) {
+                    if (server.overworld().getBlockState(AUTO_CENTER.offset(x, 0, z)).is(Blocks.DIRT)) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        });
+        if (beforeClick != AUTO_SIZE * AUTO_SIZE) {
+            throw new AssertionError("Arming automatic mining must not start a batch");
+        }
+
+        context.getInput().pressMouse(0);
         context.waitTicks(30);
 
         int remaining = singleplayer.getServer().computeOnServer(server -> {
@@ -240,16 +264,28 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
 
         singleplayer.getServer().runOnServer(server ->
                 server.overworld().setBlockAndUpdate(AUTO_CENTER, Blocks.DIRT.defaultBlockState()));
-        context.waitFor(client -> client.level.getBlockState(AUTO_CENTER).is(Blocks.DIRT));
+        singleplayer.getServer().runCommand("tp @p 32.5 65 0.5");
+        context.waitFor(client -> client.level.getBlockState(AUTO_CENTER).is(Blocks.DIRT)
+                && client.player.blockPosition().getY() == 65);
         context.runOnClient(client ->
                 ChainveinfabricClient.CONFIG.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME);
         context.waitTicks(15);
         boolean stillPresent = singleplayer.getServer().computeOnServer(server ->
                 server.overworld().getBlockState(AUTO_CENTER).is(Blocks.DIRT));
         if (!stillPresent) {
-            throw new AssertionError("Adjacent Same must not run in Automatic Mining mode");
+            throw new AssertionError("Automatic mining must wait for another left click");
         }
-        context.runOnClient(client -> ChainveinfabricClient.CONFIG.isChainVeinEnabled = false);
+        context.getInput().pressMouse(0);
+        context.waitTicks(20);
+        boolean adjacentStillPresent = singleplayer.getServer().computeOnServer(server ->
+                server.overworld().getBlockState(AUTO_CENTER).is(Blocks.DIRT));
+        if (adjacentStillPresent) {
+            throw new AssertionError("Adjacent Same must use the block beneath the player");
+        }
+        context.runOnClient(client -> {
+            ChainveinfabricClient.disarmAutoMining();
+            ChainveinfabricClient.CONFIG.isChainVeinEnabled = false;
+        });
     }
 
     private static void testServerMining(ClientGameTestContext context,
