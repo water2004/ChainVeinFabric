@@ -15,8 +15,7 @@ import net.minecraft.client.Minecraft;
 public final class SearchService implements Runnable {
     public enum Priority {
         ACTION(0),
-        AUTO(1),
-        PREVIEW(2);
+        PREVIEW(1);
 
         private final int order;
 

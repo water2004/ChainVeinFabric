@@ -33,6 +33,7 @@ public abstract class ChainVeinClientMixin {
         if (ChainVeinClientApi.isDispatching() ||
             !ChainveinfabricClient.CONFIG.isChainVeinEnabled || 
             !ChainveinfabricClient.CONFIG.mode.isManualMiningMode() ||
+            ChainveinfabricClient.isAutoMiningArmed() ||
             minecraft.level == null || minecraft.player == null) {
             return;
         }

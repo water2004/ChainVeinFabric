@@ -18,10 +18,6 @@ public class ConfigProxies {
         ADJACENT_SAME, ADJACENT_WHITELIST, SPHERE, SQUARE, CUBOID;
         @Override public String getStringValue() { return this.name(); }
         @Override public String getDisplayName() {
-            if (this == ADJACENT_SAME && ChainveinfabricClient.CONFIG != null
-                    && ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE) {
-                return StringUtils.translate("options.chainveinfabric.searchAlgorithm.adjacent_same.autoUnavailable");
-            }
             return StringUtils.translate("options.chainveinfabric.searchAlgorithm." + this.name().toLowerCase());
         }
         @Override public IConfigOptionListEntry cycle(boolean forward) { return values()[(this.ordinal() + (forward ? 1 : -1) + values().length) % values().length]; }
@@ -63,11 +59,12 @@ public class ConfigProxies {
     public static final ConfigBoolean DIAG_CORNER = new ConfigBoolean("options.chainveinfabric.diagonalCorner", false, "");
     public static final ConfigBoolean SHOW_OUTLINES = new ConfigBoolean("options.chainveinfabric.showBlockOutlines", false, "");
     public static final ConfigInteger PACKET_INV = new ConfigInteger("options.chainveinfabric.packetInterval", 0, 0, 100, "");
+    public static final ConfigInteger AUTO_MINE_COOLDOWN = new ConfigInteger(
+            "options.chainveinfabric.autoMineCooldownTicks", 40, 10, 200, "");
     public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey("key.chainveinfabric.config", "V", "");
     public static final ConfigHotkey TOGGLE_CHAIN_VEIN = new ConfigHotkey("options.chainveinfabric.toggleChainVeinHotkey", "", "");
     public static final ConfigHotkey CYCLE_MODE = new ConfigHotkey("options.chainveinfabric.cycleModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_MINE_MODE = new ConfigHotkey("options.chainveinfabric.switchToMineModeHotkey", "", "");
-    public static final ConfigHotkey SWITCH_TO_AUTO_MINE_MODE = new ConfigHotkey("options.chainveinfabric.switchToAutoMineModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_PLANT_MODE = new ConfigHotkey("options.chainveinfabric.switchToPlantModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_UTILITY_MODE = new ConfigHotkey("options.chainveinfabric.switchToUtilityModeHotkey", "", "");
     public static final ConfigHotkey SWITCH_TO_SCHEMATIC_SELECTION_MODE = new ConfigHotkey("options.chainveinfabric.switchToSchematicSelectionModeHotkey", "", "");
@@ -86,7 +83,6 @@ public class ConfigProxies {
             TOGGLE_CHAIN_VEIN,
             CYCLE_MODE,
             SWITCH_TO_MINE_MODE,
-            SWITCH_TO_AUTO_MINE_MODE,
             SWITCH_TO_PLANT_MODE,
             SWITCH_TO_UTILITY_MODE,
             SWITCH_TO_SCHEMATIC_SELECTION_MODE,
@@ -114,11 +110,11 @@ public class ConfigProxies {
         DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
         SHOW_OUTLINES.setValueChangeCallback(c -> { if (!loading) save(); });
         PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
+        AUTO_MINE_COOLDOWN.setValueChangeCallback(c -> { if (!loading) save(); });
         OPEN_CONFIG.setValueChangeCallback(c -> { if (!loading) save(); });
         TOGGLE_CHAIN_VEIN.setValueChangeCallback(c -> { if (!loading) save(); });
         CYCLE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_MINE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_AUTO_MINE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_PLANT_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_UTILITY_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
         SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
@@ -157,11 +153,11 @@ public class ConfigProxies {
             DIAG_CORNER.setBooleanValue(config.diagonalCorner);
             SHOW_OUTLINES.setBooleanValue(config.showBlockOutlines);
             PACKET_INV.setIntegerValue(config.packetInterval);
+            AUTO_MINE_COOLDOWN.setIntegerValue(config.autoMineCooldownTicks);
             OPEN_CONFIG.setValueFromString(config.openConfigHotkey);
             TOGGLE_CHAIN_VEIN.setValueFromString(config.toggleChainVeinHotkey);
             CYCLE_MODE.setValueFromString(config.cycleModeHotkey);
             SWITCH_TO_MINE_MODE.setValueFromString(config.switchToMineModeHotkey);
-            SWITCH_TO_AUTO_MINE_MODE.setValueFromString(config.switchToAutoMineModeHotkey);
             SWITCH_TO_PLANT_MODE.setValueFromString(config.switchToPlantModeHotkey);
             SWITCH_TO_UTILITY_MODE.setValueFromString(config.switchToUtilityModeHotkey);
             SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueFromString(config.switchToSchematicSelectionModeHotkey);
@@ -193,11 +189,11 @@ public class ConfigProxies {
         config.diagonalCorner = DIAG_CORNER.getBooleanValue();
         config.showBlockOutlines = SHOW_OUTLINES.getBooleanValue();
         config.packetInterval = PACKET_INV.getIntegerValue();
+        config.autoMineCooldownTicks = AUTO_MINE_COOLDOWN.getIntegerValue();
         config.openConfigHotkey = OPEN_CONFIG.getStringValue();
         config.toggleChainVeinHotkey = TOGGLE_CHAIN_VEIN.getStringValue();
         config.cycleModeHotkey = CYCLE_MODE.getStringValue();
         config.switchToMineModeHotkey = SWITCH_TO_MINE_MODE.getStringValue();
-        config.switchToAutoMineModeHotkey = SWITCH_TO_AUTO_MINE_MODE.getStringValue();
         config.switchToPlantModeHotkey = SWITCH_TO_PLANT_MODE.getStringValue();
         config.switchToUtilityModeHotkey = SWITCH_TO_UTILITY_MODE.getStringValue();
         config.switchToSchematicSelectionModeHotkey = SWITCH_TO_SCHEMATIC_SELECTION_MODE.getStringValue();
@@ -220,7 +216,6 @@ public class ConfigProxies {
     public static ConfigHotkey getModeHotkey(ChainVeinConfig.ChainMode mode) {
         return switch (mode) {
             case CHAIN_MINE -> SWITCH_TO_MINE_MODE;
-            case AUTO_MINE -> SWITCH_TO_AUTO_MINE_MODE;
             case CHAIN_PLANT -> SWITCH_TO_PLANT_MODE;
             case CHAIN_UTILITY -> SWITCH_TO_UTILITY_MODE;
             case SCHEMATIC_SELECTION -> SWITCH_TO_SCHEMATIC_SELECTION_MODE;

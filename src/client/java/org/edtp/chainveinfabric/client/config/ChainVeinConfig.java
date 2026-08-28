@@ -38,7 +38,6 @@ public class ChainVeinConfig extends ConfigSchemaV5 {
 
     public enum ChainMode {
         CHAIN_MINE,
-        AUTO_MINE,
         CHAIN_PLANT,
         CHAIN_UTILITY,
         SCHEMATIC_SELECTION,
@@ -46,11 +45,12 @@ public class ChainVeinConfig extends ConfigSchemaV5 {
         SCHEMATIC_WRONG;
 
         public boolean isMiningMode() {
-            return this == CHAIN_MINE || this == AUTO_MINE || this.isSchematicMode();
+            return this == CHAIN_MINE || this.isSchematicMode();
         }
 
+        /** Kept as a stable API alias now that all mining modes share one path. */
         public boolean isManualMiningMode() {
-            return this != AUTO_MINE && this.isMiningMode();
+            return this.isMiningMode();
         }
 
         public boolean isInteractionMode() {
@@ -136,7 +136,7 @@ public class ChainVeinConfig extends ConfigSchemaV5 {
         copyV2Fields(v4, config);
         copyV3Fields(v4, config);
         config.quickShulkerOverflow = v4.quickShulkerOverflow;
-        config.switchToAutoMineModeHotkey = "";
+        config.autoMineCooldownTicks = 40;
         config.fixV5();
         return config;
     }
@@ -226,12 +226,14 @@ public class ChainVeinConfig extends ConfigSchemaV5 {
         if (this.toggleTargetWhitelistHotkey == null) this.toggleTargetWhitelistHotkey = "";
         if (this.cycleModeHotkey == null) this.cycleModeHotkey = "";
         if (this.switchToMineModeHotkey == null) this.switchToMineModeHotkey = "";
-        if (this.switchToAutoMineModeHotkey == null) this.switchToAutoMineModeHotkey = "";
         if (this.switchToPlantModeHotkey == null) this.switchToPlantModeHotkey = "";
         if (this.switchToUtilityModeHotkey == null) this.switchToUtilityModeHotkey = "";
         if (this.switchToSchematicSelectionModeHotkey == null) this.switchToSchematicSelectionModeHotkey = "";
         if (this.switchToSchematicExtraModeHotkey == null) this.switchToSchematicExtraModeHotkey = "";
         if (this.switchToSchematicWrongModeHotkey == null) this.switchToSchematicWrongModeHotkey = "";
+        if (this.autoMineCooldownTicks < 10 || this.autoMineCooldownTicks > 200) {
+            this.autoMineCooldownTicks = 40;
+        }
         if (this.activeWhitelists == null) this.activeWhitelists = new EnumMap<>(ChainMode.class);
     }
 
@@ -278,6 +280,9 @@ public class ChainVeinConfig extends ConfigSchemaV5 {
         if (preset.searchAlgorithm == null) preset.searchAlgorithm = SearchAlgorithm.ADJACENT_SAME;
         if (preset.squareMiningPoint == null) preset.squareMiningPoint = MiningPoint.CENTER;
         if (preset.cuboidMiningPoint == null) preset.cuboidMiningPoint = MiningPoint.CENTER;
+        if (preset.autoMineCooldownTicks < 10 || preset.autoMineCooldownTicks > 200) {
+            preset.autoMineCooldownTicks = 40;
+        }
     }
 
     private static void fixWhitelistPreset(WhitelistPreset preset) {

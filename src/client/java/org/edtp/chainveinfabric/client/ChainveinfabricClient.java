@@ -45,6 +45,38 @@ public class ChainveinfabricClient implements ClientModInitializer {
         return searchService;
     }
 
+    public static boolean toggleAutoMining() {
+        return autoMiningController != null
+                && autoMiningController.toggle(Minecraft.getInstance());
+    }
+
+    public static void disarmAutoMining() {
+        if (autoMiningController != null) {
+            autoMiningController.disarm(Minecraft.getInstance());
+        }
+    }
+
+    public static boolean handleAutoMiningAttack() {
+        return autoMiningController != null
+                && autoMiningController.handleAttack(Minecraft.getInstance());
+    }
+
+    public static boolean isAutoMiningArmed() {
+        return autoMiningController != null && autoMiningController.isArmed();
+    }
+
+    public static AutoMiningController.Status getAutoMiningStatus() {
+        return autoMiningController != null
+                ? autoMiningController.status()
+                : AutoMiningController.Status.INACTIVE;
+    }
+
+    public static int getAutoMiningCooldownTicks() {
+        return autoMiningController != null
+                ? autoMiningController.cooldownTicksRemaining()
+                : 0;
+    }
+
     @Override
     public void onInitializeClient() {
         CONFIG = ChainVeinConfig.load();
@@ -71,8 +103,12 @@ public class ChainveinfabricClient implements ClientModInitializer {
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
             if (CONFIG != null && CONFIG.isChainVeinEnabled) {
-                if (CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE) {
-                    AutoMiningHazardHud.render(context, Minecraft.getInstance().font);
+                if (isAutoMiningArmed()) {
+                    AutoMiningHazardHud.render(
+                            context,
+                            Minecraft.getInstance().font,
+                            getAutoMiningStatus(),
+                            getAutoMiningCooldownTicks());
                     return;
                 }
                 Component activeText = Component.translatable("hud.chainveinfabric.active");
@@ -105,10 +141,14 @@ public class ChainveinfabricClient implements ClientModInitializer {
             return;
         }
 
-        boolean automatic = CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE;
+        boolean automatic = isAutoMiningArmed();
         boolean periodicRefresh = automatic && ++outlineAutoRefreshTicks >= 5;
         if (!automatic) outlineAutoRefreshTicks = 0;
-        BlockPos target = automatic ? client.player.blockPosition() : null;
+        BlockPos target = automatic
+                ? CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME
+                        ? client.player.blockPosition().below()
+                        : client.player.blockPosition()
+                : null;
         if (!automatic && client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
             target = ((BlockHitResult) client.hitResult).getBlockPos();
         }
@@ -133,7 +173,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
                 CONFIG.mode,
                 CONFIG.respectSchematicRenderLayer
         );
-        long configHash = computeOutlineConfigHash(CONFIG, litematicaContext);
+        long configHash = computeOutlineConfigHash(CONFIG, litematicaContext, automatic);
         boolean configChanged = (configHash != outlineLastConfigHash);
         boolean targetChanged = !target.equals(outlineLastTarget);
         boolean facingChanged = client.player.getDirection() != outlineLastFacing;
@@ -148,14 +188,20 @@ public class ChainveinfabricClient implements ClientModInitializer {
         SearchConfig searchConfig = SearchConfig.from(CONFIG);
         SearchRequest request = automatic
                 ? SearchRequest.automatic((ClientLevel) client.level, target,
-                        client.player.getDirection(), searchConfig, client.player.isCreative())
+                        CONFIG.searchAlgorithm == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME
+                                ? client.level.getBlockState(target)
+                                : null,
+                        client.player.getDirection(), searchConfig, litematicaContext,
+                        client.player.isCreative())
                 : SearchRequest.targeted((ClientLevel) client.level, target,
                         client.level.getBlockState(target), client.player.getDirection(),
                         searchConfig, litematicaContext, client.player.isCreative());
         outlineWorker.signal(request);
     }
 
-    private static long computeOutlineConfigHash(ChainVeinConfig config, LitematicaContext litematicaContext) {
+    private static long computeOutlineConfigHash(ChainVeinConfig config,
+                                                 LitematicaContext litematicaContext,
+                                                 boolean automatic) {
         long hash = config.mode.ordinal();
         hash = 31 * hash + config.searchAlgorithm.ordinal();
         hash = 31 * hash + config.maxChainBlocks;
@@ -172,6 +218,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
         hash = 31 * hash + config.getWhitelist(config.mode).hashCode();
         hash = 31 * hash + (config.respectSchematicRenderLayer ? 1 : 0);
         hash = 31 * hash + litematicaContext.fingerprint();
+        hash = 31 * hash + (automatic ? 1 : 0);
         return hash;
     }
 }
