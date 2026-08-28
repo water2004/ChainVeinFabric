@@ -217,9 +217,9 @@ public final class AutoMiningController {
     }
 
     private static List<BlockPos> filterReachable(Minecraft client, List<BlockPos> positions) {
-        double range = ChainVeinClientApi.canUseServerMiningProtocol()
-                ? 10.0
-                : client.player.blockInteractionRange();
+        if (ChainVeinClientApi.canUseServerMiningProtocol()) return positions;
+
+        double range = client.player.blockInteractionRange();
         double maxDistanceSqr = range * range;
         List<BlockPos> result = new ArrayList<>();
         for (BlockPos pos : positions) {

@@ -19,8 +19,16 @@ public final class DirectDropCollector {
 
     public static boolean run(ServerPlayer player, boolean quickShulkerOverflow,
                               BooleanSupplier action) {
+        return run(player, quickShulkerOverflow,
+                ChainVeinServerConfig.values().pickupRadius(), action);
+    }
+
+    public static boolean run(ServerPlayer player, boolean quickShulkerOverflow,
+                              int pickupRadius, BooleanSupplier action) {
         Context previous = ACTIVE.get();
-        ACTIVE.set(new Context((ServerLevel) player.level(), player, quickShulkerOverflow));
+        ACTIVE.set(new Context(
+                (ServerLevel) player.level(), player, quickShulkerOverflow,
+                (double) pickupRadius * pickupRadius));
         try {
             return action.getAsBoolean();
         } finally {
@@ -42,6 +50,7 @@ public final class DirectDropCollector {
         if (context == null || context.level() != level || !(entity instanceof ItemEntity itemEntity)) {
             return false;
         }
+        if (!context.isWithinPickupRadius(itemEntity)) return false;
 
         ItemStack remainder = itemEntity.getItem();
         context.player().getInventory().add(remainder);
@@ -52,6 +61,10 @@ public final class DirectDropCollector {
     }
 
     private record Context(ServerLevel level, ServerPlayer player,
-                           boolean quickShulkerOverflow) {
+                           boolean quickShulkerOverflow, double pickupRadiusSquared) {
+        private boolean isWithinPickupRadius(ItemEntity itemEntity) {
+            return pickupRadiusSquared > 0.0
+                    && player.distanceToSqr(itemEntity) <= pickupRadiusSquared;
+        }
     }
 }

@@ -7,6 +7,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -14,11 +15,120 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.phys.Vec3;
+import org.edtp.chainveinfabric.server.ChainVeinServerConfig;
 
 import java.util.List;
 import java.util.UUID;
 
 public final class ChainVeinServerGameTests {
+    @GameTest
+    public void miningRequestIsCappedInPayloadOrder(GameTestHelper helper) {
+        List<BlockPos> targets = List.of(
+                new BlockPos(1, 1, 1),
+                new BlockPos(2, 1, 1),
+                new BlockPos(3, 1, 1));
+        targets.forEach(target -> helper.setBlock(target, Blocks.DIRT));
+
+        ServerPlayer player = createSurvivalPlayer(helper, targets.getFirst(), Items.DIAMOND_SHOVEL);
+        int previous = ChainVeinServerConfig.values().maxBlocks();
+        try {
+            ChainVeinServerConfig.setMaxBlocks(2);
+            Chainveinfabric.handleMine(
+                    player,
+                    targets.stream().map(helper::absolutePos).toList(),
+                    false,
+                    false);
+        } finally {
+            ChainVeinServerConfig.setMaxBlocks(previous);
+        }
+
+        helper.assertBlockNotPresent(Blocks.DIRT, targets.get(0));
+        helper.assertBlockNotPresent(Blocks.DIRT, targets.get(1));
+        helper.assertBlockPresent(Blocks.DIRT, targets.get(2));
+        helper.succeed();
+    }
+
+    @GameTest
+    public void serverMiningHasNoPlayerDistanceLimit(GameTestHelper helper) {
+        BlockPos target = new BlockPos(1, 1, 1);
+        helper.setBlock(target, Blocks.DIRT);
+
+        ServerPlayer player = createSurvivalPlayer(helper, target, Items.DIAMOND_SHOVEL);
+        Vec3 originalPosition = player.position();
+        player.setPosRaw(originalPosition.x + 20.0, originalPosition.y, originalPosition.z);
+
+        Chainveinfabric.handleMine(
+                player,
+                List.of(helper.absolutePos(target)),
+                false,
+                false);
+
+        helper.assertBlockNotPresent(Blocks.DIRT, target);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void directPickupOnlyCapturesDropsInsideConfiguredRadius(GameTestHelper helper) {
+        BlockPos near = new BlockPos(1, 1, 1);
+        BlockPos far = new BlockPos(5, 1, 1);
+        helper.setBlock(near, Blocks.DIRT);
+        helper.setBlock(far, Blocks.DIRT);
+
+        ServerPlayer player = createSurvivalPlayer(helper, near, Items.DIAMOND_SHOVEL);
+        int previous = ChainVeinServerConfig.values().pickupRadius();
+        try {
+            ChainVeinServerConfig.setPickupRadius(2);
+            Chainveinfabric.handleMine(
+                    player,
+                    List.of(helper.absolutePos(near), helper.absolutePos(far)),
+                    true,
+                    true);
+        } finally {
+            ChainVeinServerConfig.setPickupRadius(previous);
+        }
+
+        helper.assertValueEqual(countItem(player, Items.DIRT), 1,
+                "Only the near drop should enter inventory or Quick Shulker handling");
+        helper.assertItemEntityNotPresent(Items.DIRT, near, 1.5);
+        helper.assertItemEntityPresent(Items.DIRT, far, 1.5);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void chainInteractionUsesVanillaBlockInteractionRange(GameTestHelper helper) {
+        BlockPos near = new BlockPos(1, 1, 1);
+        BlockPos far = new BlockPos(5, 1, 1);
+        helper.setBlock(near, Blocks.FARMLAND);
+        helper.setBlock(far, Blocks.FARMLAND);
+
+        ServerPlayer player = createSurvivalPlayer(helper, near, Items.WHEAT_SEEDS);
+        player.getMainHandItem().setCount(2);
+        player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE).setBaseValue(2.0);
+        Chainveinfabric.handleInteract(
+                player,
+                List.of(helper.absolutePos(near), helper.absolutePos(far)));
+
+        helper.assertBlockPresent(Blocks.WHEAT, near.above());
+        helper.assertBlockNotPresent(Blocks.WHEAT, far.above());
+        helper.succeed();
+    }
+
+    @GameTest
+    public void chainInteractionFollowsExpandedServerRange(GameTestHelper helper) {
+        BlockPos target = new BlockPos(1, 1, 1);
+        helper.setBlock(target, Blocks.FARMLAND);
+
+        ServerPlayer player = createSurvivalPlayer(helper, target, Items.WHEAT_SEEDS);
+        Vec3 position = player.position();
+        player.setPosRaw(position.x + 20.0, position.y, position.z);
+        player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE).setBaseValue(32.0);
+
+        Chainveinfabric.handleInteract(player, List.of(helper.absolutePos(target)));
+
+        helper.assertBlockPresent(Blocks.WHEAT, target.above());
+        helper.succeed();
+    }
+
     @GameTest
     public void miningIceWithoutSilkTouchLeavesWater(GameTestHelper helper) {
         BlockPos vanillaTarget = new BlockPos(1, 2, 1);
@@ -161,6 +271,15 @@ public final class ChainVeinServerGameTests {
             return chest;
         }
         throw new AssertionError("Expected chest block entity at " + relativePos);
+    }
+
+    private static ServerPlayer createSurvivalPlayer(
+            GameTestHelper helper, BlockPos near, Item heldItem) {
+        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(heldItem));
+        Vec3 center = Vec3.atCenterOf(helper.absolutePos(near));
+        player.setPosRaw(center.x, center.y + 1.0, center.z);
+        return player;
     }
 
     private static int countItem(ServerPlayer player, Item item) {
