@@ -30,6 +30,7 @@ public class ConfigPreset {
     public int packetInterval = 0;
     public boolean showBlockOutlines = false;
     public boolean respectSchematicRenderLayer = true;
+    public int autoMineCooldownTicks = 40;
 
     public static ConfigPreset create(String id, String name, ChainVeinConfig config) {
         ConfigPreset preset = new ConfigPreset();
@@ -60,6 +61,7 @@ public class ConfigPreset {
         this.packetInterval = config.packetInterval;
         this.showBlockOutlines = config.showBlockOutlines;
         this.respectSchematicRenderLayer = config.respectSchematicRenderLayer;
+        this.autoMineCooldownTicks = config.autoMineCooldownTicks;
     }
 
     public void applyTo(ChainVeinConfig config) {
@@ -83,5 +85,6 @@ public class ConfigPreset {
         config.packetInterval = this.packetInterval;
         config.showBlockOutlines = this.showBlockOutlines;
         config.respectSchematicRenderLayer = this.respectSchematicRenderLayer;
+        config.autoMineCooldownTicks = this.autoMineCooldownTicks;
     }
 }

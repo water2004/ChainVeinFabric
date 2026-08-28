@@ -20,13 +20,10 @@ public final class SearchEngine {
 
     public static SearchResult search(SearchRequest request) {
         SearchConfig config = request.config();
-        if (request.automatic()
-                && config.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
-            return SearchResult.empty(request);
-        }
-
         Predicate<BlockPos> predicate = buildPredicate(request);
-        if (!request.automatic() && !predicate.test(request.origin())) {
+        boolean originMustMatch = !request.automatic()
+                || config.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
+        if (originMustMatch && !predicate.test(request.origin())) {
             return SearchResult.empty(request);
         }
         Set<BlockPos> found = switch (config.searchAlgorithm()) {
@@ -42,11 +39,15 @@ public final class SearchEngine {
                     request.playerFacing(), predicate);
             case ADJACENT_SAME, ADJACENT_WHITELIST -> ChainSearcher.findBlocks(
                     request.level(), request.origin(),
-                    request.automatic() ? config.maxChainBlocks() + 1 : config.maxChainBlocks(),
+                    request.automatic()
+                            && config.searchAlgorithm() == ChainVeinConfig.SearchAlgorithm.ADJACENT_WHITELIST
+                            ? config.maxChainBlocks() + 1
+                            : config.maxChainBlocks(),
                     config.maxRadius(), predicate, config.diagonalEdge(), config.diagonalCorner());
         };
 
-        if (request.automatic()) {
+        if (request.automatic()
+                && config.searchAlgorithm() != ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME) {
             found.remove(request.origin());
         }
 
@@ -66,7 +67,7 @@ public final class SearchEngine {
                 : null;
 
         return switch (config.mode()) {
-            case CHAIN_MINE, AUTO_MINE -> pos -> {
+            case CHAIN_MINE -> pos -> {
                 BlockState state = stateAt(request, pos);
                 String id = ChainVeinConfig.getWhitelistItemId(state.getBlock());
                 if (id == null || !config.whitelist().contains(id)) return false;
@@ -99,7 +100,7 @@ public final class SearchEngine {
     }
 
     private static BlockState stateAt(SearchRequest request, BlockPos pos) {
-        if (!request.automatic() && pos.equals(request.origin()) && request.targetState() != null) {
+        if (pos.equals(request.origin()) && request.targetState() != null) {
             return request.targetState();
         }
         return request.level().getBlockState(pos);

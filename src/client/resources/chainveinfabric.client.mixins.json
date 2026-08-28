@@ -4,7 +4,8 @@
   "package": "org.edtp.chainveinfabric.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ChainVeinClientMixin"
+    "ChainVeinClientMixin",
+    "MinecraftAutoMiningMixin"
   ],
   "injectors": {
     "defaultRequire": 1

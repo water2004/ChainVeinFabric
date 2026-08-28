@@ -30,10 +30,11 @@ public record SearchRequest(
                 litematicaContext, creative, false);
     }
 
-    public static SearchRequest automatic(ClientLevel level, BlockPos playerPos,
-                                          Direction playerFacing, SearchConfig config,
+    public static SearchRequest automatic(ClientLevel level, BlockPos origin,
+                                          BlockState targetState, Direction playerFacing,
+                                          SearchConfig config, LitematicaContext litematicaContext,
                                           boolean creative) {
-        return new SearchRequest(level, playerPos, null, playerFacing, config,
-                LitematicaContext.NONE, creative, true);
+        return new SearchRequest(level, origin, targetState, playerFacing, config,
+                litematicaContext, creative, true);
     }
 }

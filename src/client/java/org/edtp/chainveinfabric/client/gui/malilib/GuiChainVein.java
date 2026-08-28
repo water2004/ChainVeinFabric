@@ -103,6 +103,7 @@ public class GuiChainVein extends GuiConfigsBase {
     private BasicPane compactPane = BasicPane.AVAILABLE;
     private final List<IDropdown> activeDropdowns = new ArrayList<>();
     private ChainVeinConfig.ChainMode presetWhitelistMode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+    private boolean controlClick;
 
     public static abstract class MyDropdown<T> extends WidgetDropDownList<T> implements IDropdown {
         private long lastDrawn;
@@ -367,7 +368,7 @@ public class GuiChainVein extends GuiConfigsBase {
         }
 
         configs.add(ConfigProxies.ALGO);
-        boolean automatic = ChainveinfabricClient.CONFIG.mode == ChainVeinConfig.ChainMode.AUTO_MINE;
+        boolean automatic = ChainveinfabricClient.isAutoMiningArmed();
 
         switch ((ConfigProxies.MAlgo) ConfigProxies.ALGO.getOptionListValue()) {
             case SPHERE:
@@ -397,6 +398,9 @@ public class GuiChainVein extends GuiConfigsBase {
         configs.add(ConfigProxies.DIAG_EDGE);
         configs.add(ConfigProxies.DIAG_CORNER);
         configs.add(ConfigProxies.PACKET_INV);
+        if (ChainveinfabricClient.CONFIG.mode.isMiningMode()) {
+            configs.add(ConfigProxies.AUTO_MINE_COOLDOWN);
+        }
 
         return this.createTranslatedConfigWrappers(configs);
     }
@@ -547,6 +551,7 @@ public class GuiChainVein extends GuiConfigsBase {
                 super.setSelectedEntry(index);
                 ChainVeinConfig.ChainMode selected = this.getSelectedEntry();
                 if (selected != null && ChainveinfabricClient.CONFIG.mode != selected) {
+                    ChainveinfabricClient.disarmAutoMining();
                     ChainveinfabricClient.CONFIG.mode = selected;
                     ChainveinfabricClient.CONFIG.save();
                     initGui();
@@ -560,10 +565,22 @@ public class GuiChainVein extends GuiConfigsBase {
         // Toggle enabled
         LayoutRect toggle = this.basicLayout.toggle;
         ButtonGeneric toggleBtn = new ButtonGeneric(toggle.x, toggle.y, toggle.width, toggle.height, getToggleString());
+        this.updateAutoToggleTooltip(toggleBtn);
         this.addButton(toggleBtn, (button, mb) -> {
+            if (mb == 0 && this.controlClick
+                    && ChainveinfabricClient.CONFIG.mode.isMiningMode()) {
+                ChainveinfabricClient.toggleAutoMining();
+                ChainveinfabricClient.CONFIG.save();
+                button.setDisplayString(getToggleString());
+                this.updateAutoToggleTooltip(button);
+                return;
+            }
+
+            ChainveinfabricClient.disarmAutoMining();
             ChainveinfabricClient.CONFIG.isChainVeinEnabled = !ChainveinfabricClient.CONFIG.isChainVeinEnabled;
             ChainveinfabricClient.CONFIG.save();
             button.setDisplayString(getToggleString());
+            this.updateAutoToggleTooltip(button);
         });
 
         // Toggle outlines
@@ -755,7 +772,9 @@ public class GuiChainVein extends GuiConfigsBase {
         if (showRenderLayer) {
             widths.add(this.getToggleLabelWidth("options.chainveinfabric.schematic.respectRenderLayer"));
         }
-        widths.add(Math.max(this.getStringWidth("ON"), this.getStringWidth("OFF")) + 12);
+        widths.add(Math.max(
+                Math.max(this.getStringWidth("ON"), this.getStringWidth("OFF")),
+                this.getStringWidth("AUTO")) + 12);
         return widths;
     }
 
@@ -1230,22 +1249,27 @@ public class GuiChainVein extends GuiConfigsBase {
 
     @Override
     public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
-        for (IDropdown dd : this.activeDropdowns) {
-            if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
-                if (dd.isMouseOver((int)click.x(), (int)click.y())) {
-                    return dd.onMouseClicked(click, doubleClick);
+        this.controlClick = click.hasControlDown();
+        try {
+            for (IDropdown dd : this.activeDropdowns) {
+                if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
+                    if (dd.isMouseOver((int)click.x(), (int)click.y())) {
+                        return dd.onMouseClicked(click, doubleClick);
+                    }
                 }
             }
+            if (super.onMouseClicked(click, doubleClick)) return true;
+            if (currentTab == Tab.BASIC) {
+                if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
+                if (this.leftList != null && this.leftList.onMouseClicked(click, doubleClick)) return true;
+                if (this.rightList != null && this.rightList.onMouseClicked(click, doubleClick)) return true;
+            } else if (currentTab == Tab.PRESETS) {
+                if (this.presetList != null && this.presetList.onMouseClicked(click, doubleClick)) return true;
+            }
+            return false;
+        } finally {
+            this.controlClick = false;
         }
-        if (super.onMouseClicked(click, doubleClick)) return true;
-        if (currentTab == Tab.BASIC) {
-            if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
-            if (this.leftList != null && this.leftList.onMouseClicked(click, doubleClick)) return true;
-            if (this.rightList != null && this.rightList.onMouseClicked(click, doubleClick)) return true;
-        } else if (currentTab == Tab.PRESETS) {
-            if (this.presetList != null && this.presetList.onMouseClicked(click, doubleClick)) return true;
-        }
-        return false;
     }
 
     @Override
@@ -1385,14 +1409,23 @@ public class GuiChainVein extends GuiConfigsBase {
 
     private String getWhitelistTitleKey() {
         return switch (ChainveinfabricClient.CONFIG.mode) {
-            case CHAIN_MINE, AUTO_MINE, SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
+            case CHAIN_MINE, SCHEMATIC_SELECTION, SCHEMATIC_EXTRA, SCHEMATIC_WRONG -> "options.chainveinfabric.whitelist";
             case CHAIN_PLANT -> "options.chainveinfabric.cropWhitelist";
             case CHAIN_UTILITY -> "options.chainveinfabric.utilityWhitelist";
         };
     }
 
     private String getToggleString() {
+        if (ChainveinfabricClient.isAutoMiningArmed()) return "AUTO";
         return ChainveinfabricClient.CONFIG.isChainVeinEnabled ? "ON" : "OFF";
+    }
+
+    private void updateAutoToggleTooltip(ButtonBase button) {
+        if (ChainveinfabricClient.CONFIG.mode.isMiningMode()) {
+            button.setHoverStrings(StringUtils.translate("options.chainveinfabric.autoMine.ctrlHint"));
+        } else {
+            button.clearHoverStrings();
+        }
     }
 
     private String getOutlineToggleString() {

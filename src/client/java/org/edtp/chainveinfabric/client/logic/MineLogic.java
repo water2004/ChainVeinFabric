@@ -35,7 +35,8 @@ public final class MineLogic {
             Minecraft client, BlockPos pos, BlockState targetState) {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
         if (config == null || client.level == null || client.player == null
-                || !config.mode.isManualMiningMode()) return false;
+                || !config.mode.isManualMiningMode()
+                || ChainveinfabricClient.isAutoMiningArmed()) return false;
 
         SearchConfig searchConfig = SearchConfig.from(config);
         LitematicaContext litematicaContext = LitematicaIntegration.createContext(
@@ -80,6 +81,7 @@ public final class MineLogic {
         ChainVeinConfig config = ChainveinfabricClient.CONFIG;
         if (config == null || client.level != request.level() || client.player == null
                 || !config.isChainVeinEnabled || !config.mode.isManualMiningMode()
+                || ChainveinfabricClient.isAutoMiningArmed()
                 || !SearchConfig.from(config).equals(request.config())) return false;
 
         LitematicaContext currentContext = LitematicaIntegration.createContext(

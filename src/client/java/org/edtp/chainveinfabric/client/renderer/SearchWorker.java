@@ -61,14 +61,15 @@ public class SearchWorker {
     private OutlineData toOutline(SearchResult result, int generation) {
         if (result.positions().isEmpty()) return null;
         Set<BlockPos> resultSet = new HashSet<>(result.positions());
-        Color4f color = colorForMode(result.request().config().mode());
+        Color4f color = result.request().automatic()
+                ? COLOR_AUTO_MINE
+                : colorForMode(result.request().config().mode());
         return new OutlineData(List.copyOf(buildOutlineLines(resultSet, color)), generation);
     }
 
     private static Color4f colorForMode(ChainVeinConfig.ChainMode mode) {
         return switch (mode) {
             case CHAIN_MINE -> COLOR_MINE;
-            case AUTO_MINE -> COLOR_AUTO_MINE;
             case CHAIN_PLANT -> COLOR_PLANT;
             case CHAIN_UTILITY -> COLOR_UTILITY;
             case SCHEMATIC_SELECTION -> COLOR_SCHEMATIC_SELECTION;

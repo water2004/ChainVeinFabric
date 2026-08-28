@@ -81,6 +81,9 @@ public class ChainVeinInputHandler implements IKeybindProvider {
             }
 
             ChainveinfabricClient.CONFIG.isChainVeinEnabled = !ChainveinfabricClient.CONFIG.isChainVeinEnabled;
+            if (!ChainveinfabricClient.CONFIG.isChainVeinEnabled) {
+                ChainveinfabricClient.disarmAutoMining();
+            }
             ChainveinfabricClient.CONFIG.save();
 
             Minecraft client = Minecraft.getInstance();
@@ -124,6 +127,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
             return false;
         }
 
+        ChainveinfabricClient.disarmAutoMining();
         config.mode = mode;
         if (config.enableChainVeinOnModeHotkey) {
             config.isChainVeinEnabled = true;
