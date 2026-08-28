@@ -142,6 +142,15 @@ Client-side mode does not support **Direct to Inventory** or Quick Shulker overf
    - With compatible Quick Shulker installations on both sides, overflow can be stored in carried shulker boxes.
    - The packet interval is not required.
 
+### Dedicated-server limits
+
+The following persistent commands require owner permission level 4. The values are stored in `config/chainveinfabric-server.json`:
+
+- `/chainvein maxBlocks [1..2048]` — maximum positions processed from one mining or interaction request; default `256`.
+- `/chainvein pickupRadius [0..64]` — radius in which Direct to Inventory and optional Quick Shulker overflow capture drops; default `10`. Set it to `0` to disable server-side drop capture.
+
+Server-protocol mining has no player-distance limit, but it never loads chunks to process a request. Chain interactions use the server player's vanilla block-interaction-range check, so server-side attribute changes and compatible server mods apply without a separate ChainVein distance setting.
+
 ---
 
 ## Client Job API
