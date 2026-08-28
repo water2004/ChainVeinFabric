@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.FarmlandBlock;
@@ -30,6 +31,7 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             singleplayer.getServer().runOnServer(server -> {
                 var level = server.overworld();
                 var player = server.getPlayerList().getPlayers().getFirst();
+                player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE).setBaseValue(64.0);
 
                 player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
                         new ItemStack(Items.WHEAT_SEEDS, FIELD_SIZE * FIELD_SIZE));
@@ -100,6 +102,10 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                 throw new AssertionError("Expected 64 planted blocks and no seeds, got "
                         + result.planted() + " planted and " + result.remainingSeeds() + " seeds");
             }
+            singleplayer.getServer().runOnServer(server -> server.getPlayerList()
+                    .getPlayers().getFirst()
+                    .getAttribute(Attributes.BLOCK_INTERACTION_RANGE)
+                    .setBaseValue(4.5));
 
             testServerMining(context, singleplayer);
             testIceMining(context, singleplayer);
