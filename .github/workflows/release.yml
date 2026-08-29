@@ -31,8 +31,16 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build --no-daemon
 
+      - name: Run server game tests
+        run: ./gradlew runGameTest --no-daemon
+
       - name: Run client game tests
         run: xvfb-run -a ./gradlew runClientGameTest --no-daemon
+
+      - name: Test client fallback without ChainVein server support
+        run: >-
+          xvfb-run -a ./gradlew runClientGameTest --no-daemon
+          -PchainveinGameTestServerInstalled=false
 
       - name: Upload test reports on failure
         if: failure()
@@ -42,6 +50,7 @@ jobs:
           path: |
             build/reports/tests/
             build/test-results/
+            build/run/gameTest/logs/
             build/run/clientGameTest/logs/
           if-no-files-found: ignore
 
@@ -66,21 +75,40 @@ jobs:
         run: |
           set -euo pipefail
           release_tag="$TAG_NAME"
-          if [[ "$TAG_NAME" == *-* ]]; then
-            release_tag="${TAG_NAME%%-*}"
+          if [[ "$TAG_NAME" =~ ^(.+)-([0-9]+\.[0-9]+(\.[0-9]+)?)$ ]]; then
+            release_tag="${BASH_REMATCH[1]}"
           fi
           release_version="${release_tag#v}"
+          prerelease=false
+          if [[ "$release_version" == *-* ]]; then
+            prerelease=true
+          fi
           title="ChainVeinFabric ${release_version}"
           notes_file="RELEASE_NOTE.md"
           mapfile -t files < <(find release -type f -name '*.jar' | sort)
 
           if [ "$TAG_NAME" = "$release_tag" ]; then
             if gh release view "$release_tag" >/dev/null 2>&1; then
-              gh release edit "$release_tag" --title "$title" --notes-file "$notes_file"
+              if [ "$prerelease" = true ]; then
+                gh release edit "$release_tag" --title "$title" --notes-file "$notes_file" --prerelease
+              else
+                gh release edit "$release_tag" --title "$title" --notes-file "$notes_file" --latest
+              fi
               gh release upload "$release_tag" "${files[@]}" --clobber
             else
-              gh release create "$release_tag" "${files[@]}" --title "$title" --notes-file "$notes_file"
+              release_args=(--title "$title" --notes-file "$notes_file")
+              if [ "$prerelease" = true ]; then
+                release_args+=(--prerelease --latest=false)
+              else
+                release_args+=(--latest)
+              fi
+              gh release create "$release_tag" "${files[@]}" --verify-tag "${release_args[@]}"
             fi
           else
+            if [ "$prerelease" = true ]; then
+              gh release edit "$release_tag" --title "$title" --notes-file "$notes_file" --prerelease
+            else
+              gh release edit "$release_tag" --title "$title" --notes-file "$notes_file" --latest
+            fi
             gh release upload "$release_tag" "${files[@]}" --clobber
           fi

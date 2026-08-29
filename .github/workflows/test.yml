@@ -30,8 +30,16 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build --no-daemon
 
+      - name: Run server game tests
+        run: ./gradlew runGameTest --no-daemon
+
       - name: Run client game tests
         run: xvfb-run -a ./gradlew runClientGameTest --no-daemon
+
+      - name: Test client fallback without ChainVein server support
+        run: >-
+          xvfb-run -a ./gradlew runClientGameTest --no-daemon
+          -PchainveinGameTestServerInstalled=false
 
       - name: Upload test reports on failure
         if: failure()
@@ -41,5 +49,6 @@ jobs:
           path: |
             build/reports/tests/
             build/test-results/
+            build/run/gameTest/logs/
             build/run/clientGameTest/logs/
           if-no-files-found: ignore
