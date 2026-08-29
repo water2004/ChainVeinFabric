@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ChainVeinClientMixin",
-    "MinecraftAutoMiningMixin"
+    "MinecraftAutoMiningMixin",
+    "MultiPlayerGameModeAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
