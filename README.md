@@ -12,7 +12,7 @@ It works on vanilla servers in client-side mode and gains additional capabilitie
 ## ✨ Features
 
 - **Chain Mining:** Mine connected matching or whitelisted blocks automatically.
-- **Automatic Mining:** Continuously searches from the player's current block position and mines nearby whitelisted blocks. It uses the existing whitelist and shape algorithms; Same-type adjacency is intentionally unavailable because there is no targeted block type.
+- **Guarded Automatic Mining:** In any mining mode, Ctrl-click the main toggle to arm automatic mining. Each left click runs one player-centered search-and-mine batch, with a configurable cooldown and a prominent warning HUD; click **AUTO** to disarm it.
 - **Chain Planting:** Plant compatible crops across matching soil. The planting whitelist accepts plantable items and the target-whitelist hotkey reads the item in your main hand.
 - **Chain Utility:** Batch wax copper, scrape oxidation, strip logs, till soil, and perform similar item interactions.
 - **Search Algorithms:** Same-type adjacency, whitelist adjacency, sphere, square plane, and cuboid searches. Edge and corner adjacency are configurable.
@@ -74,7 +74,7 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 ## 🛠️ Usage
 
 1. Press **`V`** to open the configuration screen.
-2. Select Mining, Automatic Mining, Planting, or Utility mode. The three schematic modes also appear when Litematica is installed.
+2. Select Mining, Planting, or Utility mode. The three schematic mining modes also appear when Litematica is installed.
 3. Configure the active whitelist:
    - In Planting mode, use a plantable item such as `carrot` or `wheat_seeds`. The target-whitelist hotkey adds or removes the plantable item held in your main hand.
    - In other modes, the target-whitelist hotkey adds or removes the block under your crosshair.
@@ -82,7 +82,7 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 4. Open the Hotkeys page to bind next-mode, direct-mode, chain toggle, and target-whitelist shortcuts. Enable **Enable Chaining after Mode Hotkey** if switching modes should also turn chaining on.
 5. Perform the corresponding action:
    - Break a matching block to mine.
-   - In Automatic Mining, move near whitelisted blocks; the mod searches continuously from your current block position and mines reachable results.
+   - In any mining mode, Ctrl-click the main toggle to arm automatic mining. Each left click then runs one batch centered on the player; click **AUTO** to disarm it.
    - Right-click compatible soil while holding a whitelisted plantable item to plant.
    - Right-click with the relevant tool or item to run a utility interaction.
 
@@ -92,8 +92,9 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 
 | Option | Description |
 | :--- | :--- |
-| **Chain Mode** | Mining, Automatic Mining, Planting, Utility, or one of the three optional Litematica modes. |
-| **Search Algorithm** | Same-type adjacency, whitelist adjacency, sphere, square plane, or cuboid. Same-type adjacency is unavailable in Automatic Mining; square and cuboid searches are centered on the player. |
+| **Chain Mode** | Mining, Planting, Utility, or one of the three optional Litematica mining modes. |
+| **Search Algorithm** | Same-type adjacency, whitelist adjacency, sphere, square plane, or cuboid. While automatic mining is armed, Same-type adjacency starts from the block beneath the player, and square/cuboid searches are centered on the player. |
+| **Automatic Mining Cooldown** | Delay between accepted left-click batches while automatic mining is armed. |
 | **Max Blocks** | Maximum number of blocks or interactions per action. |
 | **Max Radius** | Maximum distance from the initial position. |
 | **Diagonal Edge / Corner** | Include edge-connected or corner-connected neighbors in adjacency searches. |
