@@ -3,6 +3,7 @@ package org.edtp.chainveinfabric.gametest;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -10,15 +11,26 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
+import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 
 import java.util.List;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class ServerAbsentFallbackGameTest implements FabricClientGameTest {
     private static final BlockPos TARGET = new BlockPos(2, 64, 0);
+    private static final BlockPos PLANT_START = new BlockPos(8, 64, 0);
+    private static final BlockPos MINE_START = new BlockPos(14, 64, 0);
+    private static final BlockPos UTILITY_START = new BlockPos(20, 64, 0);
+    private static final BlockPos AUTO_GUARD = new BlockPos(30, 64, 0);
+    private static final List<BlockPos> AUTO_TARGETS = List.of(
+            new BlockPos(29, 64, 0),
+            new BlockPos(31, 64, 0),
+            new BlockPos(30, 64, 1));
     private static final Item TEST_SHULKER = Items.BLUE_SHULKER_BOX;
 
     @Override
@@ -41,6 +53,7 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                 if (ChainVeinClientApi.canUseServerMiningProtocol()) {
                     throw new AssertionError("The test did not simulate an absent ChainVein server");
                 }
+                ChainveinfabricClient.disarmAutoMining();
                 ChainveinfabricClient.CONFIG.directToInventory = true;
                 ChainveinfabricClient.CONFIG.quickShulkerOverflow = true;
                 return ChainVeinClientApi.queueMineJobs(client, List.of(TARGET));
@@ -78,9 +91,289 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                 throw new AssertionError("Absent-server vanilla fallback touched Quick Shulker ("
                         + quickShulkerMode() + "): " + result);
             }
+
+            testPlanting(context, singleplayer);
+            testManualMining(context, singleplayer);
+            testUtilityInteraction(context, singleplayer);
+            testAutomaticMining(context, singleplayer);
         } finally {
-            context.runOnClient(client -> ChainVeinClientApi.clear());
+            context.runOnClient(client -> {
+                ChainveinfabricClient.disarmAutoMining();
+                ChainveinfabricClient.CONFIG.isChainVeinEnabled = false;
+                ChainveinfabricClient.CONFIG.directToInventory = false;
+                ChainveinfabricClient.CONFIG.quickShulkerOverflow = false;
+                ChainVeinClientApi.clear();
+            });
         }
+    }
+
+    private static void testPlanting(ClientGameTestContext context,
+                                     TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            player.getInventory().setItem(0, new ItemStack(Items.WHEAT_SEEDS, 4));
+            player.getInventory().setSelectedSlot(0);
+            for (int x = 0; x < 2; x++) {
+                for (int z = 0; z < 2; z++) {
+                    BlockPos soil = PLANT_START.offset(x, 0, z);
+                    level.setBlockAndUpdate(soil.below(), Blocks.DIRT.defaultBlockState());
+                    level.setBlockAndUpdate(soil, Blocks.FARMLAND.defaultBlockState()
+                            .setValue(FarmlandBlock.MOISTURE, FarmlandBlock.MAX_MOISTURE));
+                    level.setBlockAndUpdate(soil.above(), Blocks.AIR.defaultBlockState());
+                }
+            }
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        singleplayer.getServer().runCommand("tp @p 8.5 66 -1.5");
+
+        context.waitTicks(5);
+        context.waitFor(client -> client.level != null && client.player != null
+                && client.level.getBlockState(PLANT_START).is(Blocks.FARMLAND)
+                && client.player.getMainHandItem().is(Items.WHEAT_SEEDS)
+                && client.player.getMainHandItem().getCount() == 4);
+        context.runOnClient(client -> {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            ChainveinfabricClient.disarmAutoMining();
+            config.isChainVeinEnabled = true;
+            config.mode = ChainVeinConfig.ChainMode.CHAIN_PLANT;
+            config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
+            config.maxChainBlocks = 4;
+            config.maxRadius = 8;
+            config.packetInterval = 50;
+            config.diagonalEdge = false;
+            config.diagonalCorner = false;
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_PLANT).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_PLANT)
+                    .add("minecraft:wheat_seeds");
+            ChainVeinClientApi.clear();
+        });
+
+        aimAt(context, PLANT_START);
+        context.getInput().pressMouse(1);
+        context.waitTicks(20);
+
+        PlantResult result = singleplayer.getServer().computeOnServer(server -> {
+            int planted = 0;
+            for (int x = 0; x < 2; x++) {
+                for (int z = 0; z < 2; z++) {
+                    if (server.overworld().getBlockState(
+                            PLANT_START.offset(x, 1, z)).is(Blocks.WHEAT)) {
+                        planted++;
+                    }
+                }
+            }
+            return new PlantResult(planted, server.getPlayerList().getPlayers()
+                    .getFirst().getMainHandItem().getCount());
+        });
+        if (result.planted() != 4 || result.remainingSeeds() != 0) {
+            throw new AssertionError("Pure-client planting did not process the original and "
+                    + "three queued interactions exactly once: " + result);
+        }
+    }
+
+    private static void testManualMining(ClientGameTestContext context,
+                                         TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            var player = server.getPlayerList().getPlayers().getFirst();
+            fillInventory(player, Items.DIAMOND_SHOVEL);
+            for (int x = 0; x < 2; x++) {
+                for (int z = 0; z < 2; z++) {
+                    BlockPos target = MINE_START.offset(x, 0, z);
+                    level.setBlockAndUpdate(target.below(), Blocks.STONE.defaultBlockState());
+                    level.setBlockAndUpdate(target, Blocks.DIRT.defaultBlockState());
+                    level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
+                }
+            }
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        singleplayer.getServer().runCommand("tp @p 14.5 66 -1.5");
+
+        context.waitTicks(5);
+        context.waitFor(client -> client.level != null && client.player != null
+                && client.level.getBlockState(MINE_START).is(Blocks.DIRT)
+                && client.player.getMainHandItem().is(Items.DIAMOND_SHOVEL));
+        context.runOnClient(client -> {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            ChainveinfabricClient.disarmAutoMining();
+            config.isChainVeinEnabled = true;
+            config.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+            config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
+            config.maxChainBlocks = 4;
+            config.maxRadius = 8;
+            config.packetInterval = 50;
+            config.directToInventory = true;
+            config.quickShulkerOverflow = true;
+            config.toolProtection = false;
+            config.diagonalEdge = false;
+            config.diagonalCorner = false;
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).add("minecraft:dirt");
+            ChainVeinClientApi.clear();
+        });
+
+        aimAt(context, MINE_START);
+        context.getInput().holdMouseFor(0, 10);
+        context.waitTicks(30);
+
+        MiningResult result = singleplayer.getServer().computeOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().getFirst();
+            int remaining = 0;
+            for (int x = 0; x < 2; x++) {
+                for (int z = 0; z < 2; z++) {
+                    if (server.overworld().getBlockState(
+                            MINE_START.offset(x, 0, z)).is(Blocks.DIRT)) {
+                        remaining++;
+                    }
+                }
+            }
+            int groundDirt = server.overworld().getEntitiesOfClass(
+                            ItemEntity.class, player.getBoundingBox().inflate(12.0D))
+                    .stream()
+                    .map(ItemEntity::getItem)
+                    .filter(stack -> stack.is(Items.DIRT))
+                    .mapToInt(ItemStack::getCount)
+                    .sum();
+            return new MiningResult(remaining, groundDirt,
+                    countStored(player.getInventory().getItem(9), Items.DIRT));
+        });
+        if (result.remainingBlocks() != 0 || result.groundDirt() != 4
+                || result.boxedDirt() != 0) {
+            throw new AssertionError("Pure-client mining did not use vanilla drops exactly once: "
+                    + result);
+        }
+    }
+
+    private static void testUtilityInteraction(ClientGameTestContext context,
+                                               TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_AXE));
+            player.getInventory().setSelectedSlot(0);
+            for (int x = 0; x < 3; x++) {
+                BlockPos target = UTILITY_START.offset(x, 0, 0);
+                level.setBlockAndUpdate(target.below(), Blocks.STONE.defaultBlockState());
+                level.setBlockAndUpdate(target, Blocks.OAK_LOG.defaultBlockState());
+            }
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        singleplayer.getServer().runCommand("tp @p 21.5 66 -1.5");
+
+        context.waitTicks(5);
+        context.waitFor(client -> client.level != null && client.player != null
+                && client.level.getBlockState(UTILITY_START).is(Blocks.OAK_LOG)
+                && client.player.getMainHandItem().is(Items.DIAMOND_AXE));
+        context.runOnClient(client -> {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            ChainveinfabricClient.disarmAutoMining();
+            config.isChainVeinEnabled = true;
+            config.mode = ChainVeinConfig.ChainMode.CHAIN_UTILITY;
+            config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
+            config.maxChainBlocks = 3;
+            config.maxRadius = 8;
+            config.packetInterval = 50;
+            config.toolProtection = false;
+            config.diagonalEdge = false;
+            config.diagonalCorner = false;
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_UTILITY).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_UTILITY)
+                    .add("minecraft:oak_log");
+            ChainVeinClientApi.clear();
+        });
+
+        aimAt(context, UTILITY_START);
+        context.getInput().pressMouse(1);
+        context.waitTicks(20);
+
+        int stripped = singleplayer.getServer().computeOnServer(server -> {
+            int count = 0;
+            for (int x = 0; x < 3; x++) {
+                if (server.overworld().getBlockState(
+                        UTILITY_START.offset(x, 0, 0)).is(Blocks.STRIPPED_OAK_LOG)) {
+                    count++;
+                }
+            }
+            return count;
+        });
+        if (stripped != 3) {
+            throw new AssertionError("Pure-client utility packets stripped "
+                    + stripped + " of 3 logs");
+        }
+    }
+
+    private static void testAutomaticMining(ClientGameTestContext context,
+                                            TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_SHOVEL));
+            player.getInventory().setSelectedSlot(0);
+            level.setBlockAndUpdate(AUTO_GUARD, Blocks.STONE.defaultBlockState());
+            for (BlockPos target : AUTO_TARGETS) {
+                level.setBlockAndUpdate(target, Blocks.DIRT.defaultBlockState());
+                level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
+            }
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        singleplayer.getServer().runCommand("tp @p 30.5 66 -1.5");
+
+        context.waitTicks(5);
+        context.waitFor(client -> client.level != null && client.player != null
+                && client.level.getBlockState(AUTO_GUARD).is(Blocks.STONE)
+                && client.level.getBlockState(AUTO_TARGETS.getFirst()).is(Blocks.DIRT));
+        context.runOnClient(client -> {
+            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+            config.isChainVeinEnabled = true;
+            config.mode = ChainVeinConfig.ChainMode.CHAIN_MINE;
+            config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.SPHERE;
+            config.sphereRadius = 4;
+            config.maxChainBlocks = AUTO_TARGETS.size();
+            config.packetInterval = 50;
+            config.autoMineCooldownTicks = 10;
+            config.directToInventory = false;
+            config.toolProtection = false;
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).clear();
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).add("minecraft:dirt");
+            ChainVeinClientApi.clear();
+            ChainveinfabricClient.disarmAutoMining();
+            if (!ChainveinfabricClient.toggleAutoMining()) {
+                throw new AssertionError("Failed to arm pure-client automatic mining");
+            }
+        });
+
+        aimAt(context, AUTO_GUARD);
+        context.getInput().pressMouse(0);
+        context.waitTicks(30);
+
+        AutoResult result = singleplayer.getServer().computeOnServer(server -> {
+            int remainingDirt = 0;
+            for (BlockPos target : AUTO_TARGETS) {
+                if (server.overworld().getBlockState(target).is(Blocks.DIRT)) {
+                    remainingDirt++;
+                }
+            }
+            return new AutoResult(
+                    server.overworld().getBlockState(AUTO_GUARD).is(Blocks.STONE),
+                    remainingDirt);
+        });
+        if (!result.guardPresent() || result.remainingDirt() != 0) {
+            throw new AssertionError("Pure-client automatic mining did not suppress the "
+                    + "clicked non-whitelisted block or mine its fallback targets: " + result);
+        }
+        context.runOnClient(client -> ChainveinfabricClient.disarmAutoMining());
+    }
+
+    private static void aimAt(ClientGameTestContext context, BlockPos target) {
+        context.runOnClient(client -> client.player.lookAt(
+                EntityAnchorArgument.Anchor.EYES, target.getCenter()));
+        context.waitTick();
+        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
+                && hit.getBlockPos().equals(target));
     }
 
     private static void prepareWorld(TestSingleplayerContext singleplayer) {
@@ -110,6 +403,20 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
         });
     }
 
+    private static void fillInventory(net.minecraft.server.level.ServerPlayer player,
+                                      Item tool) {
+        player.getInventory().clearContent();
+        player.getInventory().setItem(0, new ItemStack(tool));
+        for (int slot = 1; slot < 36; slot++) {
+            player.getInventory().setItem(slot, new ItemStack(Items.COBBLESTONE, 64));
+        }
+        ItemStack box = new ItemStack(TEST_SHULKER);
+        box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(
+                List.of(new ItemStack(Items.STONE))));
+        player.getInventory().setItem(9, box);
+        player.getInventory().setSelectedSlot(0);
+    }
+
     private static int countStored(ItemStack box, net.minecraft.world.item.Item item) {
         ItemContainerContents contents = box.get(DataComponents.CONTAINER);
         if (contents == null) return 0;
@@ -130,5 +437,14 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
 
     private record FallbackResult(boolean broken, int boxedStone,
                                   int boxedTorch, int groundTorch) {
+    }
+
+    private record PlantResult(int planted, int remainingSeeds) {
+    }
+
+    private record MiningResult(int remainingBlocks, int groundDirt, int boxedDirt) {
+    }
+
+    private record AutoResult(boolean guardPresent, int remainingDirt) {
     }
 }
