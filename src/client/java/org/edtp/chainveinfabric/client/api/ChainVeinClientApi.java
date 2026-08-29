@@ -13,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.mixin.client.MultiPlayerGameModeAccessor;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
@@ -129,6 +130,7 @@ public final class ChainVeinClientApi {
         }
 
         if (CLIENT_MINES.hasPendingWork()) {
+            if (consumeVanillaDestroyDelay(client)) return;
             if (isDispatchDue()) {
                 dispatchNextClientMine(client);
             }
@@ -293,6 +295,27 @@ public final class ChainVeinClientApi {
         int ticksPerDispatch = Math.max(1, interval / 50);
         if (++tickCounter < ticksPerDispatch) return false;
         tickCounter = 0;
+        return true;
+    }
+
+    /**
+     * Vanilla advances its post-break delay through continueDestroyBlock.
+     * Starting the next target directly would bypass that state entirely.
+     */
+    private static boolean consumeVanillaDestroyDelay(Minecraft client) {
+        MultiPlayerGameModeAccessor accessor =
+                (MultiPlayerGameModeAccessor) client.gameMode;
+        if (accessor.chainveinfabric$getDestroyDelay() <= 0) return false;
+
+        Job next = CLIENT_MINES.nextItem();
+        if (next == null) return false;
+
+        dispatching = true;
+        try {
+            client.gameMode.continueDestroyBlock(next.pos(), Direction.UP);
+        } finally {
+            dispatching = false;
+        }
         return true;
     }
 

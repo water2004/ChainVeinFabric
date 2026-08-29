@@ -68,6 +68,11 @@ final class ClientMineRequestQueue<T> {
         return this.activeItem;
     }
 
+    T nextItem() {
+        if (this.activeItem != null) return this.activeItem;
+        return this.activeRequest != null ? this.activeRequest.remaining.peekFirst() : null;
+    }
+
     boolean hasPendingWork() {
         return this.activeItem != null
                 || this.activeRequest != null

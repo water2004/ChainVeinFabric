@@ -18,6 +18,7 @@ class ClientMineRequestQueueTest {
         queue.submit(List.of("new-a", "new-b"));
 
         assertEquals(2, queue.pendingCount());
+        assertEquals("new-a", queue.nextItem());
         assertEquals("new-a", queue.startNext());
     }
 
