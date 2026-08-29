@@ -28,6 +28,10 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        if (!Boolean.parseBoolean(System.getProperty(
+                "chainveinfabric.gametest.serverInstalled", "true"))) {
+            return;
+        }
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
             singleplayer.getServer().runOnServer(server -> {
                 var level = server.overworld();

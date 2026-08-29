@@ -10,9 +10,13 @@
       "org.edtp.chainveinfabric.QuickShulkerServerGameTests"
     ],
     "fabric-client-gametest": [
-      "org.edtp.chainveinfabric.gametest.PlantingClientGameTest"
+      "org.edtp.chainveinfabric.gametest.PlantingClientGameTest",
+      "org.edtp.chainveinfabric.gametest.ServerAbsentFallbackGameTest"
     ]
   },
+  "mixins": [
+    "chainveinfabric-gametest.mixins.json"
+  ],
   "depends": {
     "fabricloader": "*",
     "fabric-api": "*",
