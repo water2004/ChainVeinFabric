@@ -185,14 +185,13 @@ public class GuiChainVein extends GuiConfigsBase {
             String comment = StringUtils.translate(key);
             return comment.equals(key) ? null : comment;
         });
-        ConfigProxies.load();
-        ConfigProxies.ALGO.setValueChangeCallback((config) -> {
-            ConfigProxies.save();
+        ConfigProxies.setAlgorithmChangeListener(() -> {
             if (this.currentTab == Tab.SETTINGS) {
                 this.reCreateListWidget();
                 this.initGui();
             }
         });
+        ConfigProxies.load();
     }
 
     @Override
