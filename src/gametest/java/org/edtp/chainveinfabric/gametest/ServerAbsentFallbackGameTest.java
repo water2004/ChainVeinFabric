@@ -190,10 +190,15 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             var level = server.overworld();
             var player = server.getPlayerList().getPlayers().getFirst();
             fillInventory(player, Items.DIAMOND_SHOVEL);
+            for (int x = -2; x <= 3; x++) {
+                for (int z = -2; z <= 3; z++) {
+                    level.setBlockAndUpdate(
+                            MINE_START.offset(x, -1, z), Blocks.STONE.defaultBlockState());
+                }
+            }
             for (int x = 0; x < 2; x++) {
                 for (int z = 0; z < 2; z++) {
                     BlockPos target = MINE_START.offset(x, 0, z);
-                    level.setBlockAndUpdate(target.below(), Blocks.STONE.defaultBlockState());
                     level.setBlockAndUpdate(target, Blocks.COARSE_DIRT.defaultBlockState());
                     level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
                 }
