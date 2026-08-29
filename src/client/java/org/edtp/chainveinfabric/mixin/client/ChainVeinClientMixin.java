@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -27,6 +28,15 @@ public abstract class ChainVeinClientMixin {
     @Shadow @Final private Minecraft minecraft;
 
     private BlockState capturedState;
+
+    @Inject(method = "startDestroyBlock", at = @At("HEAD"))
+    private void beforeManualMining(BlockPos pos, Direction direction,
+                                    CallbackInfoReturnable<Boolean> cir) {
+        if (!ChainVeinClientApi.isDispatching()
+                && ChainVeinClientApi.hasPendingMineJobs()) {
+            ChainVeinClientApi.cancelClientMining(this.minecraft);
+        }
+    }
 
     @Inject(method = "destroyBlock", at = @At("HEAD"), cancellable = true)
     private void onBreakBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
