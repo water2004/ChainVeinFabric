@@ -1,97 +1,68 @@
 package org.edtp.chainveinfabric.compat.quickshulker;
 
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.ShulkerBoxBlock;
 
-import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
-/** Reflection-isolated bridge to Quick Shulker's screen-independent storage API. */
+/** Reflection-isolated bridge to Quick Shulker's standard Fabric storage resolver. */
 final class QuickStorageDirectBridge {
-    private static final Api API = Api.load();
+    private static final Method FIND_CARRIED = findApi();
 
     private QuickStorageDirectBridge() {
     }
 
     static boolean isUsable() {
-        return API != null;
+        return FIND_CARRIED != null;
     }
 
-    static int insertIntoCarriedShulkerBoxes(ServerPlayer player, ItemStack remainder) {
-        if (API == null || player == null || remainder == null || remainder.isEmpty()) return 0;
-
-        int initialCount = remainder.getCount();
-        Inventory inventory = player.getInventory();
-        for (int slot = 0; slot < inventory.getContainerSize() && !remainder.isEmpty(); slot++) {
-            ItemStack host = inventory.getItem(slot);
-            if (!isShulkerBox(host)) continue;
-            API.insert(player, remainder, host);
+    static List<SlottedStorage<ItemVariant>> findAll(ServerPlayer player) {
+        if (FIND_CARRIED == null || player == null) return List.of();
+        List<SlottedStorage<ItemVariant>> storages = new ArrayList<>();
+        int size = player.getInventory().getNonEquipmentItems().size();
+        for (int slot = 0; slot < size; slot++) {
+            SlottedStorage<ItemVariant> storage = find(player, slot);
+            if (storage != null) storages.add(storage);
         }
-        return initialCount - remainder.getCount();
+        return List.copyOf(storages);
     }
 
-    private static boolean isShulkerBox(ItemStack stack) {
-        return !stack.isEmpty() && Block.byItem(stack.getItem()) instanceof ShulkerBoxBlock;
-    }
-
-    private record Api(Constructor<?> mutableStackEndpoint,
-                       Constructor<?> storageItemEndpoint,
-                       Constructor<?> transferSpec,
-                       Method anySlotSelector,
-                       Method anyStackMatcher,
-                       Method allTransferLimit,
-                       Method executeTransfer) {
-        private static Api load() {
-            try {
-                ClassLoader loader = QuickStorageDirectBridge.class.getClassLoader();
-                Class<?> endpoint = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.TransferEndpoint", false, loader);
-                Class<?> mutable = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.MutableStackEndpoint", false, loader);
-                Class<?> storage = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.StorageItemEndpoint", false, loader);
-                Class<?> slots = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.SlotSelector", false, loader);
-                Class<?> matcher = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.StackMatcher", false, loader);
-                Class<?> limit = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.TransferLimit", false, loader);
-                Class<?> spec = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.TransferSpec", false, loader);
-                Class<?> transfers = Class.forName(
-                        "net.kyrptonaught.quickshulker.api.storage.QuickStorageTransfer", false, loader);
-
-                return new Api(
-                        mutable.getConstructor(ItemStack.class),
-                        storage.getConstructor(ItemStack.class, slots),
-                        spec.getConstructor(endpoint, endpoint, matcher, limit),
-                        slots.getMethod("any"),
-                        matcher.getMethod("any"),
-                        limit.getMethod("all"),
-                        transfers.getMethod("execute",
-                                net.minecraft.world.entity.player.Player.class, spec));
-            } catch (ReflectiveOperationException | LinkageError error) {
-                return null;
-            }
+    private static SlottedStorage<ItemVariant> find(ServerPlayer player, int slot) {
+        try {
+            Object result = FIND_CARRIED.invoke(null, player, slot);
+            Object storage = result instanceof Optional<?> optional
+                    ? optional.orElse(null) : null;
+            if (!(storage instanceof SlottedStorage<?> slotted)) return null;
+            @SuppressWarnings("unchecked")
+            SlottedStorage<ItemVariant> items =
+                    (SlottedStorage<ItemVariant>) slotted;
+            return items;
+        } catch (IllegalAccessException error) {
+            throw new IllegalStateException(
+                    "Quick Shulker storage resolver is inaccessible", error);
+        } catch (InvocationTargetException error) {
+            Throwable cause = error.getCause();
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            if (cause instanceof Error fatal) throw fatal;
+            throw new IllegalStateException(
+                    "Quick Shulker storage resolution failed", cause);
         }
+    }
 
-        private void insert(ServerPlayer player, ItemStack source, ItemStack host) {
-            try {
-                Object sourceEndpoint = mutableStackEndpoint.newInstance(source);
-                Object destinationEndpoint = storageItemEndpoint.newInstance(
-                        host, anySlotSelector.invoke(null));
-                Object spec = transferSpec.newInstance(
-                        sourceEndpoint,
-                        destinationEndpoint,
-                        anyStackMatcher.invoke(null),
-                        allTransferLimit.invoke(null));
-                executeTransfer.invoke(null, player, spec);
-            } catch (ReflectiveOperationException error) {
-                throw new IllegalStateException("Quick Shulker direct storage API failed", error);
-            }
+    private static Method findApi() {
+        try {
+            Class<?> facade = Class.forName(
+                    "net.kyrptonaught.quickshulker.api.shulker.server.ShulkerStorages",
+                    false,
+                    QuickStorageDirectBridge.class.getClassLoader());
+            return facade.getMethod("findCarried", ServerPlayer.class, int.class);
+        } catch (ReflectiveOperationException | LinkageError error) {
+            return null;
         }
     }
 }

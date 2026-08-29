@@ -24,7 +24,8 @@ final class QuickShulkerBridge {
         int initialCount = remainder.getCount();
         Inventory playerInventory = player.getInventory();
 
-        for (int slot = 0; slot < playerInventory.getContainerSize() && !remainder.isEmpty(); slot++) {
+        for (int slot = 0; slot < playerInventory.getNonEquipmentItems().size()
+                && !remainder.isEmpty(); slot++) {
             ItemStack hostStack = playerInventory.getItem(slot);
             if (!isShulkerBox(hostStack)) continue;
 

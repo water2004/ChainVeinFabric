@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import org.edtp.chainveinfabric.server.ChainVeinServerCommands;
 import org.edtp.chainveinfabric.server.ChainVeinServerConfig;
 import org.edtp.chainveinfabric.server.DirectDropCollector;
@@ -32,7 +33,10 @@ public class Chainveinfabric implements ModInitializer {
         // Register Payloads
         PayloadTypeRegistry.serverboundPlay().register(ChainMinePayload.ID, ChainMinePayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ChainInteractPayload.ID, ChainInteractPayload.CODEC);
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> ChainVeinServerConfig.load());
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            ChainVeinServerConfig.load();
+            QuickShulkerIntegration.initialize();
+        });
         
         // Register Mine Receiver
         ServerPlayNetworking.registerGlobalReceiver(ChainMinePayload.ID, (payload, context) -> {
@@ -80,23 +84,34 @@ public class Chainveinfabric implements ModInitializer {
         ChainVeinServerConfig.Values limits = ChainVeinServerConfig.values();
         List<BlockPos> limitedPositions = firstPositions(positions, limits.maxBlocks());
 
-        for (BlockPos pos : limitedPositions) {
+        if (directToInventory && !isCreative) {
+            DirectDropCollector.run(
+                    player,
+                    quickShulkerOverflow,
+                    limits.pickupRadius(),
+                    () -> minePositions(
+                            player, world, limitedPositions, false, startedWithEmptyHand));
+            return;
+        }
+
+        minePositions(player, world, limitedPositions, isCreative, startedWithEmptyHand);
+    }
+
+    private static boolean minePositions(ServerPlayer player,
+                                         ServerLevel world,
+                                         List<BlockPos> positions,
+                                         boolean isCreative,
+                                         boolean startedWithEmptyHand) {
+        for (BlockPos pos : positions) {
             if (!world.isLoaded(pos)) continue;
             if (!isCreative && !startedWithEmptyHand && player.getMainHandItem().isEmpty()) break;
 
             BlockState state = world.getBlockState(pos);
             if (state.isAir()) continue;
 
-            if (directToInventory && !isCreative) {
-                DirectDropCollector.run(
-                        player,
-                        quickShulkerOverflow,
-                        limits.pickupRadius(),
-                        () -> player.gameMode.destroyBlock(pos));
-            } else {
-                player.gameMode.destroyBlock(pos);
-            }
+            player.gameMode.destroyBlock(pos);
         }
+        return true;
     }
 
     private static List<BlockPos> firstPositions(List<BlockPos> positions, int limit) {

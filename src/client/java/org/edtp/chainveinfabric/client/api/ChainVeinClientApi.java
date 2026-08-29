@@ -15,7 +15,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.edtp.chainveinfabric.Chainveinfabric;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
-import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -50,8 +49,7 @@ public final class ChainVeinClientApi {
         boolean directToInventory = ChainveinfabricClient.CONFIG != null
                 && ChainveinfabricClient.CONFIG.directToInventory;
         boolean quickShulkerOverflow = directToInventory
-                && ChainveinfabricClient.CONFIG.quickShulkerOverflow
-                && QuickShulkerIntegration.isAvailable();
+                && ChainveinfabricClient.CONFIG.quickShulkerOverflow;
         int protectionCapacity = getProtectedMineCapacity(client);
         int added;
         if (canUseServerProtocol(JobType.MINE)) {
