@@ -39,7 +39,7 @@ jobs:
       - name: Run client game tests
         run: xvfb-run -a ./gradlew runClientGameTest --no-daemon
 
-      - name: Test client fallback without ChainVein server support
+      - name: Test pure-client vanilla packet fallback
         run: >-
           xvfb-run -a ./gradlew runClientGameTest --no-daemon
           -PquickshulkerGameTestMode=new
