@@ -1,8 +1,8 @@
 ## ChainVeinFabric v4.1.0-alpha.1
 
-> 这是面向 Minecraft 26.2 的预发布测试版本。请在重要存档中谨慎使用自动挖掘，并在升级前备份。
+> 这是面向 Minecraft 26.2 与 26.1.x 的预发布测试版本。请在重要存档中谨慎使用自动挖掘，并在升级前备份。
 >
-> This is a prerelease build for Minecraft 26.2. Use automatic mining cautiously in important worlds and back them up before upgrading.
+> This is a prerelease build for Minecraft 26.2 and 26.1.x. Use automatic mining cautiously in important worlds and back them up before upgrading.
 
 ### 新功能 / Features
 
@@ -23,19 +23,19 @@
 ### 测试 / Testing
 
 - 自动化测试覆盖自动挖掘按次触发与冷却、原版掉落语义、冰与含物品容器、直接进入背包、快捷潜影盒容量边界、服务端限制和配置迁移
-- CI 同时验证 Quick Shulker `3.0.2` 旧 API、`4.0.0-alpha.1-26.2` 新 API、强制旧适配路径，以及服务端未提供 ChainVein 协议时的纯客户端回退
+- Minecraft 26.2 的 CI 同时验证 Quick Shulker `3.0.2` 旧 API、`4.0.0-alpha.1-26.2` 新 API、强制旧适配路径，以及服务端未提供 ChainVein 协议时的纯客户端回退；26.1.x 验证公开的旧 API 与纯客户端回退
 
 - Automated coverage includes guarded automatic-mining pulses and cooldowns, vanilla drop semantics, ice and populated containers, Direct to Inventory, Quick Shulker capacity boundaries, server limits, and configuration migration
-- CI validates the Quick Shulker `3.0.2` legacy API, the `4.0.0-alpha.1-26.2` direct API, the forced legacy adapter, and client-only fallback when the server does not advertise the ChainVein protocol
+- On Minecraft 26.2, CI validates the Quick Shulker `3.0.2` legacy API, the `4.0.0-alpha.1-26.2` direct API, the forced legacy adapter, and client-only fallback when the server does not advertise the ChainVein protocol; the 26.1.x build validates the published legacy API and client-only fallback
 
 ### 兼容性 / Compatibility
 
 - 配置 schema 升级到 v5；现有 v4 配置会自动迁移，旧版的顺序迁移路径保持可用
 - 4.1.0-alpha.1 没有修改 4.x 网络负载格式或公开 `ChainVeinClientApi` 方法签名；`isManualMiningMode()` 保留为兼容别名
-- 本预发布仅构建 Minecraft 26.2；正式 4.1.0 后续仍会同时维护 26.2 与 26.1.x
+- 本预发布同时提供 Minecraft 26.2 与 26.1.x 构建
 - 4.x 与 1.x～3.x 的专用协议仍然分离，版本不匹配时安全退回纯客户端模式
 
 - The configuration schema is now v5. Existing v4 configurations migrate automatically, and the sequential migration path from older schemas remains available
 - 4.1.0-alpha.1 does not change the 4.x network payload format or public `ChainVeinClientApi` method signatures; `isManualMiningMode()` remains as a compatibility alias
-- This prerelease is built for Minecraft 26.2 only; the stable 4.1.0 line will continue to maintain both 26.2 and 26.1.x
+- This prerelease provides builds for both Minecraft 26.2 and 26.1.x
 - The 4.x dedicated protocol remains separate from 1.x–3.x, with mismatched versions safely falling back to client-side mode
