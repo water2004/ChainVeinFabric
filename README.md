@@ -114,7 +114,7 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 
 - **Minecraft:** Current 4.x builds target Minecraft 26.1.x and 26.2.x, while Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
 - **MaLiLib:** Required on the client.
-- **Litematica:** Optional. Only the three schematic modes depend on it.
+- **Litematica:** Optional. Version `0.28.3` or newer is supported on Minecraft 26.2; only the three schematic modes depend on it.
 - **Quick Shulker:** Optional. Enables shulker-box storage for Direct to Inventory overflow when installed on both sides.
 - **Mod Menu:** Optional configuration entry point.
 

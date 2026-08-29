@@ -34,7 +34,7 @@
     "malilib": ">=0.29.2"
   },
   "suggests": {
-    "litematica": ">=0.28.4",
+    "litematica": ">=0.28.3",
     "quickshulker": ">=3.0.2-26.2"
   }
 }

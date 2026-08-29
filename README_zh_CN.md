@@ -114,7 +114,7 @@ ChainVein 会先将掉落物放入普通玩家背包，再按背包槽位顺序�
 
 - **Minecraft：** 当前 4.x 构建面向 Minecraft 26.1.x 与 26.2.x，Minecraft 1.21.x 停留在 ChainVeinFabric 2.2.1。
 - **MaLiLib：** 客户端必需依赖。
-- **Litematica：** 可选依赖，仅三个投影模式需要。
+- **Litematica：** 可选依赖；Minecraft 26.2 支持 `0.28.3` 及以上版本，仅三个投影模式需要。
 - **快捷潜影盒：** 可选依赖；客户端和服务端都安装后，可收纳“直接进入背包”的溢出物。
 - **Mod Menu：** 可选的配置入口。
 
