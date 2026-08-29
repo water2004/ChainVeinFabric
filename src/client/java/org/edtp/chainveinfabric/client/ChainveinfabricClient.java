@@ -8,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -21,6 +20,7 @@ import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 import org.edtp.chainveinfabric.client.renderer.AutoMiningHazardHud;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
+import org.edtp.chainveinfabric.client.renderer.ChainStatusHud;
 import org.edtp.chainveinfabric.client.renderer.SearchWorker;
 import org.edtp.chainveinfabric.client.logic.AutoMiningController;
 import org.edtp.chainveinfabric.client.logic.search.SearchConfig;
@@ -54,6 +54,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
         if (autoMiningController != null) {
             autoMiningController.disarm(Minecraft.getInstance());
         }
+        ChainVeinClientApi.cancelClientMining(Minecraft.getInstance());
     }
 
     public static boolean handleAutoMiningAttack() {
@@ -102,24 +103,21 @@ public class ChainveinfabricClient implements ClientModInitializer {
 
         // Use modern HudElementRegistry instead of deprecated HudRenderCallback
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
-            if (CONFIG != null && CONFIG.isChainVeinEnabled) {
-                if (isAutoMiningArmed()) {
-                    AutoMiningHazardHud.render(
-                            context,
-                            Minecraft.getInstance().font,
-                            getAutoMiningStatus(),
-                            getAutoMiningCooldownTicks());
-                    return;
-                }
-                Component activeText = Component.translatable("hud.chainveinfabric.active");
-                int width = context.guiWidth();
-                context.centeredText(
-                        Minecraft.getInstance().font,
-                        activeText,
-                        width / 2,
-                        5, // Small offset from top
-                        0xFFFF0000 // Red color
-                );
+            Minecraft client = Minecraft.getInstance();
+            ChainVeinClientApi.ClientMiningProgress progress =
+                    ChainVeinClientApi.getClientMiningProgress(client);
+            boolean chainEnabled = CONFIG != null && CONFIG.isChainVeinEnabled;
+            if (!chainEnabled && progress == null) return;
+
+            if (chainEnabled && isAutoMiningArmed()) {
+                AutoMiningHazardHud.render(
+                        context,
+                        client.font,
+                        getAutoMiningStatus(),
+                        getAutoMiningCooldownTicks(),
+                        progress);
+            } else {
+                ChainStatusHud.render(context, client.font, progress);
             }
         });
     }

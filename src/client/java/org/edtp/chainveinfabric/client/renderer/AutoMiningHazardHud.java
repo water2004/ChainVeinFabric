@@ -4,7 +4,9 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
+import org.edtp.chainveinfabric.client.api.ChainVeinClientApi.ClientMiningProgress;
 import org.edtp.chainveinfabric.client.logic.AutoMiningController;
+import org.jetbrains.annotations.Nullable;
 
 /** A deliberately persistent safety indicator for automatic mining. */
 public final class AutoMiningHazardHud {
@@ -15,7 +17,8 @@ public final class AutoMiningHazardHud {
     }
 
     public static void render(GuiGraphicsExtractor graphics, Font font,
-                              AutoMiningController.Status status, int cooldownTicks) {
+                              AutoMiningController.Status status, int cooldownTicks,
+                              @Nullable ClientMiningProgress progress) {
         int width = graphics.guiWidth();
         int height = graphics.guiHeight();
         if (width <= 0 || height <= 0) return;
@@ -33,7 +36,7 @@ public final class AutoMiningHazardHud {
 
         int cornerLength = Math.max(14, Math.min(30, Math.min(width, height) / 8));
         fillCorners(graphics, width, height, cornerLength, accentColor);
-        drawWarningBadge(graphics, font, width, accentColor, status, cooldownTicks);
+        drawWarningBadge(graphics, font, width, accentColor, status, cooldownTicks, progress);
     }
 
     private static void fillFrame(GuiGraphicsExtractor graphics, int width, int height,
@@ -70,15 +73,32 @@ public final class AutoMiningHazardHud {
 
     private static void drawWarningBadge(GuiGraphicsExtractor graphics, Font font,
                                          int screenWidth, int accentColor,
-                                         AutoMiningController.Status status, int cooldownTicks) {
-        Component text = switch (status) {
-            case RUNNING -> Component.translatable("hud.chainveinfabric.autoMine.running");
-            case COOLDOWN -> Component.translatable(
-                    "hud.chainveinfabric.autoMine.cooldown",
-                    Math.max(1, (cooldownTicks + 19) / 20));
-            case ARMED, INACTIVE -> Component.translatable("hud.chainveinfabric.autoMine.armed");
-        };
+                                         AutoMiningController.Status status, int cooldownTicks,
+                                         @Nullable ClientMiningProgress progress) {
+        Component text = progress != null
+                ? Component.translatable(
+                        "hud.chainveinfabric.autoMine.progress",
+                        progress.currentBlock(), progress.totalBlocks())
+                : switch (status) {
+                    case RUNNING -> Component.translatable("hud.chainveinfabric.autoMine.running");
+                    case COOLDOWN -> Component.translatable(
+                            "hud.chainveinfabric.autoMine.cooldown",
+                            Math.max(1, (cooldownTicks + 19) / 20));
+                    case ARMED, INACTIVE -> Component.translatable("hud.chainveinfabric.autoMine.armed");
+                };
         int horizontalMargin = Math.min(6, Math.max(0, screenWidth / 4));
+        int availableWidth = Math.max(1, screenWidth - horizontalMargin * 2 - 20);
+        if (font.width(text) > availableWidth) {
+            Component compact = progress != null
+                    ? Component.literal(progress.currentBlock() + "/" + progress.totalBlocks())
+                    : text;
+            String ellipsis = "…";
+            int contentWidth = Math.max(0, availableWidth - font.width(ellipsis));
+            text = font.width(compact) <= availableWidth
+                    ? compact
+                    : Component.literal(font.plainSubstrByWidth(
+                            compact.getString(), contentWidth) + ellipsis);
+        }
         int badgeWidth = Math.max(1,
                 Math.min(screenWidth - horizontalMargin * 2, font.width(text) + 20));
         int left = (screenWidth - badgeWidth) / 2;
@@ -93,6 +113,12 @@ public final class AutoMiningHazardHud {
         graphics.fill(left, top, left + 1, bottom, accentColor);
         graphics.fill(right - 1, top, right, bottom, accentColor);
         graphics.centeredText(font, text, screenWidth / 2, top + 4, 0xFFFFE4D6);
+
+        if (progress != null) {
+            ChainStatusHud.drawProgressBar(
+                    graphics, left + 1, right - 1, bottom - 3,
+                    progress.currentBlockProgress(), accentColor);
+        }
     }
 
     private static int argb(int alpha, int red, int green, int blue) {
