@@ -8,7 +8,6 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
@@ -36,6 +35,7 @@ public final class ChainVeinClientApi {
     private static int tickCounter;
     private static int activeMineJobs;
     private static boolean dispatching;
+    private static Job activeClientMineJob;
 
     private ChainVeinClientApi() {
     }
@@ -118,8 +118,16 @@ public final class ChainVeinClientApi {
         }
 
         if (queuedLevel != client.level) {
+            if (activeClientMineJob != null) {
+                client.gameMode.stopDestroyBlock();
+            }
             clear();
             queuedLevel = client.level;
+        }
+
+        if (activeClientMineJob != null) {
+            continueClientMineJob(client);
+            return;
         }
 
         if (JOBS.isEmpty()) {
@@ -158,6 +166,7 @@ public final class ChainVeinClientApi {
         tickCounter = 0;
         activeMineJobs = 0;
         dispatching = false;
+        activeClientMineJob = null;
     }
 
     private static int enqueue(Minecraft client, JobType type,
@@ -278,12 +287,12 @@ public final class ChainVeinClientApi {
         dispatching = true;
         try {
             if (job.type() == JobType.MINE) {
-                client.getConnection().send(new ServerboundPlayerActionPacket(
-                        ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK,
-                        job.pos(), Direction.UP));
-                client.getConnection().send(new ServerboundPlayerActionPacket(
-                        ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-                        job.pos(), Direction.UP));
+                if (!client.level.getBlockState(job.pos()).isAir()
+                        && client.gameMode.startDestroyBlock(job.pos(), Direction.UP)
+                        && !client.level.getBlockState(job.pos()).isAir()) {
+                    activeClientMineJob = job;
+                    activeMineJobs++;
+                }
                 return;
             }
 
@@ -293,6 +302,36 @@ public final class ChainVeinClientApi {
                     new BlockHitResult(job.pos().getCenter(), Direction.UP, job.pos(), false));
         } finally {
             dispatching = false;
+        }
+    }
+
+    private static void continueClientMineJob(Minecraft client) {
+        Job job = activeClientMineJob;
+        if (job == null) return;
+
+        if (client.level.getBlockState(job.pos()).isAir()) {
+            finishClientMineJob();
+            return;
+        }
+
+        dispatching = true;
+        try {
+            boolean continuing = client.gameMode.continueDestroyBlock(job.pos(), Direction.UP);
+            if (!continuing) {
+                client.gameMode.stopDestroyBlock();
+                finishClientMineJob();
+            } else if (client.level.getBlockState(job.pos()).isAir()) {
+                finishClientMineJob();
+            }
+        } finally {
+            dispatching = false;
+        }
+    }
+
+    private static void finishClientMineJob() {
+        if (activeClientMineJob != null) {
+            activeClientMineJob = null;
+            activeMineJobs = Math.max(0, activeMineJobs - 1);
         }
     }
 

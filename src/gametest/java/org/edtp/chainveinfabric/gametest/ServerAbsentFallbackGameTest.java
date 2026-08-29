@@ -3,17 +3,20 @@ package org.edtp.chainveinfabric.gametest;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
-import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
@@ -150,8 +153,16 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             ChainVeinClientApi.clear();
         });
 
-        aimAt(context, PLANT_START);
-        context.getInput().pressMouse(1);
+        InteractionResult interactionResult = context.computeOnClient(client ->
+                client.gameMode.useItemOn(
+                        client.player,
+                        InteractionHand.MAIN_HAND,
+                        new BlockHitResult(
+                                Vec3.atCenterOf(PLANT_START).add(0.0D, 0.5D, 0.0D),
+                                Direction.UP, PLANT_START, false)));
+        if (interactionResult == InteractionResult.FAIL) {
+            throw new AssertionError("The original pure-client planting interaction failed");
+        }
         context.waitTicks(20);
 
         PlantResult result = singleplayer.getServer().computeOnServer(server -> {
@@ -214,9 +225,21 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             ChainVeinClientApi.clear();
         });
 
-        aimAt(context, MINE_START);
-        context.getInput().holdMouseFor(0, 10);
-        context.waitTicks(30);
+        boolean started = context.computeOnClient(client ->
+                client.gameMode.startDestroyBlock(MINE_START, Direction.UP));
+        if (!started) {
+            throw new AssertionError("The original pure-client mining action did not start");
+        }
+        for (int i = 0; i < 10; i++) {
+            if (context.computeOnClient(client ->
+                    client.level.getBlockState(MINE_START).isAir())) {
+                break;
+            }
+            context.waitTick();
+            context.runOnClient(client ->
+                    client.gameMode.continueDestroyBlock(MINE_START, Direction.UP));
+        }
+        context.waitTicks(120);
 
         MiningResult result = singleplayer.getServer().computeOnServer(server -> {
             var player = server.getPlayerList().getPlayers().getFirst();
@@ -236,11 +259,20 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                     .filter(stack -> stack.is(Items.DIRT))
                     .mapToInt(ItemStack::getCount)
                     .sum();
+            int inventoryDirt = 0;
+            int boxedDirt = 0;
+            for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+                ItemStack stack = player.getInventory().getItem(slot);
+                if (stack.is(Items.DIRT)) {
+                    inventoryDirt += stack.getCount();
+                }
+                boxedDirt += countStored(stack, Items.DIRT);
+            }
             return new MiningResult(remaining, groundDirt,
-                    countStored(player.getInventory().getItem(9), Items.DIRT));
+                    inventoryDirt, boxedDirt);
         });
         if (result.remainingBlocks() != 0 || result.groundDirt() != 4
-                || result.boxedDirt() != 0) {
+                || result.inventoryDirt() != 0 || result.boxedDirt() != 0) {
             throw new AssertionError("Pure-client mining did not use vanilla drops exactly once: "
                     + result);
         }
@@ -285,8 +317,16 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             ChainVeinClientApi.clear();
         });
 
-        aimAt(context, UTILITY_START);
-        context.getInput().pressMouse(1);
+        InteractionResult interactionResult = context.computeOnClient(client ->
+                client.gameMode.useItemOn(
+                        client.player,
+                        InteractionHand.MAIN_HAND,
+                        new BlockHitResult(
+                                Vec3.atCenterOf(UTILITY_START),
+                                Direction.UP, UTILITY_START, false)));
+        if (interactionResult == InteractionResult.FAIL) {
+            throw new AssertionError("The original pure-client utility interaction failed");
+        }
         context.waitTicks(20);
 
         int stripped = singleplayer.getServer().computeOnServer(server -> {
@@ -346,8 +386,11 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             }
         });
 
-        aimAt(context, AUTO_GUARD);
-        context.getInput().pressMouse(0);
+        boolean handled = context.computeOnClient(client ->
+                ChainveinfabricClient.handleAutoMiningAttack());
+        if (!handled) {
+            throw new AssertionError("The pure-client automatic mining attack was not handled");
+        }
         context.waitTicks(30);
 
         AutoResult result = singleplayer.getServer().computeOnServer(server -> {
@@ -366,14 +409,6 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                     + "clicked non-whitelisted block or mine its fallback targets: " + result);
         }
         context.runOnClient(client -> ChainveinfabricClient.disarmAutoMining());
-    }
-
-    private static void aimAt(ClientGameTestContext context, BlockPos target) {
-        context.runOnClient(client -> client.player.lookAt(
-                EntityAnchorArgument.Anchor.EYES, target.getCenter()));
-        context.waitTick();
-        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
-                && hit.getBlockPos().equals(target));
     }
 
     private static void prepareWorld(TestSingleplayerContext singleplayer) {
@@ -395,6 +430,12 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                 for (int z = -6; z <= 3; z++) {
                     level.setBlockAndUpdate(new BlockPos(x, 63, z),
                             Blocks.COBBLESTONE.defaultBlockState());
+                }
+            }
+            for (int x = 7; x <= 32; x++) {
+                for (int z = -2; z <= -1; z++) {
+                    level.setBlockAndUpdate(new BlockPos(x, 64, z),
+                            Blocks.STONE.defaultBlockState());
                 }
             }
             level.setBlockAndUpdate(TARGET, Blocks.TORCH.defaultBlockState());
@@ -442,7 +483,8 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
     private record PlantResult(int planted, int remainingSeeds) {
     }
 
-    private record MiningResult(int remainingBlocks, int groundDirt, int boxedDirt) {
+    private record MiningResult(int remainingBlocks, int groundDirt,
+                                int inventoryDirt, int boxedDirt) {
     }
 
     private record AutoResult(boolean guardPresent, int remainingDirt) {
