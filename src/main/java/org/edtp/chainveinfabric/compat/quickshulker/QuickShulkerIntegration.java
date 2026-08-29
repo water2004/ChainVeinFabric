@@ -1,53 +1,116 @@
 package org.edtp.chainveinfabric.compat.quickshulker;
 
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Safe optional-dependency boundary for Quick Shulker.
- *
- * <p>This class deliberately contains no Quick Shulker types, so it remains
- * loadable when the mod is absent. All linked API calls live in the bridge
- * class and are reached only after the API package has been detected.</p>
- */
+import java.util.ArrayList;
+import java.util.List;
+
+/** Optional server-side Quick Shulker integration with one startup-selected path. */
 public final class QuickShulkerIntegration {
     public static final String MOD_ID = "quickshulker";
 
-    private static boolean legacyAvailable = detectLegacyAvailability();
-    private static boolean directAvailable = FabricLoader.getInstance().isModLoaded(MOD_ID)
-            && QuickStorageDirectBridge.isUsable();
+    private static final Logger LOGGER = LoggerFactory.getLogger("ChainVeinFabric/QuickShulker");
+    private static final Path SELECTED_PATH = selectPath();
+    private static boolean broken;
 
     private QuickShulkerIntegration() {
     }
 
+    /** Forces path selection during server startup. */
+    public static void initialize() {
+        LOGGER.info("Quick Shulker server integration path: {}", SELECTED_PATH);
+    }
+
     public static boolean isAvailable() {
-        return directAvailable || legacyAvailable;
+        return SELECTED_PATH != Path.NONE && !broken;
     }
 
     public static int insertOverflow(ServerPlayer player, ItemStack remainder) {
-        if (!isAvailable() || remainder.isEmpty()) return 0;
+        if (remainder == null || remainder.isEmpty()) return 0;
+        return insertOverflow(player, List.of(remainder));
+    }
 
-        if (directAvailable) {
-            try {
-                return QuickStorageDirectBridge.insertIntoCarriedShulkerBoxes(player, remainder);
-            } catch (RuntimeException | LinkageError error) {
-                directAvailable = false;
-            }
+    /** Inserts the real post-mining remainders; callers retain every uninserted item. */
+    public static int insertOverflow(ServerPlayer player, List<ItemStack> remainders) {
+        if (!isAvailable() || player == null || remainders == null) return 0;
+        try {
+            return switch (SELECTED_PATH) {
+                case DIRECT -> insertDirect(player, remainders);
+                case LEGACY -> insertLegacy(player, remainders);
+                case NONE -> 0;
+            };
+        } catch (RuntimeException | LinkageError error) {
+            disable(error);
+            return 0;
         }
-        if (legacyAvailable) {
-            try {
-                return QuickShulkerBridge.insertIntoCarriedShulkerBoxes(player, remainder);
-            } catch (RuntimeException | LinkageError error) {
-                legacyAvailable = false;
-            }
+    }
+
+    private static int insertDirect(ServerPlayer player, List<ItemStack> remainders) {
+        List<SingleSlotStorage<ItemVariant>> slots = new ArrayList<>();
+        for (SlottedStorage<ItemVariant> storage :
+                QuickStorageDirectBridge.findAll(player)) {
+            slots.addAll(storage.getSlots());
         }
-        return 0;
+        if (slots.isEmpty()) return 0;
+
+        int[] inserted = new int[remainders.size()];
+        try (Transaction transaction = Transaction.openOuter()) {
+            for (int index = 0; index < remainders.size(); index++) {
+                ItemStack source = remainders.get(index);
+                if (source == null || source.isEmpty()) continue;
+                ItemVariant variant = ItemVariant.of(source);
+                long remaining = source.getCount();
+
+                // Merge globally before consuming an empty slot in any box.
+                for (SingleSlotStorage<ItemVariant> slot : slots) {
+                    if (remaining == 0) break;
+                    if (slot.isResourceBlank() || !variant.equals(slot.getResource())) continue;
+                    remaining -= slot.insert(variant, remaining, transaction);
+                }
+                for (SingleSlotStorage<ItemVariant> slot : slots) {
+                    if (remaining == 0) break;
+                    if (!slot.isResourceBlank()) continue;
+                    remaining -= slot.insert(variant, remaining, transaction);
+                }
+                inserted[index] = Math.toIntExact(source.getCount() - remaining);
+            }
+            transaction.commit();
+        }
+
+        int total = 0;
+        for (int index = 0; index < inserted.length; index++) {
+            if (inserted[index] <= 0) continue;
+            remainders.get(index).shrink(inserted[index]);
+            total += inserted[index];
+        }
+        return total;
+    }
+
+    private static int insertLegacy(ServerPlayer player, List<ItemStack> remainders) {
+        int total = 0;
+        for (ItemStack remainder : remainders) {
+            if (remainder == null || remainder.isEmpty()) continue;
+            total += QuickShulkerBridge.insertIntoCarriedShulkerBoxes(
+                    player, remainder);
+        }
+        return total;
+    }
+
+    private static Path selectPath() {
+        if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) return Path.NONE;
+        if (QuickStorageDirectBridge.isUsable()) return Path.DIRECT;
+        return detectLegacyAvailability() ? Path.LEGACY : Path.NONE;
     }
 
     private static boolean detectLegacyAvailability() {
-        if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) return false;
-
         try {
             ClassLoader loader = QuickShulkerIntegration.class.getClassLoader();
             Class.forName("net.kyrptonaught.quickshulker.api.QuickOpenableRegistry", false, loader);
@@ -56,5 +119,17 @@ public final class QuickShulkerIntegration {
         } catch (ClassNotFoundException | LinkageError error) {
             return false;
         }
+    }
+
+    private static void disable(Throwable error) {
+        broken = true;
+        LOGGER.error("Disabling the selected Quick Shulker integration path {}",
+                SELECTED_PATH, error);
+    }
+
+    private enum Path {
+        DIRECT,
+        LEGACY,
+        NONE
     }
 }
