@@ -6,7 +6,6 @@ import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.hotkeys.IHotkey;
-import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import fi.dy.masa.malilib.util.StringUtils;
@@ -91,117 +90,20 @@ public class ConfigProxies {
             TOGGLE_TARGET_WHITELIST
     );
 
-    private static boolean loading = false;
-
     static {
-        MAX_BLOCKS.setValueChangeCallback(c -> { if (!loading) save(); });
-        MAX_RADIUS.setValueChangeCallback(c -> { if (!loading) save(); });
-        SPHERE_RADIUS.setValueChangeCallback(c -> { if (!loading) save(); });
-        SQUARE_LENGTH.setValueChangeCallback(c -> { if (!loading) save(); });
-        SQUARE_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
-        CUBOID_L.setValueChangeCallback(c -> { if (!loading) save(); });
-        CUBOID_W.setValueChangeCallback(c -> { if (!loading) save(); });
-        CUBOID_H.setValueChangeCallback(c -> { if (!loading) save(); });
-        CUBOID_POINT.setValueChangeCallback(c -> { if (!loading) save(); });
-        DIRECT_INV.setValueChangeCallback(c -> { if (!loading) save(); });
-        QUICK_SHULKER_OVERFLOW.setValueChangeCallback(c -> { if (!loading) save(); });
-        TOOL_PROT.setValueChangeCallback(c -> { if (!loading) save(); });
-        DIAG_EDGE.setValueChangeCallback(c -> { if (!loading) save(); });
-        DIAG_CORNER.setValueChangeCallback(c -> { if (!loading) save(); });
-        SHOW_OUTLINES.setValueChangeCallback(c -> { if (!loading) save(); });
-        PACKET_INV.setValueChangeCallback(c -> { if (!loading) save(); });
-        AUTO_MINE_COOLDOWN.setValueChangeCallback(c -> { if (!loading) save(); });
-        OPEN_CONFIG.setValueChangeCallback(c -> { if (!loading) save(); });
-        TOGGLE_CHAIN_VEIN.setValueChangeCallback(c -> { if (!loading) save(); });
-        CYCLE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_MINE_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_PLANT_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_UTILITY_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_SCHEMATIC_EXTRA_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        SWITCH_TO_SCHEMATIC_WRONG_MODE.setValueChangeCallback(c -> { if (!loading) save(); });
-        TOGGLE_TARGET_WHITELIST.setValueChangeCallback(c -> { if (!loading) save(); });
-        ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY.setValueChangeCallback(c -> { if (!loading) save(); });
+        ConfigProxySynchronizer.initializeCallbacks();
     }
 
     public static void load() {
-        loading = true;
-        try {
-            ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-            ALGO.setOptionListValue(MAlgo.valueOf(config.searchAlgorithm.name()));
-            MAX_BLOCKS.setIntegerValue(config.maxChainBlocks);
-            MAX_RADIUS.setIntegerValue(config.maxRadius);
-            SPHERE_RADIUS.setIntegerValue(config.sphereRadius);
-            SQUARE_LENGTH.setIntegerValue(config.squareLength);
-            try {
-                SQUARE_POINT.setOptionListValue(MSquareMiningPoint.valueOf(config.squareMiningPoint.name()));
-            } catch (Exception e) {
-                SQUARE_POINT.setOptionListValue(MSquareMiningPoint.CENTER);
-            }
-            CUBOID_L.setIntegerValue(config.cuboidL);
-            CUBOID_W.setIntegerValue(config.cuboidW);
-            CUBOID_H.setIntegerValue(config.cuboidH);
-            try {
-                CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.valueOf(config.cuboidMiningPoint.name()));
-            } catch (Exception e) {
-                CUBOID_POINT.setOptionListValue(MCuboidMiningPoint.CENTER);
-            }
-            DIRECT_INV.setBooleanValue(config.directToInventory);
-            QUICK_SHULKER_OVERFLOW.setBooleanValue(config.quickShulkerOverflow);
-            TOOL_PROT.setBooleanValue(config.toolProtection);
-            DIAG_EDGE.setBooleanValue(config.diagonalEdge);
-            DIAG_CORNER.setBooleanValue(config.diagonalCorner);
-            SHOW_OUTLINES.setBooleanValue(config.showBlockOutlines);
-            PACKET_INV.setIntegerValue(config.packetInterval);
-            AUTO_MINE_COOLDOWN.setIntegerValue(config.autoMineCooldownTicks);
-            OPEN_CONFIG.setValueFromString(config.openConfigHotkey);
-            TOGGLE_CHAIN_VEIN.setValueFromString(config.toggleChainVeinHotkey);
-            CYCLE_MODE.setValueFromString(config.cycleModeHotkey);
-            SWITCH_TO_MINE_MODE.setValueFromString(config.switchToMineModeHotkey);
-            SWITCH_TO_PLANT_MODE.setValueFromString(config.switchToPlantModeHotkey);
-            SWITCH_TO_UTILITY_MODE.setValueFromString(config.switchToUtilityModeHotkey);
-            SWITCH_TO_SCHEMATIC_SELECTION_MODE.setValueFromString(config.switchToSchematicSelectionModeHotkey);
-            SWITCH_TO_SCHEMATIC_EXTRA_MODE.setValueFromString(config.switchToSchematicExtraModeHotkey);
-            SWITCH_TO_SCHEMATIC_WRONG_MODE.setValueFromString(config.switchToSchematicWrongModeHotkey);
-            TOGGLE_TARGET_WHITELIST.setValueFromString(config.toggleTargetWhitelistHotkey);
-            ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY.setBooleanValue(config.enableChainVeinOnModeHotkey);
-        } finally {
-            loading = false;
-        }
+        ConfigProxySynchronizer.load();
     }
 
     public static void save() {
-        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
-        config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.valueOf(((MAlgo)ALGO.getOptionListValue()).name());
-        config.maxChainBlocks = MAX_BLOCKS.getIntegerValue();
-        config.maxRadius = MAX_RADIUS.getIntegerValue();
-        config.sphereRadius = SPHERE_RADIUS.getIntegerValue();
-        config.squareLength = SQUARE_LENGTH.getIntegerValue();
-        config.squareMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MSquareMiningPoint)SQUARE_POINT.getOptionListValue()).name());
-        config.cuboidL = CUBOID_L.getIntegerValue();
-        config.cuboidW = CUBOID_W.getIntegerValue();
-        config.cuboidH = CUBOID_H.getIntegerValue();
-        config.cuboidMiningPoint = ChainVeinConfig.MiningPoint.valueOf(((MCuboidMiningPoint)CUBOID_POINT.getOptionListValue()).name());
-        config.directToInventory = DIRECT_INV.getBooleanValue();
-        config.quickShulkerOverflow = QUICK_SHULKER_OVERFLOW.getBooleanValue();
-        config.toolProtection = TOOL_PROT.getBooleanValue();
-        config.diagonalEdge = DIAG_EDGE.getBooleanValue();
-        config.diagonalCorner = DIAG_CORNER.getBooleanValue();
-        config.showBlockOutlines = SHOW_OUTLINES.getBooleanValue();
-        config.packetInterval = PACKET_INV.getIntegerValue();
-        config.autoMineCooldownTicks = AUTO_MINE_COOLDOWN.getIntegerValue();
-        config.openConfigHotkey = OPEN_CONFIG.getStringValue();
-        config.toggleChainVeinHotkey = TOGGLE_CHAIN_VEIN.getStringValue();
-        config.cycleModeHotkey = CYCLE_MODE.getStringValue();
-        config.switchToMineModeHotkey = SWITCH_TO_MINE_MODE.getStringValue();
-        config.switchToPlantModeHotkey = SWITCH_TO_PLANT_MODE.getStringValue();
-        config.switchToUtilityModeHotkey = SWITCH_TO_UTILITY_MODE.getStringValue();
-        config.switchToSchematicSelectionModeHotkey = SWITCH_TO_SCHEMATIC_SELECTION_MODE.getStringValue();
-        config.switchToSchematicExtraModeHotkey = SWITCH_TO_SCHEMATIC_EXTRA_MODE.getStringValue();
-        config.switchToSchematicWrongModeHotkey = SWITCH_TO_SCHEMATIC_WRONG_MODE.getStringValue();
-        config.toggleTargetWhitelistHotkey = TOGGLE_TARGET_WHITELIST.getStringValue();
-        config.enableChainVeinOnModeHotkey = ENABLE_CHAIN_VEIN_ON_MODE_HOTKEY.getBooleanValue();
-        config.save();
+        ConfigProxySynchronizer.save();
+    }
+
+    static void setAlgorithmChangeListener(Runnable listener) {
+        ConfigProxySynchronizer.setAlgorithmChangeListener(listener);
     }
 
     public static List<IHotkey> getAvailableHotkeys() {
