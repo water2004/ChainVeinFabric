@@ -30,8 +30,20 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build --no-daemon
 
+      - name: Test Quick Shulker release API
+        run: ./gradlew runGameTest --no-daemon -PquickshulkerGameTestMode=new
+
+      - name: Test Quick Shulker legacy adapter
+        run: ./gradlew runGameTest --no-daemon -PquickshulkerGameTestMode=new-legacy
+
       - name: Run client game tests
         run: xvfb-run -a ./gradlew runClientGameTest --no-daemon
+
+      - name: Test client fallback without ChainVein server support
+        run: >-
+          xvfb-run -a ./gradlew runClientGameTest --no-daemon
+          -PquickshulkerGameTestMode=new
+          -PchainveinGameTestServerInstalled=false
 
       - name: Upload test reports on failure
         if: failure()
@@ -41,5 +53,6 @@ jobs:
           path: |
             build/reports/tests/
             build/test-results/
+            build/run/gameTest/logs/
             build/run/clientGameTest/logs/
           if-no-files-found: ignore
