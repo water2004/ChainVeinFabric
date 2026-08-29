@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ChainVeinConfigTest {
     @Test
     void migratesV2ThroughV3AndV4ToV5() {
-        ChainVeinConfig.DecodedConfig decoded = decode("""
+        ChainVeinConfigCodec.DecodedConfig decoded = decode("""
                 {
                   "version": 2,
                   "isChainVeinEnabled": true,
@@ -43,7 +43,7 @@ class ChainVeinConfigTest {
 
     @Test
     void migratesV3FieldsAndIntroducesDisabledQuickShulkerOverflow() {
-        ChainVeinConfig.DecodedConfig decoded = decode("""
+        ChainVeinConfigCodec.DecodedConfig decoded = decode("""
                 {
                   "version": 3,
                   "respectSchematicRenderLayer": false,
@@ -66,7 +66,7 @@ class ChainVeinConfigTest {
 
     @Test
     void migratesV4ToFinalV5AutomaticMiningSettings() {
-        ChainVeinConfig.DecodedConfig decoded = decode("""
+        ChainVeinConfigCodec.DecodedConfig decoded = decode("""
                 {
                   "version": 4,
                   "quickShulkerOverflow": true,
@@ -106,7 +106,7 @@ class ChainVeinConfigTest {
         }
     }
 
-    private static ChainVeinConfig.DecodedConfig decode(String json) {
-        return ChainVeinConfig.decode(JsonParser.parseString(json).getAsJsonObject());
+    private static ChainVeinConfigCodec.DecodedConfig decode(String json) {
+        return ChainVeinConfigCodec.decode(JsonParser.parseString(json).getAsJsonObject());
     }
 }
