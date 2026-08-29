@@ -166,6 +166,8 @@ ChainVeinClientApi.queueUseJobs(client, positions);
 
 The API queues jobs, applies the current Direct to Inventory and Tool Protection settings, and automatically chooses the dedicated-server protocol or vanilla client packets. Direct to Inventory takes effect only when the server has ChainVeinFabric installed. Callers should declare ChainVeinFabric as an optional client dependency and invoke the API only after confirming that the mod is loaded.
 
+Without the server mod, mining requests follow vanilla block-breaking progress one block at a time. A newer request waits for the block currently being mined, then replaces the unstarted remainder of the previous request; another manual mining action cancels all remaining fallback work. The current block and request progress are shown in ChainVein's top-center status area, away from crosshair progress displays used by printer mods.
+
 The public method signatures are unchanged in 4.0.0.
 
 ---
