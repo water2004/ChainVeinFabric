@@ -275,7 +275,7 @@ public final class ChainVeinServerGameTests {
 
     private static ServerPlayer createSurvivalPlayer(
             GameTestHelper helper, BlockPos near, Item heldItem) {
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = makeSurvivalPlayer(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(heldItem));
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(near));
         player.setPosRaw(center.x, center.y + 1.0, center.z);

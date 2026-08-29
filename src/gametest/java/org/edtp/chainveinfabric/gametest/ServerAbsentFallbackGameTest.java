@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -20,7 +19,7 @@ import java.util.List;
 @SuppressWarnings("UnstableApiUsage")
 public final class ServerAbsentFallbackGameTest implements FabricClientGameTest {
     private static final BlockPos TARGET = new BlockPos(2, 64, 0);
-    private static final Item TEST_SHULKER = Items.DYED_SHULKER_BOX.pick(DyeColor.BLUE);
+    private static final Item TEST_SHULKER = Items.BLUE_SHULKER_BOX;
 
     @Override
     public void runTest(ClientGameTestContext context) {
