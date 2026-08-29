@@ -1,21 +1,41 @@
-## ChainVeinFabric v4.0.2
+## ChainVeinFabric v4.1.0-alpha.1
 
-### 修复 / Fixes
+> 这是面向 Minecraft 26.2 的预发布测试版本。请在重要存档中谨慎使用自动挖掘，并在升级前备份。
+>
+> This is a prerelease build for Minecraft 26.2. Use automatic mining cautiously in important worlds and back them up before upgrading.
 
-- 修复连锁种植将首次右键已消耗的物品重复计入限制，导致一组 64 个种子只能种下 63 个的问题；现在会正确种下全部 64 个
-- 统一按“首次原版交互 + 后续连锁交互”计算最大方块数、物品数量与工具保护限制
-- 新增自动化行为测试，覆盖真实客户端种植、服务端连锁采集与直接进背包、搜索算法、配置迁移、模式语义、可种植物品及可选依赖回退
+### 新功能 / Features
 
-- Fixed chain planting counting the item already consumed by the initial vanilla interaction twice, which left one seed behind from a stack of 64; all 64 seeds are now planted
-- Unified Max Blocks, available-item, and tool-protection limits around the initial vanilla interaction plus queued chain interactions
-- Added automated behavior coverage for real client planting, server-side chain mining and direct inventory collection, search algorithms, config migration, mode semantics, plantable items, and optional-dependency fallbacks
+- 自动挖掘不再是独立模式：在任意挖掘模式中按住 Ctrl 点击主开关即可待命，每次左键只触发一轮以玩家为中心的搜索与挖掘；点击 **AUTO** 可直接解除
+- 新增自动挖掘冷却与高可见度危险提示 HUD；同类相邻算法以玩家脚下方块为目标，其余白名单与形状算法继续复用统一异步搜索路径
+- 新增持久化的权限等级 4 命令：`/chainvein maxBlocks [1..2048]`（默认 `256`）与 `/chainvein pickupRadius [0..64]`（默认 `10`）
+- 服务端挖掘请求不再使用硬编码玩家距离，也不会为请求加载区块；连锁交互交由原版服务端交互距离判断
+- 快捷潜影盒优先使用新的标准 Fabric Storage API：先解析随身存储槽位，再对整批溢出物全局合并已有堆叠并使用空槽；装不下的剩余物仍正常掉落。旧公开 API 继续作为能力探测后的回退路径
+- Minecraft 26.2 的可选 Litematica 最低兼容版本放宽至 `0.28.3`
+
+- Automatic mining is no longer a separate mode. Ctrl-click the main toggle in any mining mode to arm it; each left click triggers exactly one player-centered search-and-mine batch, and clicking **AUTO** disarms it directly
+- Added an automatic-mining cooldown and a high-visibility hazard HUD. Same-type adjacency targets the block beneath the player, while the other whitelist and shape algorithms continue to use the shared asynchronous search path
+- Added persistent permission-level-4 commands: `/chainvein maxBlocks [1..2048]` (default `256`) and `/chainvein pickupRadius [0..64]` (default `10`)
+- Server mining requests no longer use a hard-coded player-distance limit and never load chunks for a request; chain interactions defer to the vanilla server interaction-range check
+- Quick Shulker now prefers its standard Fabric Storage API: carried storage slots are resolved once, then the complete overflow set is merged globally into existing stacks before empty slots are used. Remainders that do not fit still drop normally, and the legacy public API remains a capability-selected fallback
+- The minimum optional Litematica version for Minecraft 26.2 is now `0.28.3`
+
+### 测试 / Testing
+
+- 自动化测试覆盖自动挖掘按次触发与冷却、原版掉落语义、冰与含物品容器、直接进入背包、快捷潜影盒容量边界、服务端限制和配置迁移
+- CI 同时验证 Quick Shulker `3.0.2` 旧 API、`4.0.0-alpha.1-26.2` 新 API、强制旧适配路径，以及服务端未提供 ChainVein 协议时的纯客户端回退
+
+- Automated coverage includes guarded automatic-mining pulses and cooldowns, vanilla drop semantics, ice and populated containers, Direct to Inventory, Quick Shulker capacity boundaries, server limits, and configuration migration
+- CI validates the Quick Shulker `3.0.2` legacy API, the `4.0.0-alpha.1-26.2` direct API, the forced legacy adapter, and client-only fallback when the server does not advertise the ChainVein protocol
 
 ### 兼容性 / Compatibility
 
-- 4.0.2 没有修改 4.x 网络协议、配置 schema 或公开 `ChainVeinClientApi` 方法签名，可与 4.0.0/4.0.1 服务端和客户端混用
-- Minecraft 26.2 与 26.1.x 均继续维护；Minecraft 1.21.x 继续使用 ChainVeinFabric 2.2.1
-- 4.x 与 1.x～3.x 的专用协议仍不兼容，混用时会安全退回纯客户端模式；直接进入背包和快捷潜影盒溢出收纳需要双方均为 4.x
+- 配置 schema 升级到 v5；现有 v4 配置会自动迁移，旧版的顺序迁移路径保持可用
+- 4.1.0-alpha.1 没有修改 4.x 网络负载格式或公开 `ChainVeinClientApi` 方法签名；`isManualMiningMode()` 保留为兼容别名
+- 本预发布仅构建 Minecraft 26.2；正式 4.1.0 后续仍会同时维护 26.2 与 26.1.x
+- 4.x 与 1.x～3.x 的专用协议仍然分离，版本不匹配时安全退回纯客户端模式
 
-- 4.0.2 does not change the 4.x network protocol, config schema, or public `ChainVeinClientApi` method signatures and can interoperate with 4.0.0/4.0.1 clients and servers
-- Minecraft 26.2 and 26.1.x remain maintained; Minecraft 1.21.x remains on ChainVeinFabric 2.2.1
-- The 4.x dedicated protocol remains incompatible with 1.x–3.x; mixed versions safely fall back to client-side mode, while Direct to Inventory and Quick Shulker overflow require 4.x on both sides
+- The configuration schema is now v5. Existing v4 configurations migrate automatically, and the sequential migration path from older schemas remains available
+- 4.1.0-alpha.1 does not change the 4.x network payload format or public `ChainVeinClientApi` method signatures; `isManualMiningMode()` remains as a compatibility alias
+- This prerelease is built for Minecraft 26.2 only; the stable 4.1.0 line will continue to maintain both 26.2 and 26.1.x
+- The 4.x dedicated protocol remains separate from 1.x–3.x, with mismatched versions safely falling back to client-side mode
