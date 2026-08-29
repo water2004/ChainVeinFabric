@@ -31,8 +31,11 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build --no-daemon
 
-      - name: Run server game tests
-        run: ./gradlew runGameTest --no-daemon
+      - name: Test Quick Shulker release API
+        run: ./gradlew runGameTest --no-daemon -PquickshulkerGameTestMode=new
+
+      - name: Test Quick Shulker legacy adapter
+        run: ./gradlew runGameTest --no-daemon -PquickshulkerGameTestMode=new-legacy
 
       - name: Run client game tests
         run: xvfb-run -a ./gradlew runClientGameTest --no-daemon
@@ -40,6 +43,7 @@ jobs:
       - name: Test pure-client vanilla packet fallback
         run: >-
           xvfb-run -a ./gradlew runClientGameTest --no-daemon
+          -PquickshulkerGameTestMode=new
           -PchainveinGameTestServerInstalled=false
 
       - name: Upload test reports on failure

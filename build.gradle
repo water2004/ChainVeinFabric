@@ -43,6 +43,19 @@ repositories {
     maven {url = "https://masa.dy.fi/maven/sakura-ryoko"
         content {includeGroupAndSubgroups("fi.dy.masa")}
     }
+    ivy {
+        name = "quickShulkerGitHubReleases"
+        url = uri("https://github.com/water2004/quickshulker/releases/download")
+        patternLayout {
+            artifact("[revision]/[artifact]-[revision].[ext]")
+        }
+        metadataSources {
+            artifact()
+        }
+        content {
+            includeModule("net.kyrptonaught.github", "quickshulker")
+        }
+    }
     maven {url = 'https://maven.fallenbreath.me/releases'
         content {includeGroupAndSubgroups("me.fallenbreath")}
     }
@@ -68,8 +81,7 @@ dependencies {
     def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
             .orElse("legacy").get()
     if (quickShulkerGameTestMode in ["new", "new-legacy"]) {
-        throw new GradleException(
-                "Quick Shulker has not published a direct-API prerelease for Minecraft 26.1")
+        gametestImplementation "net.kyrptonaught.github:quickshulker:${project.quickshulker_prerelease_version}"
     } else if (quickShulkerGameTestMode == "legacy") {
         gametestImplementation "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
     } else if (quickShulkerGameTestMode != "none") {
