@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "org.edtp.chainveinfabric.gametest.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "QuickShulkerDirectCapabilityMixin"
+  ],
+  "client": [
+    "ChainVeinServerCapabilityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

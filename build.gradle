@@ -39,6 +39,19 @@ repositories {
     maven {url = "https://masa.dy.fi/maven/sakura-ryoko"
         content {includeGroupAndSubgroups("fi.dy.masa")}
     }
+    ivy {
+        name = "quickShulkerGitHubReleases"
+        url = uri("https://github.com/water2004/quickshulker/releases/download")
+        patternLayout {
+            artifact("[revision]/[artifact]-[revision].[ext]")
+        }
+        metadataSources {
+            artifact()
+        }
+        content {
+            includeModule("net.kyrptonaught.github", "quickshulker")
+        }
+    }
     maven {url = 'https://maven.fallenbreath.me/releases'
         content {includeGroupAndSubgroups("me.fallenbreath")}
     }
@@ -63,17 +76,12 @@ dependencies {
 
     def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
             .orElse("legacy").get()
-    def quickShulkerGameTestJar = providers.gradleProperty("quickshulkerGameTestJar")
-            .orNull
-    if (quickShulkerGameTestMode == "new") {
-        if (quickShulkerGameTestJar == null || !file(quickShulkerGameTestJar).exists()) {
-            throw new GradleException("new Quick Shulker GameTest requires -PquickshulkerGameTestJar=<jar>")
-        }
-        gametestImplementation files(quickShulkerGameTestJar)
+    if (quickShulkerGameTestMode in ["new", "new-legacy"]) {
+        gametestImplementation "net.kyrptonaught.github:quickshulker:${project.quickshulker_prerelease_version}"
     } else if (quickShulkerGameTestMode == "legacy") {
         gametestImplementation "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
     } else if (quickShulkerGameTestMode != "none") {
-        throw new GradleException("quickshulkerGameTestMode must be none, legacy, or new")
+        throw new GradleException("quickshulkerGameTestMode must be none, legacy, new, or new-legacy")
     }
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
@@ -84,6 +92,8 @@ test {
 
 tasks.named("runClientGameTest") {
     jvmArgs "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
+    jvmArgs "-Dchainveinfabric.gametest.serverInstalled=${providers.gradleProperty('chainveinGameTestServerInstalled').orElse('true').get()}"
+    jvmArgs "-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}"
 }
 
 tasks.named("runGameTest") {

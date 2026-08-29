@@ -141,6 +141,117 @@ public final class QuickShulkerServerGameTests {
     }
 
     @GameTest
+    public void transactionalOverflowMergesStacksBeforeUsingEmptySlots(
+            GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
+        List<BlockPos> targets = List.of(
+                new BlockPos(1, 1, 1),
+                new BlockPos(2, 1, 1),
+                new BlockPos(3, 1, 1));
+        for (BlockPos target : targets) helper.setBlock(target, Blocks.DIRT);
+
+        ServerPlayer player = createPlayer(helper, targets.getFirst());
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        player.setItemInHand(
+                InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        overflowInventory.setItem(0, new ItemStack(Items.DIRT, 63));
+        overflowInventory.setChanged();
+
+        Chainveinfabric.handleMine(
+                player,
+                targets.stream().map(helper::absolutePos).toList(),
+                true,
+                true);
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIRT), 66,
+                "Compatible overflow should fill the existing stack before using an empty slot");
+        helper.assertValueEqual(countOccupiedSlots(overflowInventory, Items.DIRT), 2,
+                "Three mined blocks should occupy only the two required stack slots");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
+                "All overflow should fit in the resolved storage slots");
+        for (BlockPos target : targets) helper.assertBlockNotPresent(Blocks.DIRT, target);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void directPathMergesAcrossBoxesBeforeUsingEarlierEmptySlots(
+            GameTestHelper helper) {
+        if (!quickShulkerMode().equals("new")) {
+            helper.succeed();
+            return;
+        }
+        List<BlockPos> targets = List.of(
+                new BlockPos(1, 1, 1),
+                new BlockPos(2, 1, 1));
+        for (BlockPos target : targets) helper.setBlock(target, Blocks.DIRT);
+
+        ServerPlayer player = createPlayer(helper, targets.getFirst());
+        ItemStack earlierEmptyBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        ItemStack laterMergeBox = new ItemStack(Items.SHULKER_BOX);
+        fillPlayerInventory(player, earlierEmptyBox);
+        player.getInventory().setItem(2, laterMergeBox);
+        player.setItemInHand(
+                InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
+        Container laterInventory = getShulkerInventory(player, laterMergeBox);
+        laterInventory.setItem(0, new ItemStack(Items.DIRT, 63));
+        laterInventory.setChanged();
+
+        Chainveinfabric.handleMine(
+                player,
+                targets.stream().map(helper::absolutePos).toList(),
+                true,
+                true);
+
+        Container earlierInventory = getShulkerInventory(player, earlierEmptyBox);
+        laterInventory = getShulkerInventory(player, laterMergeBox);
+        helper.assertValueEqual(countItem(laterInventory, Items.DIRT), 64,
+                "A later partial stack must merge before an earlier empty slot is used");
+        helper.assertValueEqual(countItem(earlierInventory, Items.DIRT), 1,
+                "Only the post-merge remainder should consume the earlier empty box");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
+                "Both true drop remainders should commit in one storage transaction");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void fullCarriedShulkerLeavesUnacceptedDropsInWorld(
+            GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
+        List<BlockPos> targets = List.of(
+                new BlockPos(1, 1, 1),
+                new BlockPos(2, 1, 1),
+                new BlockPos(3, 1, 1));
+        for (BlockPos target : targets) helper.setBlock(target, Blocks.DIRT);
+
+        ServerPlayer player = createPlayer(helper, targets.getFirst());
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        player.setItemInHand(
+                InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        fillContainer(overflowInventory, Items.STONE, CONTAINER_SLOTS);
+
+        Chainveinfabric.handleMine(
+                player,
+                targets.stream().map(helper::absolutePos).toList(),
+                true,
+                true);
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIRT), 0,
+                "A full carried shulker must not overwrite existing contents");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), targets.size(),
+                "Every item that fits neither inventory nor shulker must spawn in the world");
+        helper.assertValueEqual(countItems(overflowInventory), SHULKER_CAPACITY,
+                "Rejected overflow must leave the full box unchanged");
+        for (BlockPos target : targets) helper.assertBlockNotPresent(Blocks.DIRT, target);
+        helper.succeed();
+    }
+
+    @GameTest
     public void configuredQuickShulkerPathIsActuallyAvailable(GameTestHelper helper) {
         String mode = quickShulkerMode();
         if (mode.equals("none")) {
@@ -158,8 +269,8 @@ public final class QuickShulkerServerGameTests {
 
         helper.assertTrue(QuickShulkerIntegration.isAvailable(),
                 "Configured Quick Shulker integration should be available");
-        boolean direct = directPathSelected();
-        helper.assertValueEqual(direct, mode.equals("new"),
+        String selectedPath = selectedPath();
+        helper.assertValueEqual(selectedPath, mode.equals("new") ? "DIRECT" : "LEGACY",
                 "The adapter selected the wrong Quick Shulker path");
         helper.succeed();
     }
@@ -174,11 +285,11 @@ public final class QuickShulkerServerGameTests {
         return System.getProperty("chainveinfabric.gametest.quickshulker", "legacy");
     }
 
-    private static boolean directPathSelected() {
+    private static String selectedPath() {
         try {
-            Field field = QuickShulkerIntegration.class.getDeclaredField("directAvailable");
+            Field field = QuickShulkerIntegration.class.getDeclaredField("SELECTED_PATH");
             field.setAccessible(true);
-            return field.getBoolean(null);
+            return field.get(null).toString();
         } catch (ReflectiveOperationException error) {
             throw new AssertionError("Unable to inspect the encapsulated adapter in GameTest", error);
         }
@@ -246,6 +357,14 @@ public final class QuickShulkerServerGameTests {
         int count = 0;
         for (int slot = 0; slot < container.getContainerSize(); slot++) {
             count += container.getItem(slot).getCount();
+        }
+        return count;
+    }
+
+    private static int countOccupiedSlots(Container container, Item item) {
+        int count = 0;
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            if (container.getItem(slot).is(item)) count++;
         }
         return count;
     }
