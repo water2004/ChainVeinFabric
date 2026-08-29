@@ -1,0 +1,403 @@
+package org.edtp.chainveinfabric.client.api;
+
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+import org.edtp.chainveinfabric.Chainveinfabric;
+import org.edtp.chainveinfabric.client.ChainveinfabricClient;
+import org.edtp.chainveinfabric.mixin.client.MultiPlayerGameModeAccessor;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+/** Owns client job queues, protocol selection, and the vanilla fallback state machine. */
+final class ClientJobDispatcher {
+    private static final ArrayDeque<Job> INTERACTION_JOBS = new ArrayDeque<>();
+    private static final ClientMineRequestQueue<Job> CLIENT_MINES = new ClientMineRequestQueue<>();
+
+    private static ClientLevel queuedLevel;
+    private static int tickCounter;
+    private static boolean dispatching;
+
+    private ClientJobDispatcher() {
+    }
+
+    static int queueMineJobs(Minecraft client, Collection<BlockPos> positions) {
+        if (!prepareQueue(client, positions)) {
+            return 0;
+        }
+
+        boolean directToInventory = ChainveinfabricClient.CONFIG != null
+                && ChainveinfabricClient.CONFIG.directToInventory;
+        boolean quickShulkerOverflow = directToInventory
+                && ChainveinfabricClient.CONFIG.quickShulkerOverflow;
+        int protectionCapacity = getProtectedMineCapacity(client);
+        int added;
+        if (canUseServerProtocol(JobType.MINE)) {
+            added = dispatchMineServerBatchImmediately(
+                    positions, directToInventory, quickShulkerOverflow, protectionCapacity);
+        } else {
+            added = enqueuePrepared(
+                    client, JobType.MINE, positions, directToInventory,
+                    quickShulkerOverflow, protectionCapacity);
+        }
+
+        if (protectionCapacity < positions.size()) {
+            client.gui.hud.setOverlayMessage(
+                    Component.translatable("message.chainveinfabric.protection"), false);
+        }
+        return added;
+    }
+
+    static int queuePlantJobs(Minecraft client, Collection<BlockPos> positions) {
+        return enqueue(client, JobType.PLANT, positions, false);
+    }
+
+    static int queueUseJobs(Minecraft client, Collection<BlockPos> positions) {
+        return enqueue(client, JobType.USE, positions, false);
+    }
+
+    static boolean isDispatching() {
+        return dispatching;
+    }
+
+    static int queuedJobCount() {
+        return INTERACTION_JOBS.size() + CLIENT_MINES.pendingCount();
+    }
+
+    static boolean hasPendingMineJobs() {
+        return CLIENT_MINES.hasPendingWork();
+    }
+
+    static boolean canUseServerMiningProtocol() {
+        return canUseServerProtocol(JobType.MINE);
+    }
+
+    static void tick(Minecraft client) {
+        if (!isClientReady(client)) {
+            clear(client);
+            return;
+        }
+
+        if (queuedLevel != client.level) {
+            clear(client);
+            queuedLevel = client.level;
+        }
+
+        if (CLIENT_MINES.hasActiveItem()) {
+            continueClientMineJob(client);
+            return;
+        }
+
+        if (CLIENT_MINES.hasPendingWork()) {
+            if (consumeVanillaDestroyDelay(client)) return;
+            if (isDispatchDue()) {
+                dispatchNextClientMine(client);
+            }
+            return;
+        }
+
+        if (INTERACTION_JOBS.isEmpty()) {
+            tickCounter = 0;
+            return;
+        }
+
+        int interval = ChainveinfabricClient.CONFIG != null
+                ? ChainveinfabricClient.CONFIG.packetInterval
+                : 0;
+        if (interval <= 0) {
+            while (!INTERACTION_JOBS.isEmpty()) {
+                dispatchNextInteraction(client);
+            }
+            return;
+        }
+
+        if (interval >= 50) {
+            int ticksPerDispatch = Math.max(1, interval / 50);
+            if (++tickCounter >= ticksPerDispatch) {
+                dispatchNextInteraction(client);
+                tickCounter = 0;
+            }
+            return;
+        }
+
+        int dispatchesPerTick = Math.max(1, 50 / interval);
+        for (int i = 0; i < dispatchesPerTick && !INTERACTION_JOBS.isEmpty(); i++) {
+            dispatchNextInteraction(client);
+        }
+    }
+
+    static void clear() {
+        clear(Minecraft.getInstance());
+    }
+
+    static void cancelClientMining(Minecraft client) {
+        if (CLIENT_MINES.hasActiveItem() && client != null && client.gameMode != null) {
+            client.gameMode.stopDestroyBlock();
+        }
+        CLIENT_MINES.clear();
+        tickCounter = 0;
+    }
+
+    static @Nullable ChainVeinClientApi.ClientMiningProgress getClientMiningProgress(Minecraft client) {
+        if (client == null || canUseServerMiningProtocol()) return null;
+
+        ClientMineRequestQueue.Snapshot snapshot = CLIENT_MINES.snapshot();
+        if (snapshot == null) return null;
+
+        float blockProgress = 0.0F;
+        if (snapshot.activelyMining() && client.gameMode != null) {
+            int destroyStage = client.gameMode.getDestroyStage();
+            blockProgress = Math.max(0.0F, Math.min(1.0F, (destroyStage + 1) / 10.0F));
+        }
+        return new ChainVeinClientApi.ClientMiningProgress(
+                snapshot.current(), snapshot.total(), blockProgress);
+    }
+
+    private static int dispatchMineServerBatchImmediately(Collection<BlockPos> positions,
+                                                           boolean directToInventory,
+                                                           boolean quickShulkerOverflow,
+                                                           int maxAdds) {
+        if (maxAdds <= 0) return 0;
+
+        List<BlockPos> batch = new ArrayList<>();
+        int limit = Math.min(ChainVeinClientApi.MAX_QUEUED_JOBS, maxAdds);
+        for (BlockPos pos : positions) {
+            if (batch.size() >= limit) break;
+            if (pos != null) batch.add(pos.immutable());
+        }
+
+        if (!batch.isEmpty()) {
+            ClientPlayNetworking.send(new Chainveinfabric.ChainMinePayload(
+                    batch, directToInventory, quickShulkerOverflow));
+        }
+        return batch.size();
+    }
+
+    private static void clear(Minecraft client) {
+        cancelClientMining(client);
+        INTERACTION_JOBS.clear();
+        queuedLevel = null;
+        tickCounter = 0;
+        dispatching = false;
+    }
+
+    private static int enqueue(Minecraft client, JobType type,
+                               Collection<BlockPos> positions, boolean directToInventory) {
+        if (!prepareQueue(client, positions)) {
+            return 0;
+        }
+
+        return enqueuePrepared(
+                client, type, positions, directToInventory, false, Integer.MAX_VALUE);
+    }
+
+    private static int enqueuePrepared(Minecraft client, JobType type,
+                                       Collection<BlockPos> positions,
+                                       boolean directToInventory, boolean quickShulkerOverflow,
+                                       int maxAdds) {
+        if (maxAdds <= 0) return 0;
+
+        List<Job> prepared = type == JobType.MINE ? new ArrayList<>() : null;
+        int added = 0;
+        for (BlockPos pos : positions) {
+            if (added >= maxAdds || added >= ChainVeinClientApi.MAX_QUEUED_JOBS) break;
+            if (type != JobType.MINE
+                    && INTERACTION_JOBS.size() >= ChainVeinClientApi.MAX_QUEUED_JOBS) break;
+            if (pos == null) continue;
+
+            BlockPos immutablePos = pos.immutable();
+            Job job = new Job(type, immutablePos, directToInventory, quickShulkerOverflow);
+            if (type == JobType.MINE) {
+                prepared.add(job);
+            } else {
+                INTERACTION_JOBS.addLast(job);
+            }
+            added++;
+        }
+        return type == JobType.MINE ? CLIENT_MINES.submit(prepared) : added;
+    }
+
+    private static boolean prepareQueue(Minecraft client, Collection<BlockPos> positions) {
+        if (!isClientReady(client) || positions == null || positions.isEmpty()) {
+            return false;
+        }
+
+        if (queuedLevel != client.level) {
+            clear();
+            queuedLevel = client.level;
+        }
+        return true;
+    }
+
+    /** Returns the number of mining jobs that remain safe under tool protection. */
+    private static int getProtectedMineCapacity(Minecraft client) {
+        if (ChainveinfabricClient.CONFIG == null
+                || !ChainveinfabricClient.CONFIG.toolProtection
+                || client.player.isCreative()) {
+            return Integer.MAX_VALUE;
+        }
+
+        ItemStack tool = client.player.getMainHandItem();
+        if (!tool.isDamageableItem()) {
+            return Integer.MAX_VALUE;
+        }
+
+        int remainingDurability = tool.getMaxDamage() - tool.getDamageValue();
+        int safeJobs = Math.max(0, remainingDurability - 10);
+        int activeToolUse = CLIENT_MINES.hasActiveItem() ? 1 : 0;
+        return Math.max(0, safeJobs - activeToolUse);
+    }
+
+    private static void dispatchNextInteraction(Minecraft client) {
+        Job first = INTERACTION_JOBS.pollFirst();
+        if (first == null) return;
+
+        if (canUseServerProtocol(first.type())) {
+            List<Job> batch = new ArrayList<>();
+            batch.add(first);
+
+            while (!INTERACTION_JOBS.isEmpty()) {
+                Job next = INTERACTION_JOBS.peekFirst();
+                if (next == null
+                        || next.type() != first.type()
+                        || next.directToInventory() != first.directToInventory()
+                        || next.quickShulkerOverflow() != first.quickShulkerOverflow()) {
+                    break;
+                }
+                batch.add(INTERACTION_JOBS.pollFirst());
+            }
+
+            dispatchServerBatch(first, batch.stream().map(Job::pos).toList());
+            return;
+        }
+
+        dispatchClientInteraction(client, first);
+    }
+
+    private static boolean isDispatchDue() {
+        int interval = ChainveinfabricClient.CONFIG != null
+                ? ChainveinfabricClient.CONFIG.packetInterval
+                : 0;
+        if (interval <= 0 || interval < 50) return true;
+
+        int ticksPerDispatch = Math.max(1, interval / 50);
+        if (++tickCounter < ticksPerDispatch) return false;
+        tickCounter = 0;
+        return true;
+    }
+
+    /** Advances vanilla's post-break delay instead of bypassing it with a new target. */
+    private static boolean consumeVanillaDestroyDelay(Minecraft client) {
+        MultiPlayerGameModeAccessor accessor = (MultiPlayerGameModeAccessor) client.gameMode;
+        if (accessor.chainveinfabric$getDestroyDelay() <= 0) return false;
+
+        Job next = CLIENT_MINES.nextItem();
+        if (next == null) return false;
+
+        dispatching = true;
+        try {
+            client.gameMode.continueDestroyBlock(next.pos(), Direction.UP);
+        } finally {
+            dispatching = false;
+        }
+        return true;
+    }
+
+    private static boolean canUseServerProtocol(JobType type) {
+        return switch (type) {
+            case MINE -> ClientPlayNetworking.canSend(Chainveinfabric.ChainMinePayload.ID);
+            case PLANT, USE -> ClientPlayNetworking.canSend(Chainveinfabric.ChainInteractPayload.ID);
+        };
+    }
+
+    private static void dispatchServerBatch(Job first, List<BlockPos> positions) {
+        if (first.type() == JobType.MINE) {
+            ClientPlayNetworking.send(new Chainveinfabric.ChainMinePayload(
+                    positions, first.directToInventory(), first.quickShulkerOverflow()));
+        } else {
+            ClientPlayNetworking.send(new Chainveinfabric.ChainInteractPayload(positions));
+        }
+    }
+
+    private static void dispatchNextClientMine(Minecraft client) {
+        Job job = CLIENT_MINES.startNext();
+        if (job == null) return;
+
+        dispatching = true;
+        try {
+            if (!client.level.getBlockState(job.pos()).isAir()
+                    && client.gameMode.startDestroyBlock(job.pos(), Direction.UP)
+                    && !client.level.getBlockState(job.pos()).isAir()) {
+                return;
+            }
+
+            CLIENT_MINES.completeActive();
+        } finally {
+            dispatching = false;
+        }
+    }
+
+    private static void dispatchClientInteraction(Minecraft client, Job job) {
+        dispatching = true;
+        try {
+            client.gameMode.useItemOn(
+                    client.player,
+                    InteractionHand.MAIN_HAND,
+                    new BlockHitResult(Vec3.atCenterOf(job.pos()), Direction.UP, job.pos(), false));
+        } finally {
+            dispatching = false;
+        }
+    }
+
+    private static void continueClientMineJob(Minecraft client) {
+        Job job = CLIENT_MINES.activeItem();
+        if (job == null) return;
+
+        if (client.level.getBlockState(job.pos()).isAir()) {
+            CLIENT_MINES.completeActive();
+            return;
+        }
+
+        dispatching = true;
+        try {
+            boolean continuing = client.gameMode.continueDestroyBlock(job.pos(), Direction.UP);
+            if (!continuing) {
+                client.gameMode.stopDestroyBlock();
+                CLIENT_MINES.completeActive();
+            } else if (client.level.getBlockState(job.pos()).isAir()) {
+                CLIENT_MINES.completeActive();
+            }
+        } finally {
+            dispatching = false;
+        }
+    }
+
+    private static boolean isClientReady(Minecraft client) {
+        return client != null
+                && client.level != null
+                && client.player != null
+                && client.gameMode != null
+                && client.getConnection() != null;
+    }
+
+    private enum JobType {
+        MINE,
+        PLANT,
+        USE
+    }
+
+    private record Job(JobType type, BlockPos pos, boolean directToInventory,
+                       boolean quickShulkerOverflow) {
+    }
+}
