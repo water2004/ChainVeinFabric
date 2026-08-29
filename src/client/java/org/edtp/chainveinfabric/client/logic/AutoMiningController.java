@@ -279,6 +279,7 @@ public final class AutoMiningController {
         this.armedMode = null;
         this.clearBatch();
         this.cooldownTicks = 0;
+        ChainVeinClientApi.cancelClientMining(client);
         if (notify) showOverlay(client, "message.chainveinfabric.autoMine.disarmed");
     }
 

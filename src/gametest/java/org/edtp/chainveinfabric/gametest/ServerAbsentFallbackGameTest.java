@@ -144,7 +144,7 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
             config.maxChainBlocks = 4;
             config.maxRadius = 8;
-            config.packetInterval = 50;
+            config.packetInterval = 0;
             config.diagonalEdge = false;
             config.diagonalCorner = false;
             config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_PLANT).clear();
@@ -194,7 +194,7 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                 for (int z = 0; z < 2; z++) {
                     BlockPos target = MINE_START.offset(x, 0, z);
                     level.setBlockAndUpdate(target.below(), Blocks.STONE.defaultBlockState());
-                    level.setBlockAndUpdate(target, Blocks.DIRT.defaultBlockState());
+                    level.setBlockAndUpdate(target, Blocks.COARSE_DIRT.defaultBlockState());
                     level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
                 }
             }
@@ -204,7 +204,7 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
 
         context.waitTicks(5);
         context.waitFor(client -> client.level != null && client.player != null
-                && client.level.getBlockState(MINE_START).is(Blocks.DIRT)
+                && client.level.getBlockState(MINE_START).is(Blocks.COARSE_DIRT)
                 && client.player.getMainHandItem().is(Items.DIAMOND_SHOVEL));
         context.runOnClient(client -> {
             ChainVeinConfig config = ChainveinfabricClient.CONFIG;
@@ -214,14 +214,15 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.ADJACENT_SAME;
             config.maxChainBlocks = 4;
             config.maxRadius = 8;
-            config.packetInterval = 50;
+            config.packetInterval = 0;
             config.directToInventory = true;
             config.quickShulkerOverflow = true;
             config.toolProtection = false;
             config.diagonalEdge = false;
             config.diagonalCorner = false;
             config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).clear();
-            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).add("minecraft:dirt");
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE)
+                    .add("minecraft:coarse_dirt");
             ChainVeinClientApi.clear();
         });
 
@@ -246,8 +247,8 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             int remaining = 0;
             for (int x = 0; x < 2; x++) {
                 for (int z = 0; z < 2; z++) {
-                    if (server.overworld().getBlockState(
-                            MINE_START.offset(x, 0, z)).is(Blocks.DIRT)) {
+                    if (!server.overworld().getBlockState(
+                            MINE_START.offset(x, 0, z)).isAir()) {
                         remaining++;
                     }
                 }
@@ -256,17 +257,17 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                             ItemEntity.class, player.getBoundingBox().inflate(12.0D))
                     .stream()
                     .map(ItemEntity::getItem)
-                    .filter(stack -> stack.is(Items.DIRT))
+                    .filter(stack -> stack.is(Items.COARSE_DIRT))
                     .mapToInt(ItemStack::getCount)
                     .sum();
             int inventoryDirt = 0;
             int boxedDirt = 0;
             for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
                 ItemStack stack = player.getInventory().getItem(slot);
-                if (stack.is(Items.DIRT)) {
+                if (stack.is(Items.COARSE_DIRT)) {
                     inventoryDirt += stack.getCount();
                 }
-                boxedDirt += countStored(stack, Items.DIRT);
+                boxedDirt += countStored(stack, Items.COARSE_DIRT);
             }
             return new MiningResult(remaining, groundDirt,
                     inventoryDirt, boxedDirt);
@@ -355,7 +356,7 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             player.getInventory().setSelectedSlot(0);
             level.setBlockAndUpdate(AUTO_GUARD, Blocks.STONE.defaultBlockState());
             for (BlockPos target : AUTO_TARGETS) {
-                level.setBlockAndUpdate(target, Blocks.DIRT.defaultBlockState());
+                level.setBlockAndUpdate(target, Blocks.COARSE_DIRT.defaultBlockState());
                 level.setBlockAndUpdate(target.above(), Blocks.AIR.defaultBlockState());
             }
             player.inventoryMenu.sendAllDataToRemote();
@@ -365,7 +366,7 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
         context.waitTicks(5);
         context.waitFor(client -> client.level != null && client.player != null
                 && client.level.getBlockState(AUTO_GUARD).is(Blocks.STONE)
-                && client.level.getBlockState(AUTO_TARGETS.getFirst()).is(Blocks.DIRT));
+                && client.level.getBlockState(AUTO_TARGETS.getFirst()).is(Blocks.COARSE_DIRT));
         context.runOnClient(client -> {
             ChainVeinConfig config = ChainveinfabricClient.CONFIG;
             config.isChainVeinEnabled = true;
@@ -373,12 +374,13 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             config.searchAlgorithm = ChainVeinConfig.SearchAlgorithm.SPHERE;
             config.sphereRadius = 4;
             config.maxChainBlocks = AUTO_TARGETS.size();
-            config.packetInterval = 50;
+            config.packetInterval = 0;
             config.autoMineCooldownTicks = 10;
             config.directToInventory = false;
             config.toolProtection = false;
             config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).clear();
-            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE).add("minecraft:dirt");
+            config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE)
+                    .add("minecraft:coarse_dirt");
             ChainVeinClientApi.clear();
             ChainveinfabricClient.disarmAutoMining();
             if (!ChainveinfabricClient.toggleAutoMining()) {
@@ -394,17 +396,17 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
         context.waitTicks(30);
 
         AutoResult result = singleplayer.getServer().computeOnServer(server -> {
-            int remainingDirt = 0;
+            int remainingTargets = 0;
             for (BlockPos target : AUTO_TARGETS) {
-                if (server.overworld().getBlockState(target).is(Blocks.DIRT)) {
-                    remainingDirt++;
+                if (!server.overworld().getBlockState(target).isAir()) {
+                    remainingTargets++;
                 }
             }
             return new AutoResult(
                     server.overworld().getBlockState(AUTO_GUARD).is(Blocks.STONE),
-                    remainingDirt);
+                    remainingTargets);
         });
-        if (!result.guardPresent() || result.remainingDirt() != 0) {
+        if (!result.guardPresent() || result.remainingTargets() != 0) {
             throw new AssertionError("Pure-client automatic mining did not suppress the "
                     + "clicked non-whitelisted block or mine its fallback targets: " + result);
         }
@@ -487,6 +489,6 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
                                 int inventoryDirt, int boxedDirt) {
     }
 
-    private record AutoResult(boolean guardPresent, int remainingDirt) {
+    private record AutoResult(boolean guardPresent, int remainingTargets) {
     }
 }
