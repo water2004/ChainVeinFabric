@@ -6,8 +6,6 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 /** Reflection-isolated bridge to Quick Shulker's standard Fabric storage resolver. */
@@ -21,18 +19,8 @@ final class QuickStorageDirectBridge {
         return FIND_CARRIED != null;
     }
 
-    static List<SlottedStorage<ItemVariant>> findAll(ServerPlayer player) {
-        if (FIND_CARRIED == null || player == null) return List.of();
-        List<SlottedStorage<ItemVariant>> storages = new ArrayList<>();
-        int size = player.getInventory().getNonEquipmentItems().size();
-        for (int slot = 0; slot < size; slot++) {
-            SlottedStorage<ItemVariant> storage = find(player, slot);
-            if (storage != null) storages.add(storage);
-        }
-        return List.copyOf(storages);
-    }
-
-    private static SlottedStorage<ItemVariant> find(ServerPlayer player, int slot) {
+    static SlottedStorage<ItemVariant> find(ServerPlayer player, int slot) {
+        if (FIND_CARRIED == null || player == null) return null;
         try {
             Object result = FIND_CARRIED.invoke(null, player, slot);
             Object storage = result instanceof Optional<?> optional

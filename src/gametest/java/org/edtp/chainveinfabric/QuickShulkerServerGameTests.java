@@ -180,52 +180,9 @@ public final class QuickShulkerServerGameTests {
     }
 
     @GameTest
-    public void directPathMergesAcrossBoxesBeforeUsingEarlierEmptySlots(
+    public void everyPathFillsEarlierBoxBeforeLaterPartialStack(
             GameTestHelper helper) {
-        if (!quickShulkerMode().equals("new")) {
-            helper.succeed();
-            return;
-        }
-        List<BlockPos> targets = List.of(
-                new BlockPos(1, 1, 1),
-                new BlockPos(2, 1, 1));
-        for (BlockPos target : targets) helper.setBlock(target, Blocks.DIRT);
-
-        ServerPlayer player = createPlayer(helper, targets.getFirst());
-        ItemStack earlierEmptyBox = new ItemStack(OVERFLOW_BOX_ITEM);
-        ItemStack laterMergeBox = new ItemStack(Items.SHULKER_BOX);
-        fillPlayerInventory(player, earlierEmptyBox);
-        player.getInventory().setItem(2, laterMergeBox);
-        player.setItemInHand(
-                InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
-        Container laterInventory = getShulkerInventory(player, laterMergeBox);
-        laterInventory.setItem(0, new ItemStack(Items.DIRT, 63));
-        laterInventory.setChanged();
-
-        Chainveinfabric.handleMine(
-                player,
-                targets.stream().map(helper::absolutePos).toList(),
-                true,
-                true);
-
-        Container earlierInventory = getShulkerInventory(player, earlierEmptyBox);
-        laterInventory = getShulkerInventory(player, laterMergeBox);
-        helper.assertValueEqual(countItem(laterInventory, Items.DIRT), 64,
-                "A later partial stack must merge before an earlier empty slot is used");
-        helper.assertValueEqual(countItem(earlierInventory, Items.DIRT), 1,
-                "Only the post-merge remainder should consume the earlier empty box");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
-                "Both true drop remainders should commit in one storage transaction");
-        helper.succeed();
-    }
-
-    @GameTest
-    public void legacyPathFillsEarlierBoxBeforeLaterPartialStack(
-            GameTestHelper helper) {
-        if (!selectedPath().equals("LEGACY")) {
-            helper.succeed();
-            return;
-        }
+        if (skipWithoutQuickShulker(helper)) return;
         List<BlockPos> targets = List.of(
                 new BlockPos(1, 1, 1),
                 new BlockPos(2, 1, 1));
@@ -251,9 +208,9 @@ public final class QuickShulkerServerGameTests {
         Container earlierInventory = getShulkerInventory(player, earlierEmptyBox);
         laterInventory = getShulkerInventory(player, laterMergeBox);
         helper.assertValueEqual(countItem(earlierInventory, Items.DIRT), 2,
-                "Legacy batching must preserve carried-box priority");
+                "Every path must preserve carried-box priority");
         helper.assertValueEqual(countItem(laterInventory, Items.DIRT), 63,
-                "Legacy batching must not prefer a later partial stack");
+                "No path should prefer a later partial stack");
         helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
                 "Both drops should fit in the earlier carried box");
         helper.succeed();

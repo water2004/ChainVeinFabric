@@ -28,37 +28,8 @@ final class QuickShulkerBridge {
             List<ItemStack> remainders) {
         if (player == null || remainders == null || remainders.isEmpty()) return 0;
         List<LegacyTarget> targets = findTargets(player);
-        if (targets.isEmpty()) return 0;
-
-        List<OverflowInsertionBatch> batches =
-                OverflowInsertionBatch.consecutive(remainders);
-        try (Transaction transaction = Transaction.openOuter()) {
-            for (OverflowInsertionBatch batch : batches) {
-                long remaining = batch.requestedAmount();
-                // Legacy behavior fills each carried box before trying the next.
-                for (LegacyTarget target : targets) {
-                    if (remaining == 0) break;
-                    if (!target.open(player)) continue;
-                    if (!target.accepts(player, batch.sample())) continue;
-
-                    long inserted = target.insert(
-                            batch.variant(), remaining, transaction);
-                    if (inserted <= 0) continue;
-                    target.markChanged();
-                    remaining -= inserted;
-                }
-                batch.setInsertedAmount(batch.requestedAmount() - remaining);
-            }
-
-            transaction.commit();
-        }
-
-        int total = 0;
-        for (OverflowInsertionBatch batch : batches) {
-            total += batch.applyInsertedAmount();
-        }
-        for (LegacyTarget target : targets) target.finish(player);
-        return total;
+        return OverflowInsertion.insertInBoxOrder(
+                remainders, new LegacyTargets(targets));
     }
 
     private static List<LegacyTarget> findTargets(ServerPlayer player) {
@@ -72,7 +43,7 @@ final class QuickShulkerBridge {
             QuickShulkerData data = QuickOpenableRegistry.getQuickie(host.getItem());
             if (data == null || !data.supportsBundleing) continue;
             if (!data.ignoreSingleStackCheck && host.getCount() > 1) continue;
-            targets.add(new LegacyTarget(host, data));
+            targets.add(new LegacyTarget(player, host, data));
         }
         return targets;
     }
@@ -81,7 +52,34 @@ final class QuickShulkerBridge {
         return !stack.isEmpty() && Block.byItem(stack.getItem()) instanceof ShulkerBoxBlock;
     }
 
-    private static final class LegacyTarget {
+    private static final class LegacyTargets
+            implements OverflowInsertion.OrderedTargets {
+        private final List<LegacyTarget> targets;
+
+        private LegacyTargets(List<LegacyTarget> targets) {
+            this.targets = targets;
+        }
+
+        @Override
+        public int size() {
+            return targets.size();
+        }
+
+        @Override
+        public OverflowInsertion.Target resolve(int index) {
+            LegacyTarget target = targets.get(index);
+            return target.open() ? target : null;
+        }
+
+        @Override
+        public void finish() {
+            for (LegacyTarget target : targets) target.finish();
+        }
+    }
+
+    private static final class LegacyTarget
+            implements OverflowInsertion.Target {
+        private final ServerPlayer player;
         private final ItemStack host;
         private final QuickShulkerData data;
         private boolean opened;
@@ -89,12 +87,16 @@ final class QuickShulkerBridge {
         private Container container;
         private ContainerStorage storage;
 
-        private LegacyTarget(ItemStack host, QuickShulkerData data) {
+        private LegacyTarget(
+                ServerPlayer player,
+                ItemStack host,
+                QuickShulkerData data) {
+            this.player = player;
             this.host = host;
             this.data = data;
         }
 
-        private boolean open(ServerPlayer player) {
+        private boolean open() {
             if (opened) return container != null;
             opened = true;
             container = data.getInventory(player, host);
@@ -102,22 +104,22 @@ final class QuickShulkerBridge {
             return container != null;
         }
 
-        private boolean accepts(ServerPlayer player, ItemStack source) {
+        @Override
+        public boolean accepts(ItemStack source) {
             return data.canBundleInsertItem(player, container, host, source);
         }
 
-        private long insert(
+        @Override
+        public long insert(
                 ItemVariant variant,
                 long amount,
                 Transaction transaction) {
-            return storage.insert(variant, amount, transaction);
+            long inserted = storage.insert(variant, amount, transaction);
+            if (inserted > 0) changed = true;
+            return inserted;
         }
 
-        private void markChanged() {
-            changed = true;
-        }
-
-        private void finish(ServerPlayer player) {
+        private void finish() {
             if (changed) container.stopOpen(player);
         }
     }
