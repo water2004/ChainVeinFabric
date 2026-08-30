@@ -139,7 +139,7 @@ Client-side mode does not support **Direct to Inventory** or Quick Shulker overf
    - **Direct to Inventory** is unavailable.
 2. **Modded server (mod installed):**
    - The client sends the resolved positions through the ChainVein protocol.
-   - The server processes them efficiently and supports **Direct to Inventory**.
+   - The server processes active player requests within one fair, server-wide tick budget and supports **Direct to Inventory**.
    - With compatible Quick Shulker installations on both sides, overflow can be stored in carried shulker boxes.
    - The packet interval is not required.
 
@@ -147,8 +147,10 @@ Client-side mode does not support **Direct to Inventory** or Quick Shulker overf
 
 The following persistent commands require owner permission level 4. The values are stored in `config/chainveinfabric-server.json`:
 
-- `/chainvein maxBlocks [1..2048]` — maximum positions processed from one mining or interaction request; default `256`.
+- `/chainvein maxBlocks [1..2048]` — maximum total positions processed across all active player requests per server tick; default `256`.
 - `/chainvein pickupRadius [0..64]` — radius in which Direct to Inventory and optional Quick Shulker overflow capture drops; default `10`. Set it to `0` to disable server-side drop capture.
+
+Each protocol request may contain at most `2048` positions. Active players share the tick budget fairly, including redistribution of capacity that short requests cannot use. The server accepts only the first request from each player in a tick. At the end of the tick it first processes the player's existing request, then replaces any unstarted remainder with that player's newly accepted request. This keeps only one active request per player without an unbounded server queue.
 
 Server-protocol mining has no player-distance limit, but it never loads chunks to process a request. Chain interactions use the server player's vanilla block-interaction-range check, so server-side attribute changes and compatible server mods apply without a separate ChainVein distance setting.
 
