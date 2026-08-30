@@ -11,7 +11,8 @@
     ],
     "fabric-client-gametest": [
       "org.edtp.chainveinfabric.gametest.PlantingClientGameTest",
-      "org.edtp.chainveinfabric.gametest.ServerAbsentFallbackGameTest"
+      "org.edtp.chainveinfabric.gametest.ServerAbsentFallbackGameTest",
+      "org.edtp.chainveinfabric.gametest.ClientConfigurationGameTest"
     ]
   },
   "mixins": [
