@@ -19,7 +19,35 @@ import org.edtp.chainveinfabric.client.logic.search.SearchResult;
 import org.edtp.chainveinfabric.client.logic.search.SearchService;
 
 public final class MineLogic {
+    private static PendingServerMine pendingServerMine;
+    private static int pendingServerMineDelay;
+
     private MineLogic() {
+    }
+
+    /**
+     * Sends a deferred continuation only after crossing a complete client tick.
+     * This keeps the clicked block and its asynchronously discovered remainder
+     * out of the same server tick while preserving direct pickup for the origin.
+     */
+    public static void tick(Minecraft client) {
+        PendingServerMine pending = pendingServerMine;
+        if (pending == null) return;
+
+        if (client.level != pending.level() || client.player == null) {
+            clearPendingServerMine();
+            return;
+        }
+        if (pendingServerMineDelay-- > 0) return;
+
+        clearPendingServerMine();
+        int queuedCount = ChainVeinClientApi.queueMineJobs(client, pending.positions());
+        if (queuedCount == pending.positions().size() && pending.affectedCount() > 1) {
+            client.gui.hud.setOverlayMessage(
+                    Component.translatable(
+                            "message.chainveinfabric.broken", pending.affectedCount()),
+                    false);
+        }
     }
 
     public static void perform(Minecraft client, BlockPos pos, BlockState targetState) {
@@ -49,27 +77,35 @@ public final class MineLogic {
                     && targetState.getDestroySpeed(client.level, pos) < 0.0F)) {
             return false;
         }
-        boolean serverHandledOrigin = false;
-        if (ChainVeinClientApi.canUseServerMiningProtocol()) {
-            serverHandledOrigin = ChainVeinClientApi.queueMineJobs(client, List.of(pos)) == 1;
-        }
+        boolean serverHandledOrigin = ChainVeinClientApi.canUseServerMiningProtocol()
+                && ChainVeinClientApi.queueMineJobs(client, List.of(pos)) == 1;
         SearchRequest request = SearchRequest.targeted(
                 (ClientLevel) client.level, pos, targetState, client.player.getDirection(),
                 searchConfig, litematicaContext, client.player.isCreative());
 
         ChainveinfabricClient.getSearchService().submit(
                 request, SearchService.Priority.ACTION, result -> result,
-                result -> applyResult(client, result));
+                result -> applyResult(client, result, serverHandledOrigin));
         return serverHandledOrigin;
     }
 
-    private static void applyResult(Minecraft client, SearchResult result) {
+    private static void applyResult(
+            Minecraft client,
+            SearchResult result,
+            boolean serverHandledOrigin) {
         if (!isStillValid(client, result.request())) return;
 
         List<BlockPos> remaining = result.positions().stream()
                 .filter(pos -> !pos.equals(result.request().origin()))
                 .toList();
         int affectedCount = remaining.size() + 1;
+        if (serverHandledOrigin) {
+            pendingServerMine = new PendingServerMine(
+                    result.request().level(), remaining, affectedCount);
+            pendingServerMineDelay = 1;
+            return;
+        }
+
         int queuedCount = ChainVeinClientApi.queueMineJobs(client, remaining);
         if (queuedCount == remaining.size() && affectedCount > 1) {
             client.gui.hud.setOverlayMessage(
@@ -87,5 +123,17 @@ public final class MineLogic {
         LitematicaContext currentContext = LitematicaIntegration.createContext(
                 config.mode, config.respectSchematicRenderLayer);
         return currentContext.fingerprint() == request.litematicaContext().fingerprint();
+    }
+
+    private static void clearPendingServerMine() {
+        pendingServerMine = null;
+        pendingServerMineDelay = 0;
+    }
+
+    private record PendingServerMine(
+            ClientLevel level, List<BlockPos> positions, int affectedCount) {
+        private PendingServerMine {
+            positions = List.copyOf(positions);
+        }
     }
 }

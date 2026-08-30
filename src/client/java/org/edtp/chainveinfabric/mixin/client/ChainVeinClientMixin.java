@@ -1,10 +1,13 @@
 package org.edtp.chainveinfabric.mixin.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +23,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MultiPlayerGameMode.class)
@@ -28,6 +32,7 @@ public abstract class ChainVeinClientMixin {
     @Shadow @Final private Minecraft minecraft;
 
     private BlockState capturedState;
+    private BlockPos chainveinfabric$claimedDestroyPos;
 
     @Inject(method = "startDestroyBlock", at = @At("HEAD"))
     private void beforeManualMining(BlockPos pos, Direction direction,
@@ -50,8 +55,32 @@ public abstract class ChainVeinClientMixin {
 
         BlockState state = minecraft.level.getBlockState(pos);
         if (MineLogic.performAndClaimOrigin(minecraft, pos, state)) {
+            this.chainveinfabric$claimedDestroyPos = pos.immutable();
             cir.setReturnValue(true);
         }
+    }
+
+    @Redirect(
+            method = "startPrediction",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
+    private void replaceClaimedDestroyPacket(
+            ClientPacketListener connection, Packet<?> packet) {
+        if (packet instanceof ServerboundPlayerActionPacket action
+                && this.chainveinfabric$claimedDestroyPos != null
+                && action.getPos().equals(this.chainveinfabric$claimedDestroyPos)
+                && (action.getAction()
+                        == ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK
+                    || action.getAction()
+                        == ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK)) {
+            this.chainveinfabric$claimedDestroyPos = null;
+            connection.send(new ServerboundPlayerActionPacket(
+                    ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK,
+                    action.getPos(), action.getDirection(), action.getSequence()));
+            return;
+        }
+        connection.send(packet);
     }
 
     @Inject(method = "useItemOn", at = @At("HEAD"))
