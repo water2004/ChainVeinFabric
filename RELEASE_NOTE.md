@@ -22,26 +22,26 @@
 
 - 连续同类掉落会批量写入快捷潜影盒，并按玩家背包中的盒子顺序按需解析和填充
 - 只有最终无法进入背包或潜影盒的掉落物才会创建实体；满盒时仍在原位置正常掉落
-- 优化了 Quick Shulker 新 API、强制旧适配器和 Quick Shulker 3.0.2 兼容路径，保持部分接收及 `64/16/1` 堆叠上限
+- 优化了 Quick Shulker 新 API、强制旧适配器和稳定版兼容路径（26.2 为 3.0.2，26.1 为 3.0.1），保持部分接收及 `64/16/1` 堆叠上限
 - 手动连锁挖掘会将点击原点与异步搜索余量分到不同 tick 发送，并阻止原版完成包抢先破坏原点；开启直接进入背包时，第一个方块与后续方块现在走同一服务端掉落路径
 - 修复配置界面切换到 Advanced 时可能因下拉框构造顺序导致的崩溃
 - 配置页、白名单、快捷键和四个配置分页均增加客户端回归测试
 
 - Consecutive equal drops are inserted into Quick Shulker in batches, resolving and filling carried boxes lazily in inventory order
 - Item entities are now created only for final overflow that fits in neither inventory nor shulker storage; full-box overflow still drops at its original position
-- Optimized the Quick Shulker direct API, forced legacy adapter, and Quick Shulker 3.0.2 compatibility paths while preserving partial insertion and `64/16/1` stack limits
+- Optimized the Quick Shulker direct API, forced legacy adapter, and stable compatibility paths (3.0.2 on 26.2 and 3.0.1 on 26.1) while preserving partial insertion and `64/16/1` stack limits
 - Manual chain mining now sends the clicked origin and asynchronous remainder in separate ticks and prevents the vanilla completion packet from breaking the origin first; with Direct to Inventory enabled, the first and subsequent blocks use the same server drop path
 - Fixed a configuration-screen crash when opening Advanced caused by dropdown initialization order
 - Added client regression coverage for configuration pages, whitelists, hotkeys, and all four configuration tabs
 
 ### 测试与兼容性 / Testing and Compatibility
 
-- Minecraft 26.2 与 26.1.x 均验证无 Quick Shulker、DIRECT API、强制 LEGACY 与 Quick Shulker 3.0.2 路径
+- Minecraft 26.2 与 26.1.x 均验证无 Quick Shulker、DIRECT API、强制 LEGACY 与各自对应的稳定版路径
 - 服务端 GameTest 覆盖 tick 预算、公平分配、同 tick 首包及新请求替换顺序
 - 4.x 网络负载格式、客户端配置 schema 及公开 `ChainVeinClientApi` 方法签名均未改变
 - 本预发布同时提供 Minecraft 26.2 与 26.1.x 构建；4.x 与 1.x～3.x 的专用协议仍然分离
 
-- Both Minecraft 26.2 and 26.1.x validate operation without Quick Shulker, the DIRECT API, the forced LEGACY adapter, and Quick Shulker 3.0.2
+- Both Minecraft 26.2 and 26.1.x validate operation without Quick Shulker, with the DIRECT API, with the forced LEGACY adapter, and with their respective stable Quick Shulker releases
 - Server GameTests cover tick budgets, fair allocation, first-packet-per-tick behavior, and replacement ordering
 - The 4.x network payload format, client configuration schema, and public `ChainVeinClientApi` method signatures are unchanged
 - This prerelease provides builds for both Minecraft 26.2 and 26.1.x; the 4.x dedicated protocol remains separate from 1.x–3.x
