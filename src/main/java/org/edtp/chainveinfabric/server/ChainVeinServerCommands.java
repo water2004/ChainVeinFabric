@@ -36,12 +36,12 @@ public final class ChainVeinServerCommands {
     }
 
     private static int showMaxBlocks(CommandSourceStack source) {
-        return sendValue(source, "Maximum blocks per request",
+        return sendValue(source, "Maximum blocks per server tick",
                 ChainVeinServerConfig.values().maxBlocks());
     }
 
     private static int setMaxBlocks(CommandSourceStack source, int value) {
-        return sendValue(source, "Maximum blocks per request",
+        return sendValue(source, "Maximum blocks per server tick",
                 ChainVeinServerConfig.setMaxBlocks(value));
     }
 

@@ -23,6 +23,7 @@ public class Chainveinfabric implements ModInitializer {
     @Override
     public void onInitialize() {
         ChainVeinServerCommands.register();
+        ChainVeinServerScheduler.register();
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             ChainVeinServerConfig.load();
             QuickShulkerIntegration.initialize();
@@ -44,7 +45,7 @@ public class Chainveinfabric implements ModInitializer {
                                    boolean quickShulkerOverflow) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ChainMinePayload> ID = new CustomPacketPayload.Type<>(MINE_PACKET_ID);
         public static final StreamCodec<RegistryFriendlyByteBuf, ChainMinePayload> CODEC = StreamCodec.composite(
-                BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list(ChainVeinServerConfig.MAX_MAX_BLOCKS)), ChainMinePayload::positions,
+                BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list(ChainVeinServerConfig.MAX_REQUEST_POSITIONS)), ChainMinePayload::positions,
                 ByteBufCodecs.BOOL, ChainMinePayload::directToInventory,
                 ByteBufCodecs.BOOL, ChainMinePayload::quickShulkerOverflow,
                 ChainMinePayload::new
@@ -57,7 +58,7 @@ public class Chainveinfabric implements ModInitializer {
     public record ChainInteractPayload(List<BlockPos> positions) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ChainInteractPayload> ID = new CustomPacketPayload.Type<>(INTERACT_PACKET_ID);
         public static final StreamCodec<RegistryFriendlyByteBuf, ChainInteractPayload> CODEC = StreamCodec.composite(
-                BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list(ChainVeinServerConfig.MAX_MAX_BLOCKS)), ChainInteractPayload::positions,
+                BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list(ChainVeinServerConfig.MAX_REQUEST_POSITIONS)), ChainInteractPayload::positions,
                 ChainInteractPayload::new
         );
 
