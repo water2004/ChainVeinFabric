@@ -4,6 +4,7 @@ import fi.dy.masa.malilib.event.InputEventHandler;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -151,7 +152,8 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
         context.waitFor(client -> client.player != null
                 && client.player.getMainHandItem().is(Items.DIAMOND_PICKAXE));
         context.getInput().pressKey(GLFW.GLFW_KEY_F4);
-        context.getInput().lookAt(TARGET);
+        context.runOnClient(client -> client.player.lookAt(
+                EntityAnchorArgument.Anchor.EYES, TARGET.getCenter()));
         context.waitTick();
         context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
                 && hit.getBlockPos().equals(TARGET));

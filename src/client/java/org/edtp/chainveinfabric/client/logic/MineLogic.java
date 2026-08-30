@@ -43,7 +43,7 @@ public final class MineLogic {
         clearPendingServerMine();
         int queuedCount = ChainVeinClientApi.queueMineJobs(client, pending.positions());
         if (queuedCount == pending.positions().size() && pending.affectedCount() > 1) {
-            client.gui.hud.setOverlayMessage(
+            client.gui.setOverlayMessage(
                     Component.translatable(
                             "message.chainveinfabric.broken", pending.affectedCount()),
                     false);

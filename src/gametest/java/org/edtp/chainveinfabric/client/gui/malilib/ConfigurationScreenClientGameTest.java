@@ -7,13 +7,13 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 public final class ConfigurationScreenClientGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
-        context.runOnClient(client -> client.gui.setScreen(new GuiChainVein()));
-        context.waitFor(client -> client.gui.screen() instanceof GuiChainVein);
+        context.runOnClient(client -> client.setScreen(new GuiChainVein()));
+        context.waitFor(client -> client.screen instanceof GuiChainVein);
         context.waitTicks(2);
 
         for (GuiChainVein.Tab tab : GuiChainVein.Tab.values()) {
             context.runOnClient(client -> {
-                if (!(client.gui.screen() instanceof GuiChainVein screen)) {
+                if (!(client.screen instanceof GuiChainVein screen)) {
                     throw new AssertionError("The ChainVein configuration screen was closed");
                 }
                 screen.selectTab(tab);
@@ -21,6 +21,6 @@ public final class ConfigurationScreenClientGameTest implements FabricClientGame
             context.waitTicks(2);
         }
 
-        context.runOnClient(client -> client.gui.setScreen(null));
+        context.runOnClient(client -> client.setScreen(null));
     }
 }
