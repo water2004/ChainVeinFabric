@@ -222,6 +222,46 @@ public final class QuickShulkerServerGameTests {
     }
 
     @GameTest
+    public void legacyPathFillsEarlierBoxBeforeLaterPartialStack(
+            GameTestHelper helper) {
+        if (!selectedPath().equals("LEGACY")) {
+            helper.succeed();
+            return;
+        }
+        List<BlockPos> targets = List.of(
+                new BlockPos(1, 1, 1),
+                new BlockPos(2, 1, 1));
+        for (BlockPos target : targets) helper.setBlock(target, Blocks.DIRT);
+
+        ServerPlayer player = createPlayer(helper, targets.getFirst());
+        ItemStack earlierEmptyBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        ItemStack laterMergeBox = new ItemStack(Items.SHULKER_BOX);
+        fillPlayerInventory(player, earlierEmptyBox);
+        player.getInventory().setItem(2, laterMergeBox);
+        player.setItemInHand(
+                InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
+        Container laterInventory = getShulkerInventory(player, laterMergeBox);
+        laterInventory.setItem(0, new ItemStack(Items.DIRT, 63));
+        laterInventory.setChanged();
+
+        Chainveinfabric.handleMine(
+                player,
+                targets.stream().map(helper::absolutePos).toList(),
+                true,
+                true);
+
+        Container earlierInventory = getShulkerInventory(player, earlierEmptyBox);
+        laterInventory = getShulkerInventory(player, laterMergeBox);
+        helper.assertValueEqual(countItem(earlierInventory, Items.DIRT), 2,
+                "Legacy batching must preserve carried-box priority");
+        helper.assertValueEqual(countItem(laterInventory, Items.DIRT), 63,
+                "Legacy batching must not prefer a later partial stack");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
+                "Both drops should fit in the earlier carried box");
+        helper.succeed();
+    }
+
+    @GameTest
     public void fullCarriedShulkerLeavesUnacceptedDropsInWorld(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -283,10 +323,7 @@ public final class QuickShulkerServerGameTests {
     @GameTest
     public void batchedTorchOverflowKeepsStackLimitAndOriginalDropPositions(
             GameTestHelper helper) {
-        if (!quickShulkerMode().equals("new")) {
-            helper.succeed();
-            return;
-        }
+        if (skipWithoutQuickShulker(helper)) return;
         helper.assertValueEqual(new ItemStack(Items.TORCH).getMaxStackSize(), 64,
                 "Torch should exercise the standard 64-item stack limit");
 
@@ -324,10 +361,7 @@ public final class QuickShulkerServerGameTests {
     @GameTest
     public void batchedEnderPearlOverflowKeepsSixteenItemStackLimitAndPositions(
             GameTestHelper helper) {
-        if (!quickShulkerMode().equals("new")) {
-            helper.succeed();
-            return;
-        }
+        if (skipWithoutQuickShulker(helper)) return;
         helper.assertValueEqual(new ItemStack(Items.ENDER_PEARL).getMaxStackSize(), 16,
                 "Ender pearls should exercise the 16-item stack limit");
 
@@ -355,10 +389,7 @@ public final class QuickShulkerServerGameTests {
     @GameTest
     public void batchedTorchStacksKeepPartialCountsAtOriginalPositions(
             GameTestHelper helper) {
-        if (!quickShulkerMode().equals("new")) {
-            helper.succeed();
-            return;
-        }
+        if (skipWithoutQuickShulker(helper)) return;
 
         List<BlockPos> origins = List.of(
                 new BlockPos(1, 2, 2),
@@ -389,10 +420,7 @@ public final class QuickShulkerServerGameTests {
     @GameTest
     public void batchedUnstackableOverflowKeepsOneItemLimitAndPosition(
             GameTestHelper helper) {
-        if (!quickShulkerMode().equals("new")) {
-            helper.succeed();
-            return;
-        }
+        if (skipWithoutQuickShulker(helper)) return;
         helper.assertValueEqual(new ItemStack(Items.DIAMOND_PICKAXE).getMaxStackSize(), 1,
                 "Diamond pickaxes should exercise the unstackable-item limit");
 

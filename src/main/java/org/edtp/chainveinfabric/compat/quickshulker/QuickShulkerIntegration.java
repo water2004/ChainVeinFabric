@@ -61,9 +61,10 @@ public final class QuickShulkerIntegration {
         }
         if (slots.isEmpty()) return 0;
 
-        List<InsertionBatch> batches = batchConsecutiveVariants(remainders);
+        List<OverflowInsertionBatch> batches =
+                OverflowInsertionBatch.consecutive(remainders);
         try (Transaction transaction = Transaction.openOuter()) {
-            for (InsertionBatch batch : batches) {
+            for (OverflowInsertionBatch batch : batches) {
                 long remaining = batch.requestedAmount();
 
                 // Merge globally before consuming an empty slot in any box.
@@ -86,81 +87,15 @@ public final class QuickShulkerIntegration {
         }
 
         int total = 0;
-        for (InsertionBatch batch : batches) {
+        for (OverflowInsertionBatch batch : batches) {
             total += batch.applyInsertedAmount();
         }
         return total;
     }
 
-    /**
-     * Batches only adjacent equal variants so storage priority remains identical
-     * for interleaved item types while repeated block drops need one slot scan.
-     */
-    private static List<InsertionBatch> batchConsecutiveVariants(
-            List<ItemStack> remainders) {
-        List<InsertionBatch> batches = new ArrayList<>();
-        InsertionBatch current = null;
-        for (ItemStack source : remainders) {
-            if (source == null || source.isEmpty()) continue;
-            ItemVariant variant = ItemVariant.of(source);
-            if (current == null || !current.variant().equals(variant)) {
-                current = new InsertionBatch(variant);
-                batches.add(current);
-            }
-            current.add(source);
-        }
-        return batches;
-    }
-
-    private static final class InsertionBatch {
-        private final ItemVariant variant;
-        private final List<ItemStack> sources = new ArrayList<>();
-        private long requestedAmount;
-        private long insertedAmount;
-
-        private InsertionBatch(ItemVariant variant) {
-            this.variant = variant;
-        }
-
-        private ItemVariant variant() {
-            return variant;
-        }
-
-        private long requestedAmount() {
-            return requestedAmount;
-        }
-
-        private void add(ItemStack source) {
-            sources.add(source);
-            requestedAmount += source.getCount();
-        }
-
-        private void setInsertedAmount(long insertedAmount) {
-            this.insertedAmount = insertedAmount;
-        }
-
-        private int applyInsertedAmount() {
-            long remaining = insertedAmount;
-            int applied = 0;
-            for (ItemStack source : sources) {
-                if (remaining == 0) break;
-                int shrink = (int) Math.min(source.getCount(), remaining);
-                source.shrink(shrink);
-                remaining -= shrink;
-                applied += shrink;
-            }
-            return applied;
-        }
-    }
-
     private static int insertLegacy(ServerPlayer player, List<ItemStack> remainders) {
-        int total = 0;
-        for (ItemStack remainder : remainders) {
-            if (remainder == null || remainder.isEmpty()) continue;
-            total += QuickShulkerBridge.insertIntoCarriedShulkerBoxes(
-                    player, remainder);
-        }
-        return total;
+        return QuickShulkerBridge.insertIntoCarriedShulkerBoxes(
+                player, remainders);
     }
 
     private static Path selectPath() {
