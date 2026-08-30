@@ -362,7 +362,25 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
         context.getInput().holdMouseFor(0, 10);
         context.waitTicks(5);
 
-        MiningResult result = singleplayer.getServer().computeOnServer(server -> {
+        MiningResult result = null;
+        for (int tick = 0; tick < 40; tick++) {
+            result = readMiningResult(singleplayer);
+            if (result.remainingBlocks() == 0
+                    && result.collectedDirt() == MINE_SIZE * MINE_SIZE) {
+                break;
+            }
+            context.waitTick();
+        }
+
+        if (result.remainingBlocks() != 0 || result.collectedDirt() != MINE_SIZE * MINE_SIZE) {
+            throw new AssertionError("Expected all 25 server-mined blocks in the inventory, got "
+                    + result.remainingBlocks() + " blocks left and " + result.collectedDirt() + " dirt");
+        }
+    }
+
+    private static MiningResult readMiningResult(
+            TestSingleplayerContext singleplayer) {
+        return singleplayer.getServer().computeOnServer(server -> {
             var level = server.overworld();
             int remainingBlocks = 0;
             for (int x = 16; x < 16 + MINE_SIZE; x++) {
@@ -379,11 +397,6 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                     .sum();
             return new MiningResult(remainingBlocks, collectedDirt);
         });
-
-        if (result.remainingBlocks() != 0 || result.collectedDirt() != MINE_SIZE * MINE_SIZE) {
-            throw new AssertionError("Expected one 25-block server mining batch in the inventory, got "
-                    + result.remainingBlocks() + " blocks left and " + result.collectedDirt() + " dirt");
-        }
     }
 
     private record PlantingResult(int planted, int remainingSeeds) {

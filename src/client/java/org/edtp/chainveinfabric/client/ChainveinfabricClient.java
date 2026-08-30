@@ -17,6 +17,7 @@ import org.edtp.chainveinfabric.client.compat.litematica.LitematicaContext;
 import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
 import org.edtp.chainveinfabric.client.input.ChainVeinInputHandler;
+import org.edtp.chainveinfabric.client.logic.MineLogic;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 import org.edtp.chainveinfabric.client.renderer.AutoMiningHazardHud;
 import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
@@ -96,6 +97,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ChainVeinClientApi.tick(client);
+            MineLogic.tick(client);
             WhitelistImportService.tick(client);
             autoMiningController.tick(client);
             onOutlineTick(client);
