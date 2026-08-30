@@ -61,37 +61,96 @@ public final class QuickShulkerIntegration {
         }
         if (slots.isEmpty()) return 0;
 
-        int[] inserted = new int[remainders.size()];
+        List<InsertionBatch> batches = batchConsecutiveVariants(remainders);
         try (Transaction transaction = Transaction.openOuter()) {
-            for (int index = 0; index < remainders.size(); index++) {
-                ItemStack source = remainders.get(index);
-                if (source == null || source.isEmpty()) continue;
-                ItemVariant variant = ItemVariant.of(source);
-                long remaining = source.getCount();
+            for (InsertionBatch batch : batches) {
+                long remaining = batch.requestedAmount();
 
                 // Merge globally before consuming an empty slot in any box.
                 for (SingleSlotStorage<ItemVariant> slot : slots) {
                     if (remaining == 0) break;
-                    if (slot.isResourceBlank() || !variant.equals(slot.getResource())) continue;
-                    remaining -= slot.insert(variant, remaining, transaction);
+                    if (slot.isResourceBlank()
+                            || !batch.variant().equals(slot.getResource())) continue;
+                    remaining -= slot.insert(
+                            batch.variant(), remaining, transaction);
                 }
                 for (SingleSlotStorage<ItemVariant> slot : slots) {
                     if (remaining == 0) break;
                     if (!slot.isResourceBlank()) continue;
-                    remaining -= slot.insert(variant, remaining, transaction);
+                    remaining -= slot.insert(
+                            batch.variant(), remaining, transaction);
                 }
-                inserted[index] = Math.toIntExact(source.getCount() - remaining);
+                batch.setInsertedAmount(batch.requestedAmount() - remaining);
             }
             transaction.commit();
         }
 
         int total = 0;
-        for (int index = 0; index < inserted.length; index++) {
-            if (inserted[index] <= 0) continue;
-            remainders.get(index).shrink(inserted[index]);
-            total += inserted[index];
+        for (InsertionBatch batch : batches) {
+            total += batch.applyInsertedAmount();
         }
         return total;
+    }
+
+    /**
+     * Batches only adjacent equal variants so storage priority remains identical
+     * for interleaved item types while repeated block drops need one slot scan.
+     */
+    private static List<InsertionBatch> batchConsecutiveVariants(
+            List<ItemStack> remainders) {
+        List<InsertionBatch> batches = new ArrayList<>();
+        InsertionBatch current = null;
+        for (ItemStack source : remainders) {
+            if (source == null || source.isEmpty()) continue;
+            ItemVariant variant = ItemVariant.of(source);
+            if (current == null || !current.variant().equals(variant)) {
+                current = new InsertionBatch(variant);
+                batches.add(current);
+            }
+            current.add(source);
+        }
+        return batches;
+    }
+
+    private static final class InsertionBatch {
+        private final ItemVariant variant;
+        private final List<ItemStack> sources = new ArrayList<>();
+        private long requestedAmount;
+        private long insertedAmount;
+
+        private InsertionBatch(ItemVariant variant) {
+            this.variant = variant;
+        }
+
+        private ItemVariant variant() {
+            return variant;
+        }
+
+        private long requestedAmount() {
+            return requestedAmount;
+        }
+
+        private void add(ItemStack source) {
+            sources.add(source);
+            requestedAmount += source.getCount();
+        }
+
+        private void setInsertedAmount(long insertedAmount) {
+            this.insertedAmount = insertedAmount;
+        }
+
+        private int applyInsertedAmount() {
+            long remaining = insertedAmount;
+            int applied = 0;
+            for (ItemStack source : sources) {
+                if (remaining == 0) break;
+                int shrink = (int) Math.min(source.getCount(), remaining);
+                source.shrink(shrink);
+                remaining -= shrink;
+                applied += shrink;
+            }
+            return applied;
+        }
     }
 
     private static int insertLegacy(ServerPlayer player, List<ItemStack> remainders) {

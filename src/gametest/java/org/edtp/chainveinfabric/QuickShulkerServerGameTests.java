@@ -22,6 +22,7 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.phys.Vec3;
 
 import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
+import org.edtp.chainveinfabric.server.DirectDropCollector;
 
 public final class QuickShulkerServerGameTests {
     private static final int CONTAINER_SLOTS = 27;
@@ -273,6 +274,187 @@ public final class QuickShulkerServerGameTests {
         helper.assertValueEqual(selectedPath, mode.equals("new") ? "DIRECT" : "LEGACY",
                 "The adapter selected the wrong Quick Shulker path");
         helper.succeed();
+    }
+
+    @GameTest
+    public void batchedTorchOverflowKeepsStackLimitAndOriginalDropPositions(
+            GameTestHelper helper) {
+        if (!quickShulkerMode().equals("new")) {
+            helper.succeed();
+            return;
+        }
+        helper.assertValueEqual(new ItemStack(Items.TORCH).getMaxStackSize(), 64,
+                "Torch should exercise the standard 64-item stack limit");
+
+        List<BlockPos> targets = List.of(
+                new BlockPos(1, 2, 2),
+                new BlockPos(5, 2, 2),
+                new BlockPos(9, 2, 2));
+        for (BlockPos target : targets) {
+            helper.setBlock(target.below(), Blocks.STONE);
+            helper.setBlock(target, Blocks.TORCH);
+        }
+
+        ServerPlayer player = createPlayer(helper, targets.get(1));
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        fillContainer(overflowInventory, Items.COBBLESTONE, CONTAINER_SLOTS);
+        overflowInventory.setItem(0, new ItemStack(Items.TORCH, 63));
+        overflowInventory.setChanged();
+
+        Chainveinfabric.handleMine(
+                player,
+                targets.stream().map(helper::absolutePos).toList(),
+                true,
+                true);
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertValueEqual(countItem(overflowInventory, Items.TORCH), 64,
+                "Batched torch insertion must stop at the slot's stack limit");
+        assertConsumedThenDroppedAtOriginalPositions(helper, Items.TORCH, targets);
+        for (BlockPos target : targets) helper.assertBlockNotPresent(Blocks.TORCH, target);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void batchedEnderPearlOverflowKeepsSixteenItemStackLimitAndPositions(
+            GameTestHelper helper) {
+        if (!quickShulkerMode().equals("new")) {
+            helper.succeed();
+            return;
+        }
+        helper.assertValueEqual(new ItemStack(Items.ENDER_PEARL).getMaxStackSize(), 16,
+                "Ender pearls should exercise the 16-item stack limit");
+
+        List<BlockPos> origins = List.of(
+                new BlockPos(1, 2, 2),
+                new BlockPos(5, 2, 2),
+                new BlockPos(9, 2, 2));
+        ServerPlayer player = createPlayer(helper, origins.get(1));
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        fillContainer(overflowInventory, Items.COBBLESTONE, CONTAINER_SLOTS);
+        overflowInventory.setItem(0, new ItemStack(Items.ENDER_PEARL, 15));
+        overflowInventory.setChanged();
+
+        captureDropsAt(helper, player, origins, Items.ENDER_PEARL);
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertValueEqual(countItem(overflowInventory, Items.ENDER_PEARL), 16,
+                "Batched pearl insertion must stop at the 16-item stack limit");
+        assertConsumedThenDroppedAtOriginalPositions(helper, Items.ENDER_PEARL, origins);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void batchedTorchStacksKeepPartialCountsAtOriginalPositions(
+            GameTestHelper helper) {
+        if (!quickShulkerMode().equals("new")) {
+            helper.succeed();
+            return;
+        }
+
+        List<BlockPos> origins = List.of(
+                new BlockPos(1, 2, 2),
+                new BlockPos(5, 2, 2),
+                new BlockPos(9, 2, 2));
+        ServerPlayer player = createPlayer(helper, origins.get(1));
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        fillContainer(overflowInventory, Items.COBBLESTONE, CONTAINER_SLOTS);
+        overflowInventory.setItem(0, new ItemStack(Items.TORCH, 60));
+        overflowInventory.setChanged();
+
+        captureStacksAt(helper, player, origins, List.of(
+                new ItemStack(Items.TORCH, 2),
+                new ItemStack(Items.TORCH, 5),
+                new ItemStack(Items.TORCH, 9)));
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertValueEqual(countItem(overflowInventory, Items.TORCH), 64,
+                "The batched request should insert exactly the four available torches");
+        helper.assertItemEntityNotPresent(Items.TORCH, origins.get(0), 1.25);
+        helper.assertItemEntityCountIs(Items.TORCH, origins.get(1), 1.25, 3);
+        helper.assertItemEntityCountIs(Items.TORCH, origins.get(2), 1.25, 9);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void batchedUnstackableOverflowKeepsOneItemLimitAndPosition(
+            GameTestHelper helper) {
+        if (!quickShulkerMode().equals("new")) {
+            helper.succeed();
+            return;
+        }
+        helper.assertValueEqual(new ItemStack(Items.DIAMOND_PICKAXE).getMaxStackSize(), 1,
+                "Diamond pickaxes should exercise the unstackable-item limit");
+
+        List<BlockPos> origins = List.of(
+                new BlockPos(2, 2, 2),
+                new BlockPos(7, 2, 2));
+        ServerPlayer player = createPlayer(helper, origins.getFirst());
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        fillContainer(overflowInventory, Items.COBBLESTONE, CONTAINER_SLOTS);
+        overflowInventory.setItem(0, ItemStack.EMPTY);
+        overflowInventory.setChanged();
+
+        captureDropsAt(helper, player, origins, Items.DIAMOND_PICKAXE);
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND_PICKAXE), 1,
+                "A batched unstackable item must occupy exactly one storage slot");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND_PICKAXE), 1,
+                "The second unstackable item must remain in the world");
+        helper.assertItemEntityNotPresent(Items.DIAMOND_PICKAXE, origins.get(0), 1.25);
+        helper.assertItemEntityCountIs(Items.DIAMOND_PICKAXE, origins.get(1), 1.25, 1);
+        helper.succeed();
+    }
+
+    private static void captureDropsAt(
+            GameTestHelper helper,
+            ServerPlayer player,
+            List<BlockPos> origins,
+            Item item) {
+        captureStacksAt(
+                helper,
+                player,
+                origins,
+                origins.stream().map(ignored -> new ItemStack(item)).toList());
+    }
+
+    private static void captureStacksAt(
+            GameTestHelper helper,
+            ServerPlayer player,
+            List<BlockPos> origins,
+            List<ItemStack> stacks) {
+        if (origins.size() != stacks.size()) {
+            throw new IllegalArgumentException("Each captured stack needs one origin");
+        }
+        DirectDropCollector.run(player, true, 64, () -> {
+            for (int index = 0; index < origins.size(); index++) {
+                BlockPos origin = origins.get(index);
+                Vec3 position = Vec3.atCenterOf(helper.absolutePos(origin));
+                helper.getLevel().addFreshEntity(new ItemEntity(
+                        helper.getLevel(), position.x, position.y, position.z,
+                        stacks.get(index)));
+            }
+            return true;
+        });
+    }
+
+    private static void assertConsumedThenDroppedAtOriginalPositions(
+            GameTestHelper helper,
+            Item item,
+            List<BlockPos> origins) {
+        helper.assertItemEntityNotPresent(item, origins.getFirst(), 1.25);
+        for (int index = 1; index < origins.size(); index++) {
+            helper.assertItemEntityCountIs(item, origins.get(index), 1.25, 1);
+        }
     }
 
     private static boolean skipWithoutQuickShulker(GameTestHelper helper) {
