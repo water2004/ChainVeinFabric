@@ -2,10 +2,13 @@ package org.edtp.chainveinfabric;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -14,8 +17,10 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.edtp.chainveinfabric.server.ChainVeinServerConfig;
+import org.edtp.chainveinfabric.server.DirectDropCollector;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ChainVeinServerGameTests {
     @GameTest
@@ -244,6 +249,79 @@ public final class ChainVeinServerGameTests {
         helper.assertValueEqual(dirt, relativeTargets.size(),
                 "Direct mining should insert every drop into the inventory");
         helper.assertItemEntityNotPresent(Items.DIRT);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void fullyCollectedLazyDropNeverConstructsItemEntity(GameTestHelper helper) {
+        BlockPos origin = new BlockPos(2, 2, 2);
+        ServerPlayer player = createSurvivalPlayer(
+                helper, origin, Items.DIAMOND_SHOVEL);
+        ItemStack drop = new ItemStack(Items.DIRT, 17);
+        AtomicInteger entityConstructions = new AtomicInteger();
+
+        DirectDropCollector.run(player, false, 64, () ->
+                DirectDropCollector.withDropOrigin(
+                        helper.absolutePos(origin),
+                        () -> DirectDropCollector.captureLazyBlockDrop(
+                                helper.getLevel(),
+                                drop,
+                                () -> {
+                                    entityConstructions.incrementAndGet();
+                                    Vec3 position = Vec3.atCenterOf(
+                                            helper.absolutePos(origin));
+                                    return new ItemEntity(
+                                            helper.getLevel(),
+                                            position.x,
+                                            position.y,
+                                            position.z,
+                                            drop);
+                                })));
+
+        helper.assertValueEqual(entityConstructions.get(), 0,
+                "A fully collected lazy drop must not construct an ItemEntity");
+        helper.assertValueEqual(countItem(player, Items.DIRT), 17,
+                "Deferring entity construction must not change the collected count");
+        helper.assertItemEntityNotPresent(Items.DIRT);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void itemFrameDropsUseEntityFallbackWithoutDuplication(
+            GameTestHelper helper) {
+        BlockPos framePosition = new BlockPos(3, 2, 3);
+        helper.setBlock(framePosition.north(), Blocks.STONE);
+
+        ServerPlayer player = createSurvivalPlayer(
+                helper, framePosition, Items.DIAMOND_AXE);
+        ItemFrame frame = new ItemFrame(
+                helper.getLevel(),
+                helper.absolutePos(framePosition),
+                Direction.SOUTH);
+        frame.setItem(new ItemStack(Items.DIAMOND));
+        helper.assertTrue(helper.getLevel().addFreshEntity(frame),
+                "The item frame should be added to the test world");
+
+        DirectDropCollector.run(player, false, 64, () -> {
+            boolean removedItem = frame.hurtServer(
+                    helper.getLevel(),
+                    player.damageSources().playerAttack(player),
+                    1.0F);
+            boolean removedFrame = frame.hurtServer(
+                    helper.getLevel(),
+                    player.damageSources().playerAttack(player),
+                    1.0F);
+            return removedItem && removedFrame;
+        });
+
+        helper.assertTrue(frame.isRemoved(),
+                "The second hit should remove the empty item frame");
+        helper.assertValueEqual(countItem(player, Items.DIAMOND), 1,
+                "The displayed item must be collected exactly once");
+        helper.assertValueEqual(countItem(player, Items.ITEM_FRAME), 1,
+                "The frame item must be collected exactly once");
+        helper.assertItemEntityNotPresent(Items.DIAMOND);
+        helper.assertItemEntityNotPresent(Items.ITEM_FRAME);
         helper.succeed();
     }
 
