@@ -2,7 +2,6 @@ package org.edtp.chainveinfabric.compat.quickshulker;
 
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.SlottedStorage;
-import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,7 +9,6 @@ import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** Optional server-side Quick Shulker integration with one startup-selected path. */
@@ -54,48 +52,59 @@ public final class QuickShulkerIntegration {
     }
 
     private static int insertDirect(ServerPlayer player, List<ItemStack> remainders) {
-        List<SingleSlotStorage<ItemVariant>> slots = new ArrayList<>();
-        for (SlottedStorage<ItemVariant> storage :
-                QuickStorageDirectBridge.findAll(player)) {
-            slots.addAll(storage.getSlots());
-        }
-        if (slots.isEmpty()) return 0;
-
-        List<OverflowInsertionBatch> batches =
-                OverflowInsertionBatch.consecutive(remainders);
-        try (Transaction transaction = Transaction.openOuter()) {
-            for (OverflowInsertionBatch batch : batches) {
-                long remaining = batch.requestedAmount();
-
-                // Merge globally before consuming an empty slot in any box.
-                for (SingleSlotStorage<ItemVariant> slot : slots) {
-                    if (remaining == 0) break;
-                    if (slot.isResourceBlank()
-                            || !batch.variant().equals(slot.getResource())) continue;
-                    remaining -= slot.insert(
-                            batch.variant(), remaining, transaction);
-                }
-                for (SingleSlotStorage<ItemVariant> slot : slots) {
-                    if (remaining == 0) break;
-                    if (!slot.isResourceBlank()) continue;
-                    remaining -= slot.insert(
-                            batch.variant(), remaining, transaction);
-                }
-                batch.setInsertedAmount(batch.requestedAmount() - remaining);
-            }
-            transaction.commit();
-        }
-
-        int total = 0;
-        for (OverflowInsertionBatch batch : batches) {
-            total += batch.applyInsertedAmount();
-        }
-        return total;
+        return OverflowInsertion.insertInBoxOrder(
+                remainders, new DirectTargets(player));
     }
 
     private static int insertLegacy(ServerPlayer player, List<ItemStack> remainders) {
         return QuickShulkerBridge.insertIntoCarriedShulkerBoxes(
                 player, remainders);
+    }
+
+    private static final class DirectTargets
+            implements OverflowInsertion.OrderedTargets {
+        private final ServerPlayer player;
+        private final OverflowInsertion.Target[] targets;
+        private final boolean[] resolved;
+
+        private DirectTargets(ServerPlayer player) {
+            this.player = player;
+            int size = player.getInventory().getNonEquipmentItems().size();
+            this.targets = new OverflowInsertion.Target[size];
+            this.resolved = new boolean[size];
+        }
+
+        @Override
+        public int size() {
+            return targets.length;
+        }
+
+        @Override
+        public OverflowInsertion.Target resolve(int index) {
+            if (!resolved[index]) {
+                resolved[index] = true;
+                SlottedStorage<ItemVariant> storage =
+                        QuickStorageDirectBridge.find(player, index);
+                if (storage != null) targets[index] = new DirectTarget(storage);
+            }
+            return targets[index];
+        }
+    }
+
+    private record DirectTarget(SlottedStorage<ItemVariant> storage)
+            implements OverflowInsertion.Target {
+        @Override
+        public boolean accepts(ItemStack sample) {
+            return true;
+        }
+
+        @Override
+        public long insert(
+                ItemVariant variant,
+                long amount,
+                Transaction transaction) {
+            return storage.insert(variant, amount, transaction);
+        }
     }
 
     private static Path selectPath() {
