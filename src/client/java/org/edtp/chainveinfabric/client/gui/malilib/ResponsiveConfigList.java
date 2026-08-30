@@ -14,7 +14,6 @@ import fi.dy.masa.malilib.gui.interfaces.IKeybindConfigGui;
 import fi.dy.masa.malilib.gui.widgets.WidgetConfigOption;
 import fi.dy.masa.malilib.gui.widgets.WidgetHoverInfo;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
-import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 import fi.dy.masa.malilib.hotkeys.IHotkey;
 import fi.dy.masa.malilib.util.StringUtils;
 
@@ -55,20 +54,20 @@ final class ResponsiveConfigList extends WidgetListConfigOptions {
         return new ResponsiveConfigOption(
                 x, y, this.browserEntryWidth, this.browserEntryHeight,
                 labelWidth, responsiveConfigWidth, wrapper, listIndex,
-                this.hostScreen, this, this.dropdownRegistrar);
+                this.hostScreen, this);
+    }
+
+    private void registerDropdown(OverlayDropdown<?> dropdown) {
+        this.dropdownRegistrar.accept(dropdown);
     }
 
     private static final class ResponsiveConfigOption extends WidgetConfigOption {
-        private final Consumer<OverlayDropdown<?>> dropdownRegistrar;
-
         private ResponsiveConfigOption(int x, int y, int width, int height,
                                        int labelWidth, int configWidth,
                                        ConfigOptionWrapper wrapper, int listIndex,
                                        IKeybindConfigGui host,
-                                       WidgetListConfigOptionsBase<?, ?> parent,
-                                       Consumer<OverlayDropdown<?>> dropdownRegistrar) {
+                                       ResponsiveConfigList parent) {
             super(x, y, width, height, labelWidth, configWidth, wrapper, listIndex, host, parent);
-            this.dropdownRegistrar = dropdownRegistrar;
         }
 
         @Override
@@ -135,7 +134,7 @@ final class ResponsiveConfigList extends WidgetListConfigOptions {
                             }
                         }
                     };
-            this.dropdownRegistrar.accept(dropdown);
+            ((ResponsiveConfigList) this.parent).registerDropdown(dropdown);
             dropdown.setSelectedEntry(current);
 
             this.addWidget(dropdown);

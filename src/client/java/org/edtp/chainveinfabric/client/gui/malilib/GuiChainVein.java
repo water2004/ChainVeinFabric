@@ -35,7 +35,7 @@ import static org.edtp.chainveinfabric.client.gui.malilib.GuiChainVeinLayout.PAG
 
 public class GuiChainVein extends GuiConfigsBase {
 
-    private enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
+    enum Tab { BASIC, SETTINGS, HOTKEYS, PRESETS }
     private enum BasicPane { AVAILABLE, WHITELIST }
 
     private Tab currentTab = Tab.BASIC;
@@ -205,9 +205,7 @@ public class GuiChainVein extends GuiConfigsBase {
                 super.setSelectedEntry(index);
                 Tab selected = this.getSelectedEntry();
                 if (selected != null && selected != currentTab) {
-                    currentTab = selected;
-                    reCreateListWidget();
-                    initGui();
+                    selectTab(selected);
                 }
             }
         };
@@ -234,13 +232,16 @@ public class GuiChainVein extends GuiConfigsBase {
             ButtonGeneric button = tabButtons.get(i);
             Tab tab = tabs.get(i);
             button.setPosition(x, layout.tabY);
-            this.addButton(button, (btn, mouseButton) -> {
-                this.currentTab = tab;
-                this.reCreateListWidget();
-                this.initGui();
-            });
+            this.addButton(button, (btn, mouseButton) -> this.selectTab(tab));
             x += button.getWidth() + gap;
         }
+    }
+
+    void selectTab(Tab tab) {
+        if (tab == this.currentTab) return;
+        this.currentTab = tab;
+        this.reCreateListWidget();
+        this.initGui();
     }
 
     private ButtonGeneric createTabButton(Tab tab) {
