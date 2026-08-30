@@ -27,29 +27,80 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ChainVeinServerGameTests {
     @GameTest
-    public void miningRequestIsCappedInPayloadOrder(GameTestHelper helper) {
-        List<BlockPos> targets = List.of(
+    public void schedulerProcessesThenReplacesAndKeepsFirstPacketPerTick(
+            GameTestHelper helper) {
+        List<BlockPos> original = List.of(
                 new BlockPos(1, 1, 1),
                 new BlockPos(2, 1, 1),
                 new BlockPos(3, 1, 1));
-        targets.forEach(target -> helper.setBlock(target, Blocks.DIRT));
+        List<BlockPos> firstReplacement = List.of(
+                new BlockPos(5, 1, 1),
+                new BlockPos(6, 1, 1));
+        BlockPos ignoredInitial = new BlockPos(8, 1, 1);
+        BlockPos ignoredReplacement = new BlockPos(9, 1, 1);
+        List<BlockPos> allTargets = List.of(
+                original.get(0), original.get(1), original.get(2),
+                firstReplacement.get(0), firstReplacement.get(1),
+                ignoredInitial, ignoredReplacement);
+        allTargets.forEach(target -> helper.setBlock(target, Blocks.DIRT));
 
-        ServerPlayer player = createSurvivalPlayer(helper, targets.getFirst(), Items.DIAMOND_SHOVEL);
+        ServerPlayer player = createSurvivalPlayer(
+                helper, original.getFirst(), Items.DIAMOND_SHOVEL);
         int previous = ChainVeinServerConfig.values().maxBlocks();
         try {
-            ChainVeinServerConfig.setMaxBlocks(2);
-            Chainveinfabric.handleMine(
-                    player,
-                    targets.stream().map(helper::absolutePos).toList(),
-                    false,
-                    false);
-        } finally {
-            ChainVeinServerConfig.setMaxBlocks(previous);
-        }
+            ChainVeinServerScheduler.clearForTests();
+            ChainVeinServerConfig.setMaxBlocks(1);
 
-        helper.assertBlockNotPresent(Blocks.DIRT, targets.get(0));
-        helper.assertBlockNotPresent(Blocks.DIRT, targets.get(1));
-        helper.assertBlockPresent(Blocks.DIRT, targets.get(2));
+            helper.assertTrue(ChainVeinServerScheduler.submitMine(
+                    player,
+                    original.stream().map(helper::absolutePos).toList(),
+                    false,
+                    false), "The first packet in a tick should be accepted");
+            helper.assertFalse(ChainVeinServerScheduler.submitMine(
+                    player,
+                    List.of(helper.absolutePos(ignoredInitial)),
+                    false,
+                    false), "A second packet from the same player and tick must be ignored");
+
+            ChainVeinServerScheduler.runEndTickForTests(
+                    helper.getLevel().getServer());
+            for (BlockPos target : allTargets) {
+                helper.assertBlockPresent(Blocks.DIRT, target);
+            }
+
+            helper.assertTrue(ChainVeinServerScheduler.submitMine(
+                    player,
+                    firstReplacement.stream().map(helper::absolutePos).toList(),
+                    false,
+                    false), "The first packet in the next tick should be accepted");
+            helper.assertFalse(ChainVeinServerScheduler.submitMine(
+                    player,
+                    List.of(helper.absolutePos(ignoredReplacement)),
+                    false,
+                    false), "Only the first replacement packet should be retained");
+
+            ChainVeinServerScheduler.runEndTickForTests(
+                    helper.getLevel().getServer());
+            helper.assertBlockNotPresent(Blocks.DIRT, original.get(0));
+            helper.assertBlockPresent(Blocks.DIRT, original.get(1));
+            helper.assertBlockPresent(Blocks.DIRT, original.get(2));
+            helper.assertBlockPresent(Blocks.DIRT, firstReplacement.get(0));
+
+            ChainVeinServerScheduler.runEndTickForTests(
+                    helper.getLevel().getServer());
+            helper.assertBlockNotPresent(Blocks.DIRT, firstReplacement.get(0));
+            helper.assertBlockPresent(Blocks.DIRT, firstReplacement.get(1));
+
+            ChainVeinServerScheduler.runEndTickForTests(
+                    helper.getLevel().getServer());
+            helper.assertBlockNotPresent(Blocks.DIRT, firstReplacement.get(1));
+            helper.assertBlockPresent(Blocks.DIRT, ignoredInitial);
+            helper.assertBlockPresent(Blocks.DIRT, ignoredReplacement);
+        } finally {
+            ChainVeinServerScheduler.clearForTests();
+            ChainVeinServerConfig.setMaxBlocks(previous);
+            player.discard();
+        }
         helper.succeed();
     }
 

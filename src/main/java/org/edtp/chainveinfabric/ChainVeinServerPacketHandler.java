@@ -29,28 +29,31 @@ final class ChainVeinServerPacketHandler {
 
         ServerPlayNetworking.registerGlobalReceiver(
                 Chainveinfabric.ChainMinePayload.ID,
-                (payload, context) -> handleMine(
+                (payload, context) -> ChainVeinServerScheduler.submitMine(
                         context.player(), payload.positions(), payload.directToInventory(),
                         payload.quickShulkerOverflow()));
         ServerPlayNetworking.registerGlobalReceiver(
                 Chainveinfabric.ChainInteractPayload.ID,
-                (payload, context) -> handleInteract(
+                (payload, context) -> ChainVeinServerScheduler.submitInteract(
                         context.player(), payload.positions()));
     }
 
     static void handleInteract(ServerPlayer player, List<BlockPos> positions) {
+        executeInteractSlice(player, firstRequestPositions(positions));
+    }
+
+    static boolean executeInteractSlice(ServerPlayer player, List<BlockPos> positions) {
         ServerLevel world = (ServerLevel) player.level();
-        if (player.getMainHandItem().isEmpty()) return;
+        if (player.getMainHandItem().isEmpty()) return false;
 
         boolean isCreative = player.isCreative();
-        ChainVeinServerConfig.Values limits = ChainVeinServerConfig.values();
 
-        for (BlockPos pos : firstPositions(positions, limits.maxBlocks())) {
+        for (BlockPos pos : positions) {
             if (!player.isWithinBlockInteractionRange(pos, 1.0)) continue;
             if (!world.isLoaded(pos)) continue;
             if (world.getServer().isUnderSpawnProtection(world, pos, player)
                     || !world.mayInteract(player, pos)) continue;
-            if (!isCreative && player.getMainHandItem().isEmpty()) break;
+            if (!isCreative && player.getMainHandItem().isEmpty()) return false;
 
             player.gameMode.useItemOn(
                     player,
@@ -60,27 +63,37 @@ final class ChainVeinServerPacketHandler {
                     new BlockHitResult(Vec3.atCenterOf(pos),
                             net.minecraft.core.Direction.UP, pos, false));
         }
+        return true;
     }
 
     static void handleMine(ServerPlayer player, List<BlockPos> positions,
                            boolean directToInventory, boolean quickShulkerOverflow) {
+        boolean startedWithEmptyHand = player.getMainHandItem().isEmpty();
+        executeMineSlice(
+                player, firstRequestPositions(positions), directToInventory,
+                quickShulkerOverflow, startedWithEmptyHand);
+    }
+
+    static boolean executeMineSlice(
+            ServerPlayer player,
+            List<BlockPos> positions,
+            boolean directToInventory,
+            boolean quickShulkerOverflow,
+            boolean startedWithEmptyHand) {
         ServerLevel world = (ServerLevel) player.level();
         boolean isCreative = player.isCreative();
-        boolean startedWithEmptyHand = player.getMainHandItem().isEmpty();
         ChainVeinServerConfig.Values limits = ChainVeinServerConfig.values();
-        List<BlockPos> limitedPositions = firstPositions(positions, limits.maxBlocks());
 
         if (directToInventory && !isCreative) {
-            DirectDropCollector.run(
+            return DirectDropCollector.run(
                     player,
                     quickShulkerOverflow,
                     limits.pickupRadius(),
                     () -> minePositions(
-                            player, world, limitedPositions, false, startedWithEmptyHand));
-            return;
+                            player, world, positions, false, startedWithEmptyHand));
         }
 
-        minePositions(player, world, limitedPositions, isCreative, startedWithEmptyHand);
+        return minePositions(player, world, positions, isCreative, startedWithEmptyHand);
     }
 
     private static boolean minePositions(ServerPlayer player,
@@ -90,7 +103,9 @@ final class ChainVeinServerPacketHandler {
                                          boolean startedWithEmptyHand) {
         for (BlockPos pos : positions) {
             if (!world.isLoaded(pos)) continue;
-            if (!isCreative && !startedWithEmptyHand && player.getMainHandItem().isEmpty()) break;
+            if (!isCreative && !startedWithEmptyHand && player.getMainHandItem().isEmpty()) {
+                return false;
+            }
 
             BlockState state = world.getBlockState(pos);
             if (state.isAir()) continue;
@@ -101,7 +116,8 @@ final class ChainVeinServerPacketHandler {
         return true;
     }
 
-    private static List<BlockPos> firstPositions(List<BlockPos> positions, int limit) {
+    private static List<BlockPos> firstRequestPositions(List<BlockPos> positions) {
+        int limit = ChainVeinServerConfig.MAX_REQUEST_POSITIONS;
         return positions.size() <= limit ? positions : positions.subList(0, limit);
     }
 }

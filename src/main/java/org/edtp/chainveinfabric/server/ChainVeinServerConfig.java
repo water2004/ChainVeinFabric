@@ -13,8 +13,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-/** Persistent, server-wide limits for ChainVein protocol requests. */
+/** Persistent, server-wide limits for ChainVein work and drop collection. */
 public final class ChainVeinServerConfig {
+    /** Hard protocol limit for one client request; this is not configurable. */
+    public static final int MAX_REQUEST_POSITIONS = 2048;
+
+    /** Maximum number of submitted positions processed across all players per tick. */
     public static final int DEFAULT_MAX_BLOCKS = 256;
     public static final int MIN_MAX_BLOCKS = 1;
     public static final int MAX_MAX_BLOCKS = 2048;

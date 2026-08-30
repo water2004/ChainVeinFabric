@@ -20,7 +20,7 @@ final class ChainVeinServerConfigTest {
     }
 
     @Test
-    void defaultsPreservePreviousProtocolBehavior() {
+    void defaultsUseOneServerWideTickBudget() {
         ChainVeinServerConfig.Values defaults = ChainVeinServerConfig.Values.defaults();
 
         assertEquals(256, defaults.maxBlocks());
