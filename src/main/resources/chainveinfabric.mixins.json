@@ -4,6 +4,8 @@
   "package": "org.edtp.chainveinfabric.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BlockMixin",
+    "ContainersMixin",
     "ServerLevelMixin"
   ],
   "injectors": {

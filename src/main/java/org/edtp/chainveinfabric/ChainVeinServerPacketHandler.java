@@ -95,7 +95,8 @@ final class ChainVeinServerPacketHandler {
             BlockState state = world.getBlockState(pos);
             if (state.isAir()) continue;
 
-            player.gameMode.destroyBlock(pos);
+            DirectDropCollector.withDropOrigin(
+                    pos, () -> player.gameMode.destroyBlock(pos));
         }
         return true;
     }

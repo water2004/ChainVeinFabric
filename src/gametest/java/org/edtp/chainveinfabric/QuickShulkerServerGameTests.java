@@ -9,11 +9,13 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.kyrptonaught.quickshulker.api.QuickOpenableRegistry;
 import net.kyrptonaught.quickshulker.api.QuickShulkerData;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -415,6 +417,85 @@ public final class QuickShulkerServerGameTests {
         helper.assertItemEntityNotPresent(Items.DIAMOND_PICKAXE, origins.get(0), 1.25);
         helper.assertItemEntityCountIs(Items.DIAMOND_PICKAXE, origins.get(1), 1.25, 1);
         helper.succeed();
+    }
+
+    @GameTest
+    public void itemFrameDropsOverflowThroughEntityFallback(
+            GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
+
+        BlockPos framePosition = new BlockPos(3, 2, 3);
+        ServerPlayer player = createPlayer(helper, framePosition);
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        ItemFrame frame = breakDiamondItemFrame(helper, player, framePosition);
+
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertTrue(frame.isRemoved(),
+                "The item frame should be removed after its second hit");
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 1,
+                "The displayed item must overflow exactly once");
+        helper.assertValueEqual(countItem(overflowInventory, Items.ITEM_FRAME), 1,
+                "The frame item must overflow exactly once");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 0,
+                "A stored displayed item must not also remain in the world");
+        helper.assertValueEqual(countGroundItems(helper, Items.ITEM_FRAME), 0,
+                "A stored frame item must not also remain in the world");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void fullShulkerLeavesItemFrameDropsInWorldThroughEntityFallback(
+            GameTestHelper helper) {
+        if (skipWithoutQuickShulker(helper)) return;
+
+        BlockPos framePosition = new BlockPos(3, 2, 3);
+        ServerPlayer player = createPlayer(helper, framePosition);
+        ItemStack overflowBox = new ItemStack(OVERFLOW_BOX_ITEM);
+        fillPlayerInventory(player, overflowBox);
+        Container overflowInventory = getShulkerInventory(player, overflowBox);
+        fillContainer(overflowInventory, Items.COBBLESTONE, CONTAINER_SLOTS);
+        ItemFrame frame = breakDiamondItemFrame(helper, player, framePosition);
+
+        overflowInventory = getShulkerInventory(player, overflowBox);
+        helper.assertTrue(frame.isRemoved(),
+                "The item frame should still be removed when storage is full");
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 0,
+                "A full shulker must not overwrite contents with the displayed item");
+        helper.assertValueEqual(countItem(overflowInventory, Items.ITEM_FRAME), 0,
+                "A full shulker must not overwrite contents with the frame item");
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 1,
+                "The rejected displayed item must remain in the world exactly once");
+        helper.assertValueEqual(countGroundItems(helper, Items.ITEM_FRAME), 1,
+                "The rejected frame item must remain in the world exactly once");
+        helper.succeed();
+    }
+
+    private static ItemFrame breakDiamondItemFrame(
+            GameTestHelper helper,
+            ServerPlayer player,
+            BlockPos framePosition) {
+        helper.setBlock(framePosition.north(), Blocks.STONE);
+        ItemFrame frame = new ItemFrame(
+                helper.getLevel(),
+                helper.absolutePos(framePosition),
+                Direction.SOUTH);
+        frame.setItem(new ItemStack(Items.DIAMOND));
+        helper.assertTrue(helper.getLevel().addFreshEntity(frame),
+                "The item frame should be added before drop capture starts");
+
+        DirectDropCollector.run(player, true, 64, () -> {
+            boolean removedItem = frame.hurtServer(
+                    helper.getLevel(),
+                    player.damageSources().playerAttack(player),
+                    1.0F);
+            boolean removedFrame = frame.hurtServer(
+                    helper.getLevel(),
+                    player.damageSources().playerAttack(player),
+                    1.0F);
+            return removedItem && removedFrame;
+        });
+        return frame;
     }
 
     private static void captureDropsAt(
