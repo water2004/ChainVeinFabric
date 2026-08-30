@@ -29,13 +29,13 @@ final class ChainVeinServerPacketHandler {
 
         ServerPlayNetworking.registerGlobalReceiver(
                 Chainveinfabric.ChainMinePayload.ID,
-                (payload, context) -> context.server().execute(() -> handleMine(
+                (payload, context) -> handleMine(
                         context.player(), payload.positions(), payload.directToInventory(),
-                        payload.quickShulkerOverflow())));
+                        payload.quickShulkerOverflow()));
         ServerPlayNetworking.registerGlobalReceiver(
                 Chainveinfabric.ChainInteractPayload.ID,
-                (payload, context) -> context.server().execute(() -> handleInteract(
-                        context.player(), payload.positions())));
+                (payload, context) -> handleInteract(
+                        context.player(), payload.positions()));
     }
 
     static void handleInteract(ServerPlayer player, List<BlockPos> positions) {
