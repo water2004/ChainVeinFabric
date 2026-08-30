@@ -1,7 +1,10 @@
 package org.edtp.chainveinfabric.client.config;
 
 import com.google.gson.JsonParser;
+import org.edtp.chainveinfabric.client.config.preset.WhitelistPreset;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -104,6 +107,38 @@ class ChainVeinConfigTest {
             assertTrue(mode.isSchematicMode());
             assertFalse(mode.isInteractionMode());
         }
+    }
+
+    @Test
+    void whitelistPresetsRemainModeScopedAndSwitchAtomically() {
+        ChainVeinConfig config = decode("""
+                {
+                  "version": 5,
+                  "configPresets": [],
+                  "whitelistPresets": {},
+                  "activeWhitelistPresetIds": {}
+                }
+                """).config();
+
+        Set<String> mining = config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE);
+        mining.add("minecraft:stone");
+        WhitelistPreset alternate = config.createWhitelistPreset(
+                ChainVeinConfig.ChainMode.CHAIN_MINE, " Alternate ");
+        assertEquals("Alternate", alternate.name);
+        assertEquals(Set.of("minecraft:stone"), alternate.entries);
+
+        config.replaceWhitelist(
+                ChainVeinConfig.ChainMode.CHAIN_MINE,
+                alternate.id,
+                Set.of("minecraft:dirt"));
+        assertEquals(Set.of("minecraft:stone"), mining);
+        assertTrue(config.useWhitelistPreset(
+                ChainVeinConfig.ChainMode.CHAIN_MINE, alternate.id));
+        assertEquals(Set.of("minecraft:dirt"),
+                config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_MINE));
+        assertTrue(config.getWhitelist(ChainVeinConfig.ChainMode.CHAIN_PLANT).isEmpty());
+        assertFalse(config.deleteWhitelistPreset(
+                ChainVeinConfig.ChainMode.CHAIN_MINE, alternate.id));
     }
 
     private static ChainVeinConfigCodec.DecodedConfig decode(String json) {
