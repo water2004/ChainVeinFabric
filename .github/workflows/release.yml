@@ -92,7 +92,22 @@ jobs:
             echo "No jars were produced in build/libs" >&2
             exit 1
           fi
-          cp "${jars[@]}" release/
+          collected=0
+          for jar in "${jars[@]}"; do
+            case "${jar##*/}" in
+              *-gametest.jar)
+                echo "Skipping test-only jar: ${jar##*/}"
+                ;;
+              *)
+                cp "$jar" release/
+                collected=$((collected + 1))
+                ;;
+            esac
+          done
+          if [ "$collected" -eq 0 ]; then
+            echo "No distributable jars were produced in build/libs" >&2
+            exit 1
+          fi
 
       - name: Publish GitHub release
         env:
