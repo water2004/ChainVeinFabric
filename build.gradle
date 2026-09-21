@@ -40,6 +40,11 @@ fabricApi {
     }
 }
 
+tasks.register("gametestJar", Jar) {
+    from(sourceSets.gametest.output)
+    archiveClassifier = "gametest"
+}
+
 repositories {
     maven {url = "https://masa.dy.fi/maven/sakura-ryoko"
         content {includeGroupAndSubgroups("fi.dy.masa")}
@@ -75,6 +80,9 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     implementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    productionRuntimeMods "com.github.sakura-ryoko:malilib:${project.malilib_version}"
+    productionRuntimeMods files(tasks.named("gametestJar"))
     compileOnly "com.github.sakura-ryoko:litematica:${project.litematica_version}"
     compileOnly "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
     compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
@@ -82,9 +90,13 @@ dependencies {
     def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
             .orElse("legacy").get()
     if (quickShulkerGameTestMode in ["new", "new-legacy"]) {
-        gametestImplementation "net.kyrptonaught.github:quickshulker:${project.quickshulker_prerelease_version}"
+        def quickShulkerDependency = "net.kyrptonaught.github:quickshulker:${project.quickshulker_prerelease_version}"
+        gametestImplementation quickShulkerDependency
+        productionRuntimeMods quickShulkerDependency
     } else if (quickShulkerGameTestMode == "legacy") {
-        gametestImplementation "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
+        def quickShulkerDependency = "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
+        gametestImplementation quickShulkerDependency
+        productionRuntimeMods quickShulkerDependency
     } else if (quickShulkerGameTestMode != "none") {
         throw new GradleException("quickshulkerGameTestMode must be none, legacy, new, or new-legacy")
     }
@@ -99,6 +111,16 @@ tasks.named("runClientGameTest") {
     jvmArgs "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
     jvmArgs "-Dchainveinfabric.gametest.serverInstalled=${providers.gradleProperty('chainveinGameTestServerInstalled').orElse('true').get()}"
     jvmArgs "-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}"
+}
+
+// Fabric's production client runner owns the Linux/Xvfb setup used by CI.
+tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    jvmArgs.add("-Dfabric.client.gametest")
+    jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
+    jvmArgs.add("-Dchainveinfabric.gametest.serverInstalled=${providers.gradleProperty('chainveinGameTestServerInstalled').orElse('true').get()}")
+    jvmArgs.add("-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}")
+    useXVFB = !org.gradle.internal.os.OperatingSystem.current().isWindows()
+    dependsOn(tasks.named("gametestJar"))
 }
 
 tasks.named("runGameTest") {
