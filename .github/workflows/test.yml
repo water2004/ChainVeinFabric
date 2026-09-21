@@ -48,6 +48,9 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
           MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+          SDL_VIDEO_DRIVER: x11
+          SDL_VIDEO_FORCE_EGL: "1"
+          SDL_VIDEO_X11_NODIRECTCOLOR: "1"
         run: ./gradlew runProductionClientGameTest --no-daemon
 
       - name: Test pure-client vanilla packet fallback
@@ -55,6 +58,9 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
           MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+          SDL_VIDEO_DRIVER: x11
+          SDL_VIDEO_FORCE_EGL: "1"
+          SDL_VIDEO_X11_NODIRECTCOLOR: "1"
         run: >-
           ./gradlew runProductionClientGameTest --no-daemon
           -PquickshulkerGameTestMode=new
