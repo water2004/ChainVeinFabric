@@ -26,6 +26,12 @@ jobs:
           distribution: temurin
           java-version: 25
 
+      - name: Install headless OpenGL runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dri libglx-mesa0 mesa-utils
+          xvfb-run -a glxinfo -B
+
       - name: Build and run server tests
         run: |
           chmod +x ./gradlew
@@ -39,10 +45,16 @@ jobs:
 
       - name: Run client game tests
         timeout-minutes: 15
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
         run: ./gradlew runProductionClientGameTest --no-daemon
 
       - name: Test pure-client vanilla packet fallback
         timeout-minutes: 15
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
         run: >-
           ./gradlew runProductionClientGameTest --no-daemon
           -PquickshulkerGameTestMode=new
