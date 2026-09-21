@@ -2,10 +2,10 @@ package org.edtp.chainveinfabric.client.renderer;
 
 import java.util.function.Supplier;
 
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.RenderBuffers;
@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4fc;
 import org.joml.Vector4f;
 
 import fi.dy.masa.malilib.interfaces.IRenderer;
@@ -41,7 +40,7 @@ public class BlockOutlineRenderer implements IRenderer {
     }
 
     @Override
-    public void onRenderWorldLast(RenderTarget fb, Matrix4fc modelViewMatrix, CameraRenderState cameraState,
+    public void onRenderWorldLast(RenderTarget fb, CameraRenderState cameraState,
                                    Frustum culling, RenderBuffers buffers, GpuBufferSlice terrainFog,
                                    Vector4f fogColor, ProfilerFiller profiler) {
         OutlineData data = worker.getCurrentData();

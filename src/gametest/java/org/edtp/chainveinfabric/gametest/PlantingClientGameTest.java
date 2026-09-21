@@ -15,6 +15,8 @@ import org.edtp.chainveinfabric.client.api.ChainVeinClientApi;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 
 public final class PlantingClientGameTest implements FabricClientGameTest {
+    private static final int LEFT_MOUSE_BUTTON = 1;
+    private static final int RIGHT_MOUSE_BUTTON = 3;
     private static final int FIELD_SIZE = 8;
     private static final int FIELD_Y = 64;
     private static final BlockPos START = new BlockPos(3, FIELD_Y, 0);
@@ -60,7 +62,6 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             singleplayer.getServer().runCommand("tp @p 3.5 66 -1.5");
 
             context.waitTicks(5);
-            singleplayer.getClientLevel().waitForChunksDownload();
             context.waitFor(client -> client.level != null
                     && client.level.getBlockState(START).is(Blocks.FARMLAND)
                     && client.player != null
@@ -81,11 +82,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                 ChainVeinClientApi.clear();
             });
 
-            context.getInput().lookAt(START);
-            context.waitTick();
-            context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
-                    && hit.getBlockPos().equals(START));
-            context.getInput().pressMouse(1);
+            lookAtBlock(context, START);
+            context.getInput().pressMouse(RIGHT_MOUSE_BUTTON);
             context.waitTicks(20);
 
             PlantingResult result = singleplayer.getServer().computeOnServer(server -> {
@@ -124,7 +122,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
         singleplayer.getServer().runOnServer(server -> {
             var level = server.overworld();
             var player = server.getPlayerList().getPlayers().getFirst();
-            player.setInvulnerable(true);
+            player.getAbilities().invulnerable = true;
+            player.onUpdateAbilities();
             player.getInventory().clearContent();
             player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
                     new ItemStack(Items.DIAMOND_PICKAXE));
@@ -165,11 +164,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             ChainVeinClientApi.clear();
         });
 
-        context.getInput().lookAt(ICE_START);
-        context.waitTick();
-        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
-                && hit.getBlockPos().equals(ICE_START));
-        context.getInput().holdMouseFor(0, 40);
+        lookAtBlock(context, ICE_START);
+        context.getInput().holdMouseFor(LEFT_MOUSE_BUTTON, 40);
         context.waitTicks(20);
 
         IceResult result = singleplayer.getServer().computeOnServer(server -> {
@@ -251,7 +247,7 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             throw new AssertionError("Arming automatic mining must not start a batch");
         }
 
-        context.getInput().pressMouse(0);
+        context.getInput().pressMouse(LEFT_MOUSE_BUTTON);
         context.waitTicks(30);
 
         int remaining = singleplayer.getServer().computeOnServer(server -> {
@@ -285,7 +281,7 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
         if (!stillPresent) {
             throw new AssertionError("Automatic mining must wait for another left click");
         }
-        context.getInput().pressMouse(0);
+        context.getInput().pressMouse(LEFT_MOUSE_BUTTON);
         context.waitTicks(20);
         boolean adjacentStillPresent = singleplayer.getServer().computeOnServer(server ->
                 server.overworld().getBlockState(AUTO_CENTER).is(Blocks.DIRT));
@@ -346,18 +342,8 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
             ChainVeinClientApi.clear();
         });
 
-        context.getInput().lookAt(MINE_START);
-        context.waitTick();
-        BlockPos aim = context.computeOnClient(client -> {
-            if (client.hitResult instanceof BlockHitResult hit) {
-                return hit.getBlockPos().immutable();
-            }
-            return null;
-        });
-        if (!MINE_START.equals(aim)) {
-            throw new AssertionError("Mining test aimed at " + aim + " instead of " + MINE_START);
-        }
-        context.getInput().holdMouseFor(0, 10);
+        lookAtBlock(context, MINE_START);
+        context.getInput().holdMouseFor(LEFT_MOUSE_BUTTON, 10);
         context.waitTicks(5);
 
         MiningResult result = null;
@@ -395,6 +381,16 @@ public final class PlantingClientGameTest implements FabricClientGameTest {
                     .sum();
             return new MiningResult(remainingBlocks, collectedDirt);
         });
+    }
+
+    private static void lookAtBlock(ClientGameTestContext context, BlockPos target) {
+        // Let the server-side teleport settle before calculating the camera angle.
+        // Otherwise 26.3 can correct the player down onto the nearby block after
+        // lookAt(), leaving the old pitch aimed at the obstruction in front.
+        context.waitTicks(5);
+        context.getInput().lookAt(target);
+        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
+                && hit.getBlockPos().equals(target));
     }
 
     private record PlantingResult(int planted, int remainingSeeds) {

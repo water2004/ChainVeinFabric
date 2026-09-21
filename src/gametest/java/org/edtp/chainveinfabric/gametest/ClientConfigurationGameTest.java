@@ -12,7 +12,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.Set;
 
@@ -29,7 +29,6 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
             singleplayer.getServer().runCommand("tp @p 0.5 65 -3.5");
 
             context.waitTicks(5);
-            singleplayer.getClientLevel().waitForChunksDownload();
             context.waitFor(client -> client.player != null
                     && client.level != null
                     && client.level.getBlockState(TARGET).is(Blocks.STONE)
@@ -82,10 +81,10 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
     }
 
     private static void testModeHotkeys(ClientGameTestContext context) {
-        context.getInput().pressKey(GLFW.GLFW_KEY_F6);
+        context.getInput().pressKey(InputConstants.KEY_F6);
         assertClientState(context, config -> config.isChainVeinEnabled,
                 "The toggle hotkey did not enable chaining");
-        context.getInput().pressKey(GLFW.GLFW_KEY_F6);
+        context.getInput().pressKey(InputConstants.KEY_F6);
         assertClientState(context, config -> !config.isChainVeinEnabled,
                 "The toggle hotkey did not disable chaining");
 
@@ -98,7 +97,7 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
                 throw new AssertionError("Could not arm automatic mining before a mode switch");
             }
         });
-        context.getInput().pressKey(GLFW.GLFW_KEY_F7);
+        context.getInput().pressKey(InputConstants.KEY_F7);
         assertClientState(context, config ->
                         config.mode == ChainVeinConfig.ChainMode.CHAIN_PLANT
                                 && config.isChainVeinEnabled
@@ -109,7 +108,7 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
             ChainveinfabricClient.CONFIG.isChainVeinEnabled = false;
             ChainveinfabricClient.CONFIG.enableChainVeinOnModeHotkey = true;
         });
-        context.getInput().pressKey(GLFW.GLFW_KEY_F8);
+        context.getInput().pressKey(InputConstants.KEY_F8);
         assertClientState(context, config ->
                         config.mode == ChainVeinConfig.ChainMode.CHAIN_UTILITY
                                 && config.isChainVeinEnabled,
@@ -124,13 +123,13 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
             ChainveinfabricClient.CONFIG.getWhitelist(
                     ChainVeinConfig.ChainMode.CHAIN_PLANT).clear();
         });
-        context.getInput().pressKey(GLFW.GLFW_KEY_F5);
-        context.getInput().pressKey(GLFW.GLFW_KEY_F9);
+        context.getInput().pressKey(InputConstants.KEY_F5);
+        context.getInput().pressKey(InputConstants.KEY_F9);
         assertClientState(context, config -> config.getWhitelist(
                         ChainVeinConfig.ChainMode.CHAIN_PLANT).contains("minecraft:wheat_seeds"),
                 "The whitelist hotkey did not add the held planting item");
 
-        context.getInput().pressKey(GLFW.GLFW_KEY_F9);
+        context.getInput().pressKey(InputConstants.KEY_F9);
         assertClientState(context, config -> config.getWhitelist(
                         ChainVeinConfig.ChainMode.CHAIN_PLANT).isEmpty(),
                 "The whitelist hotkey did not remove the held planting item");
@@ -138,7 +137,7 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
         setMainHand(singleplayer, new ItemStack(Items.STONE));
         context.waitFor(client -> client.player != null
                 && client.player.getMainHandItem().is(Items.STONE));
-        context.getInput().pressKey(GLFW.GLFW_KEY_F9);
+        context.getInput().pressKey(InputConstants.KEY_F9);
         assertClientState(context, config -> config.getWhitelist(
                         ChainVeinConfig.ChainMode.CHAIN_PLANT).isEmpty(),
                 "Planting mode accepted a non-plantable held item");
@@ -150,17 +149,14 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
         setMainHand(singleplayer, new ItemStack(Items.DIAMOND_PICKAXE));
         context.waitFor(client -> client.player != null
                 && client.player.getMainHandItem().is(Items.DIAMOND_PICKAXE));
-        context.getInput().pressKey(GLFW.GLFW_KEY_F4);
-        context.getInput().lookAt(TARGET);
-        context.waitTick();
-        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
-                && hit.getBlockPos().equals(TARGET));
+        context.getInput().pressKey(InputConstants.KEY_F4);
+        lookAtBlock(context, TARGET);
 
-        context.getInput().pressKey(GLFW.GLFW_KEY_F9);
+        context.getInput().pressKey(InputConstants.KEY_F9);
         assertClientState(context, config -> config.getWhitelist(
                         ChainVeinConfig.ChainMode.CHAIN_MINE).contains("minecraft:stone"),
                 "The whitelist hotkey did not add the targeted block item");
-        context.getInput().pressKey(GLFW.GLFW_KEY_F9);
+        context.getInput().pressKey(InputConstants.KEY_F9);
         assertClientState(context, config -> config.getWhitelist(
                         ChainVeinConfig.ChainMode.CHAIN_MINE).isEmpty(),
                 "The whitelist hotkey did not remove the targeted block item");
@@ -169,7 +165,8 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
     private static void prepareWorld(TestSingleplayerContext singleplayer) {
         singleplayer.getServer().runOnServer(server -> {
             var player = server.getPlayerList().getPlayers().getFirst();
-            player.setInvulnerable(true);
+            player.getAbilities().invulnerable = true;
+            player.onUpdateAbilities();
             player.getInventory().clearContent();
             player.getInventory().setItem(0, new ItemStack(Items.WHEAT_SEEDS));
             player.getInventory().setSelectedSlot(0);
@@ -263,6 +260,12 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
         if (!context.computeOnClient(client -> predicate.test(ChainveinfabricClient.CONFIG))) {
             throw new AssertionError(message);
         }
+    }
+
+    private static void lookAtBlock(ClientGameTestContext context, BlockPos target) {
+        context.getInput().lookAt(target);
+        context.waitFor(client -> client.hitResult instanceof BlockHitResult hit
+                && hit.getBlockPos().equals(target));
     }
 
     private static void assertState(boolean condition, String message) {

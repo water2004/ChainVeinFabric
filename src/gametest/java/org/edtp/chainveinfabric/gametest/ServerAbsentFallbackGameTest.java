@@ -47,7 +47,6 @@ public final class ServerAbsentFallbackGameTest implements FabricClientGameTest 
             singleplayer.getServer().runCommand("tp @p 2.5 65 -3.5");
 
             context.waitTicks(5);
-            singleplayer.getClientLevel().waitForChunksDownload();
             context.waitFor(client -> client.player != null
                     && client.level != null
                     && client.level.getBlockState(TARGET).is(Blocks.TORCH)

@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.15.4'
+    id 'net.fabricmc.fabric-loom' version '1.17.1'
     id 'maven-publish'
 }
 
@@ -36,6 +36,7 @@ fabricApi {
         enableGameTests = true
         enableClientGameTests = true
         eula = true
+        clearRunDirectory = true
     }
 }
 
@@ -73,8 +74,8 @@ dependencies {
 //    mappings loom.officialMojangMappings()
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    implementation "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version}:${project.malilib_version}"
-    compileOnly "fi.dy.masa.litematica:litematica-fabric-${project.minecraft_version}:${project.litematica_version}"
+    implementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
+    compileOnly "com.github.sakura-ryoko:litematica:${project.litematica_version}"
     compileOnly "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
     compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
 
