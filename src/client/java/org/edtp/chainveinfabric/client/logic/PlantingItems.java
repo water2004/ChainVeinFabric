@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.StemBlock;
-import net.minecraft.world.level.block.VegetationBlock;
+import net.minecraft.world.level.block.BushBlock;
 
 public final class PlantingItems {
     private PlantingItems() {
@@ -31,7 +31,7 @@ public final class PlantingItems {
         }
 
         Block block = blockItem.getBlock();
-        return block instanceof VegetationBlock
+        return block instanceof BushBlock
                 || block instanceof CropBlock
                 || block instanceof SaplingBlock
                 || block instanceof StemBlock

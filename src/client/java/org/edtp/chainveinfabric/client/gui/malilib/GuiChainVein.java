@@ -6,12 +6,10 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import fi.dy.masa.malilib.event.InputEventHandler;
-import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -79,7 +77,7 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawTitle(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+    protected void drawTitle(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
         if (!this.compactHeader) {
             super.drawTitle(ctx, mouseX, mouseY, partialTicks);
         }
@@ -498,12 +496,12 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public void drawContents(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+    public void drawContents(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(ctx, mouseX, mouseY, partialTicks);
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
-            if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
+            if (this.searchBar != null) this.searchBar.render(mouseX, mouseY, false, ctx);
 
             if (this.basicLayout != null && !this.basicLayout.singlePane) {
                 this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.basicLayout.leftList.x, this.basicLayout.titleY, 0xFFFFFF);
@@ -516,12 +514,12 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawButtonHoverTexts(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
-        super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
+    protected void drawButtonHoverTexts(int mouseX, int mouseY, float partialTicks, GuiGraphics ctx) {
+        super.drawButtonHoverTexts(mouseX, mouseY, partialTicks, ctx);
         this.renderOpenDropdowns(ctx, mouseX, mouseY);
     }
 
-    private void renderOpenDropdowns(GuiContext ctx, int mouseX, int mouseY) {
+    private void renderOpenDropdowns(GuiGraphics ctx, int mouseX, int mouseY) {
         for (OverlayDropdown<?> dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
                 boolean selected = dd.isMouseOver(mouseX, mouseY);
@@ -531,23 +529,23 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
-        this.controlClick = click.hasControlDown();
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        this.controlClick = Screen.hasControlDown();
         try {
             for (OverlayDropdown<?> dd : this.activeDropdowns) {
                 if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
-                    if (dd.isMouseOver((int)click.x(), (int)click.y())) {
-                        return dd.onMouseClicked(click, doubleClick);
+                    if (dd.isMouseOver(mouseX, mouseY)) {
+                        return dd.onMouseClicked(mouseX, mouseY, mouseButton);
                     }
                 }
             }
-            if (super.onMouseClicked(click, doubleClick)) return true;
+            if (super.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
             if (currentTab == Tab.BASIC) {
-                if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
-                if (this.leftList != null && this.leftList.onMouseClicked(click, doubleClick)) return true;
-                if (this.rightList != null && this.rightList.onMouseClicked(click, doubleClick)) return true;
+                if (this.searchBar != null && this.searchBar.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+                if (this.leftList != null && this.leftList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+                if (this.rightList != null && this.rightList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
             } else if (currentTab == Tab.PRESETS) {
-                if (this.presetList != null && this.presetList.onMouseClicked(click, doubleClick)) return true;
+                if (this.presetList != null && this.presetList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
             }
             return false;
         } finally {
@@ -556,22 +554,22 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public boolean onMouseReleased(MouseButtonEvent click) {
-        if (super.onMouseReleased(click)) return true;
+    public boolean onMouseReleased(int mouseX, int mouseY, int mouseButton) {
+        if (super.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
         if (currentTab == Tab.BASIC) {
-            if (this.leftList != null && this.leftList.onMouseReleased(click)) return true;
-            if (this.rightList != null && this.rightList.onMouseReleased(click)) return true;
+            if (this.leftList != null && this.leftList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
+            if (this.rightList != null && this.rightList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
         } else if (currentTab == Tab.PRESETS) {
-            if (this.presetList != null && this.presetList.onMouseReleased(click)) return true;
+            if (this.presetList != null && this.presetList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
         }
         return false;
     }
 
     @Override
-    public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         for (OverlayDropdown<?> dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
-                if (dd.isMouseOver((int)mouseX, (int)mouseY)) {
+                if (dd.isMouseOver(mouseX, mouseY)) {
                     return ((fi.dy.masa.malilib.gui.widgets.WidgetBase)dd).onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
                 }
             }
@@ -587,29 +585,29 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public boolean onKeyTyped(KeyEvent key) {
-        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onKeyTyped(key)) return true;
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onKeyTyped(keyCode, scanCode, modifiers)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
-            if (this.searchBar.onKeyTyped(key)) {
+            if (this.searchBar.onKeyTyped(keyCode, scanCode, modifiers)) {
                 this.refreshLists();
                 return true;
             }
         } else if (currentTab == Tab.PRESETS && this.presetList != null) {
-            if (this.presetList.onKeyTyped(key)) return true;
+            if (this.presetList.onKeyTyped(keyCode, scanCode, modifiers)) return true;
         }
         return false;
     }
 
     @Override
-    public boolean onCharTyped(CharacterEvent character) {
-        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onCharTyped(character)) return true;
+    public boolean onCharTyped(char charIn, int modifiers) {
+        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onCharTyped(charIn, modifiers)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
-            if (this.searchBar.onCharTyped(character)) {
+            if (this.searchBar.onCharTyped(charIn, modifiers)) {
                 this.refreshLists();
                 return true;
             }
         } else if (currentTab == Tab.PRESETS && this.presetList != null) {
-            if (this.presetList.onCharTyped(character)) return true;
+            if (this.presetList.onCharTyped(charIn, modifiers)) return true;
         }
         return false;
     }
@@ -770,10 +768,10 @@ public class GuiChainVein extends GuiConfigsBase {
 
         List<ItemStack> list = new ArrayList<>();
         for (String id : whitelist) {
-            Identifier identifier = Identifier.tryParse(id);
+            ResourceLocation identifier = ResourceLocation.tryParse(id);
             if (identifier == null) continue;
 
-            Item item = BuiltInRegistries.ITEM.getValue(identifier);
+            Item item = BuiltInRegistries.ITEM.get(identifier);
             if (item != null && item != Items.AIR) list.add(new ItemStack(item));
         }
         return list;

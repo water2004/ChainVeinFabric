@@ -1,10 +1,16 @@
 package org.edtp.chainveinfabric;
 
-import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
+import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.decoration.ItemFrame;
@@ -20,10 +26,11 @@ import org.edtp.chainveinfabric.server.ChainVeinServerConfig;
 import org.edtp.chainveinfabric.server.DirectDropCollector;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public final class ChainVeinServerGameTests {
-    @GameTest
+public final class ChainVeinServerGameTests implements FabricGameTest {
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void schedulerProcessesThenReplacesAndKeepsFirstPacketPerTick(
             GameTestHelper helper) {
         List<BlockPos> original = List.of(
@@ -101,7 +108,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void serverMiningHasNoPlayerDistanceLimit(GameTestHelper helper) {
         BlockPos target = new BlockPos(1, 1, 1);
         helper.setBlock(target, Blocks.DIRT);
@@ -120,7 +127,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void directPickupOnlyCapturesDropsInsideConfiguredRadius(GameTestHelper helper) {
         BlockPos near = new BlockPos(1, 1, 1);
         BlockPos far = new BlockPos(5, 1, 1);
@@ -147,7 +154,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void chainInteractionUsesVanillaBlockInteractionRange(GameTestHelper helper) {
         BlockPos near = new BlockPos(1, 1, 1);
         BlockPos far = new BlockPos(5, 1, 1);
@@ -166,7 +173,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void chainInteractionFollowsExpandedServerRange(GameTestHelper helper) {
         BlockPos target = new BlockPos(1, 1, 1);
         helper.setBlock(target, Blocks.FARMLAND);
@@ -182,7 +189,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void miningIceWithoutSilkTouchLeavesWater(GameTestHelper helper) {
         BlockPos vanillaTarget = new BlockPos(1, 2, 1);
         List<BlockPos> chainTargets = List.of(
@@ -197,7 +204,7 @@ public final class ChainVeinServerGameTests {
             helper.setBlock(target, Blocks.ICE);
         }
 
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = createConnectedSurvivalPlayer(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_PICKAXE));
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(chainTargets.getFirst()));
         player.setPosRaw(center.x, center.y + 1.0, center.z);
@@ -220,7 +227,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void directMiningPreservesContainerContents(GameTestHelper helper) {
         List<BlockPos> targets = List.of(
                 new BlockPos(1, 2, 1),
@@ -237,7 +244,7 @@ public final class ChainVeinServerGameTests {
         first.setChanged();
         second.setChanged();
 
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = createConnectedSurvivalPlayer(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_AXE));
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(targets.getFirst()));
         player.setPosRaw(center.x, center.y + 1.0, center.z);
@@ -263,7 +270,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void directMiningCollectsEveryDrop(GameTestHelper helper) {
         List<BlockPos> relativeTargets = List.of(
                 new BlockPos(1, 1, 1),
@@ -278,14 +285,13 @@ public final class ChainVeinServerGameTests {
             helper.setBlock(target, Blocks.DIRT);
         }
 
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = createConnectedSurvivalPlayer(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SHOVEL));
         Vec3 center = Vec3.atCenterOf(absoluteTargets.getFirst());
-        // Fabric's mock player intentionally has no network connection. Use the
-        // raw entity setter so positioning the test double stays server-local.
+        // Position the fixture directly without emitting teleport packets.
         player.setPosRaw(center.x, center.y + 1.0, center.z);
         helper.assertTrue(player.getMainHandItem().getItem() == Items.DIAMOND_SHOVEL,
-                "Mock player should hold the configured shovel");
+                "Player should hold the configured shovel");
         helper.assertFalse(player.isCreative(), "Mock player should use survival drop rules");
         helper.assertTrue(player.hasCorrectToolForDrops(
                         helper.getLevel().getBlockState(absoluteTargets.getFirst())),
@@ -303,7 +309,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void fullyCollectedLazyDropNeverConstructsItemEntity(GameTestHelper helper) {
         BlockPos origin = new BlockPos(2, 2, 2);
         ServerPlayer player = createSurvivalPlayer(
@@ -337,7 +343,7 @@ public final class ChainVeinServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void itemFrameDropsUseEntityFallbackWithoutDuplication(
             GameTestHelper helper) {
         BlockPos framePosition = new BlockPos(3, 2, 3);
@@ -354,12 +360,10 @@ public final class ChainVeinServerGameTests {
                 "The item frame should be added to the test world");
 
         DirectDropCollector.run(player, false, 64, () -> {
-            boolean removedItem = frame.hurtServer(
-                    helper.getLevel(),
+            boolean removedItem = frame.hurt(
                     player.damageSources().playerAttack(player),
                     1.0F);
-            boolean removedFrame = frame.hurtServer(
-                    helper.getLevel(),
+            boolean removedFrame = frame.hurt(
                     player.damageSources().playerAttack(player),
                     1.0F);
             return removedItem && removedFrame;
@@ -384,9 +388,23 @@ public final class ChainVeinServerGameTests {
         throw new AssertionError("Expected chest block entity at " + relativePos);
     }
 
+    private static ServerPlayer createConnectedSurvivalPlayer(GameTestHelper helper) {
+        // Vanilla 1.21.1's helper hardcodes isCreative() = true, even after
+        // setGameMode(SURVIVAL). Use a normal server player with a local channel.
+        GameProfile profile = new GameProfile(UUID.randomUUID(), "chainvein-test");
+        CommonListenerCookie cookie = CommonListenerCookie.createInitial(profile, false);
+        ServerPlayer player = new ServerPlayer(helper.getLevel().getServer(),
+                helper.getLevel(), profile, cookie.clientInformation());
+        Connection connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
+        player.setGameMode(GameType.SURVIVAL);
+        return player;
+    }
+
     private static ServerPlayer createSurvivalPlayer(
             GameTestHelper helper, BlockPos near, Item heldItem) {
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = createConnectedSurvivalPlayer(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(heldItem));
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(near));
         player.setPosRaw(center.x, center.y + 1.0, center.z);
@@ -394,7 +412,7 @@ public final class ChainVeinServerGameTests {
     }
 
     private static int countItem(ServerPlayer player, Item item) {
-        return player.getInventory().getNonEquipmentItems().stream()
+        return player.getInventory().items.stream()
                 .filter(stack -> stack.getItem() == item)
                 .mapToInt(ItemStack::getCount)
                 .sum();

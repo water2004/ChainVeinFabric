@@ -1,24 +1,30 @@
 package org.edtp.chainveinfabric;
 
-import java.util.List;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.UUID;
 
-import net.fabricmc.fabric.api.gametest.v1.GameTest;
-import net.kyrptonaught.quickshulker.api.QuickOpenableRegistry;
-import net.kyrptonaught.quickshulker.api.QuickShulkerData;
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
+import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.phys.Vec3;
@@ -26,14 +32,14 @@ import net.minecraft.world.phys.Vec3;
 import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import org.edtp.chainveinfabric.server.DirectDropCollector;
 
-public final class QuickShulkerServerGameTests {
+public final class QuickShulkerServerGameTests implements FabricGameTest {
     private static final int CONTAINER_SLOTS = 27;
     private static final int STACK_SIZE = 64;
     private static final int SHULKER_CAPACITY = CONTAINER_SLOTS * STACK_SIZE;
-    private static final Item OVERFLOW_BOX_ITEM = Items.DYED_SHULKER_BOX.pick(DyeColor.BLUE);
-    private static final Item CONTAINED_BOX_ITEM = Items.DYED_SHULKER_BOX.pick(DyeColor.RED);
+    private static final Item OVERFLOW_BOX_ITEM = Items.BLUE_SHULKER_BOX;
+    private static final Item CONTAINED_BOX_ITEM = Items.RED_SHULKER_BOX;
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void filledShulkerFromChestRemainsIntactWhenItCannotBeNested(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -72,7 +78,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void chestOverflowFitsCompletelyInsideCarriedShulker(GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
         BlockPos target = new BlockPos(2, 2, 2);
@@ -98,7 +104,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void excessBeyondInventoryAndShulkerCapacityRemainsOnGround(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -143,7 +149,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void transactionalOverflowMergesStacksBeforeUsingEmptySlots(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -179,7 +185,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void everyPathFillsEarlierBoxBeforeLaterPartialStack(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -216,7 +222,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void fullCarriedShulkerLeavesUnacceptedDropsInWorld(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -251,7 +257,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void configuredQuickShulkerPathIsActuallyAvailable(GameTestHelper helper) {
         String mode = quickShulkerMode();
         if (mode.equals("none")) {
@@ -275,7 +281,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void batchedTorchOverflowKeepsStackLimitAndOriginalDropPositions(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -313,7 +319,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void batchedEnderPearlOverflowKeepsSixteenItemStackLimitAndPositions(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -341,7 +347,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void batchedTorchStacksKeepPartialCountsAtOriginalPositions(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -372,7 +378,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void batchedUnstackableOverflowKeepsOneItemLimitAndPosition(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -402,7 +408,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void itemFrameDropsOverflowThroughEntityFallback(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -427,7 +433,7 @@ public final class QuickShulkerServerGameTests {
         helper.succeed();
     }
 
-    @GameTest
+    @GameTest(template = "chainveinfabric-gametest:empty")
     public void fullShulkerLeavesItemFrameDropsInWorldThroughEntityFallback(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -468,12 +474,10 @@ public final class QuickShulkerServerGameTests {
                 "The item frame should be added before drop capture starts");
 
         DirectDropCollector.run(player, true, 64, () -> {
-            boolean removedItem = frame.hurtServer(
-                    helper.getLevel(),
+            boolean removedItem = frame.hurt(
                     player.damageSources().playerAttack(player),
                     1.0F);
-            boolean removedFrame = frame.hurtServer(
-                    helper.getLevel(),
+            boolean removedFrame = frame.hurt(
                     player.damageSources().playerAttack(player),
                     1.0F);
             return removedItem && removedFrame;
@@ -553,8 +557,22 @@ public final class QuickShulkerServerGameTests {
         throw new AssertionError("Expected chest block entity at " + position);
     }
 
+    private static ServerPlayer createConnectedSurvivalPlayer(GameTestHelper helper) {
+        // Vanilla 1.21.1's helper hardcodes isCreative() = true, even after
+        // setGameMode(SURVIVAL). Use a normal server player with a local channel.
+        GameProfile profile = new GameProfile(UUID.randomUUID(), "chainvein-test");
+        CommonListenerCookie cookie = CommonListenerCookie.createInitial(profile, false);
+        ServerPlayer player = new ServerPlayer(helper.getLevel().getServer(),
+                helper.getLevel(), profile, cookie.clientInformation());
+        Connection connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
+        player.setGameMode(GameType.SURVIVAL);
+        return player;
+    }
+
     private static ServerPlayer createPlayer(GameTestHelper helper, BlockPos near) {
-        ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayer(GameType.SURVIVAL);
+        ServerPlayer player = createConnectedSurvivalPlayer(helper);
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(near));
         player.setPosRaw(center.x, center.y + 1.0, center.z);
         return player;
@@ -562,7 +580,7 @@ public final class QuickShulkerServerGameTests {
 
     private static void fillPlayerInventory(ServerPlayer player, ItemStack overflowBox) {
         player.getInventory().clearContent();
-        player.getInventory().setSelectedSlot(0);
+        player.getInventory().selected = 0;
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             player.getInventory().setItem(slot, new ItemStack(Items.COBBLESTONE, STACK_SIZE));
         }
@@ -581,15 +599,24 @@ public final class QuickShulkerServerGameTests {
         if (!QuickShulkerIntegration.isAvailable()) {
             throw new AssertionError("Quick Shulker integration should be available in this test run");
         }
-        QuickShulkerData data = QuickOpenableRegistry.getQuickie(shulkerBox.getItem());
-        if (data == null || !data.supportsBundleing) {
-            throw new AssertionError("Quick Shulker should register shulker box bundling support");
+        try {
+            Class<?> registry = Class.forName("net.kyrptonaught.quickshulker.api.QuickOpenableRegistry");
+            Object data = registry.getMethod("getQuickie", ItemLike.class)
+                    .invoke(null, shulkerBox.getItem());
+            if (data == null || !data.getClass().getField("supportsBundleing").getBoolean(data)) {
+                throw new AssertionError("Quick Shulker should register shulker box bundling support");
+            }
+            for (Method method : data.getClass().getMethods()) {
+                if (method.getName().equals("getInventory") && method.getParameterCount() == 2) {
+                    Container inventory = (Container) method.invoke(data, player, shulkerBox);
+                    if (inventory == null) throw new AssertionError("Missing shulker inventory");
+                    return inventory;
+                }
+            }
+            throw new AssertionError("Quick Shulker getInventory API missing");
+        } catch (ReflectiveOperationException error) {
+            throw new AssertionError("Quick Shulker legacy inspection API failed", error);
         }
-        Container inventory = data.getInventory(player, shulkerBox);
-        if (inventory == null) {
-            throw new AssertionError("Quick Shulker should expose the shulker box inventory");
-        }
-        return inventory;
     }
 
     private static int countItem(Container container, Item item) {
@@ -619,7 +646,7 @@ public final class QuickShulkerServerGameTests {
 
     private static int countGroundItems(GameTestHelper helper, Item item) {
         return helper.getLevel()
-                .getEntitiesOfClass(ItemEntity.class, helper.getBoundsWithPadding())
+                .getEntitiesOfClass(ItemEntity.class, helper.getBounds().inflate(2.0))
                 .stream()
                 .map(ItemEntity::getItem)
                 .filter(stack -> stack.is(item))
@@ -629,7 +656,7 @@ public final class QuickShulkerServerGameTests {
 
     private static ItemStack findGroundStack(GameTestHelper helper, Item item) {
         return helper.getLevel()
-                .getEntitiesOfClass(ItemEntity.class, helper.getBoundsWithPadding())
+                .getEntitiesOfClass(ItemEntity.class, helper.getBounds().inflate(2.0))
                 .stream()
                 .map(ItemEntity::getItem)
                 .filter(stack -> stack.is(item))

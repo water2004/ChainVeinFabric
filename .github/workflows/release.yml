@@ -24,49 +24,18 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 25
+          java-version: 21
 
-      - name: Install headless OpenGL runtime
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dri libglx-mesa0 mesa-utils
-          xvfb-run -a glxinfo -B
-
-      - name: Build and run server tests
+      - name: Build, unit tests, and standalone server GameTests
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build --no-daemon
+          ./gradlew clean build runGameTest --no-daemon
 
-      - name: Test Quick Shulker release API
-        run: ./gradlew runGameTest --no-daemon -PquickshulkerGameTestMode=new
+      # Minecraft 1.21.1 predates Fabric's client GameTest API. The upstream
+      # client suites remain in src/gametest; local joint client validation and
+      # optional Quick Shulker direct/legacy commands are in BACKPORT_1.21.1.md.
 
-      - name: Test Quick Shulker legacy adapter
-        run: ./gradlew runGameTest --no-daemon -PquickshulkerGameTestMode=new-legacy
-
-      - name: Run client game tests
-        timeout-minutes: 15
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
-          SDL_VIDEO_DRIVER: x11
-          SDL_VIDEO_FORCE_EGL: "1"
-          SDL_VIDEO_X11_NODIRECTCOLOR: "1"
-        run: ./gradlew runProductionClientGameTest --no-daemon
-
-      - name: Test pure-client vanilla packet fallback
-        timeout-minutes: 15
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
-          SDL_VIDEO_DRIVER: x11
-          SDL_VIDEO_FORCE_EGL: "1"
-          SDL_VIDEO_X11_NODIRECTCOLOR: "1"
-        run: >-
-          ./gradlew runProductionClientGameTest --no-daemon
-          -PquickshulkerGameTestMode=new
-          -PchainveinGameTestServerInstalled=false
-
-      - name: Upload test reports on failure
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -75,10 +44,8 @@ jobs:
             build/reports/tests/
             build/test-results/
             build/run/gameTest/logs/
-            build/run/clientGameTest/logs/
             run/logs/
             run/crash-reports/
-            run/screenshots/
           if-no-files-found: ignore
 
       - name: Collect jars

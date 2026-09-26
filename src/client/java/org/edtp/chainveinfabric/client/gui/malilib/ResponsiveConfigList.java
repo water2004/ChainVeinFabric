@@ -71,7 +71,7 @@ final class ResponsiveConfigList extends WidgetListConfigOptions {
         }
 
         @Override
-        protected void addConfigOption(int x, int y, int labelWidth,
+        protected void addConfigOption(int x, int y, float zLevel, int labelWidth,
                                        int configWidth, IConfigBase config) {
             if (config.getType() == ConfigType.HOTKEY) {
                 y += 1;
@@ -101,7 +101,7 @@ final class ResponsiveConfigList extends WidgetListConfigOptions {
 
             int controlsX = getControlsX(configWidth);
             super.addConfigOption(
-                    x, y, Math.max(1, controlsX - x - LABEL_GAP), configWidth, config);
+                    x, y, zLevel, Math.max(1, controlsX - x - LABEL_GAP), configWidth, config);
         }
 
         private void addOptionList(int x, int y, int configWidth, IConfigBase config) {

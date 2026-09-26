@@ -20,10 +20,10 @@ final class ChainVeinServerPacketHandler {
     }
 
     static void register() {
-        PayloadTypeRegistry.serverboundPlay().register(
+        PayloadTypeRegistry.playC2S().register(
                 Chainveinfabric.ChainMinePayload.ID,
                 Chainveinfabric.ChainMinePayload.CODEC);
-        PayloadTypeRegistry.serverboundPlay().register(
+        PayloadTypeRegistry.playC2S().register(
                 Chainveinfabric.ChainInteractPayload.ID,
                 Chainveinfabric.ChainInteractPayload.CODEC);
 
@@ -49,7 +49,7 @@ final class ChainVeinServerPacketHandler {
         boolean isCreative = player.isCreative();
 
         for (BlockPos pos : positions) {
-            if (!player.isWithinBlockInteractionRange(pos, 1.0)) continue;
+            if (!player.canInteractWithBlock(pos, 1.0)) continue;
             if (!world.isLoaded(pos)) continue;
             if (world.getServer().isUnderSpawnProtection(world, pos, player)
                     || !world.mayInteract(player, pos)) continue;

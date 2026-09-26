@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.permissions.Permissions;
 
 /** Registers owner-only commands for persistent ChainVein server limits. */
 public final class ChainVeinServerCommands {
@@ -15,8 +14,7 @@ public final class ChainVeinServerCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
                 dispatcher.register(Commands.literal("chainvein")
-                        .requires(source -> source.permissions()
-                                .hasPermission(Permissions.COMMANDS_OWNER))
+                        .requires(source -> source.hasPermission(4))
                         .then(Commands.literal("maxBlocks")
                                 .executes(context -> showMaxBlocks(context.getSource()))
                                 .then(Commands.argument("value", IntegerArgumentType.integer(

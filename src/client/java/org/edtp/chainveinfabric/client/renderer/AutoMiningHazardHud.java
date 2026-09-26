@@ -1,9 +1,9 @@
 package org.edtp.chainveinfabric.client.renderer;
 
+import net.minecraft.Util;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Util;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi.ClientMiningProgress;
 import org.edtp.chainveinfabric.client.logic.AutoMiningController;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +16,7 @@ public final class AutoMiningHazardHud {
     private AutoMiningHazardHud() {
     }
 
-    public static void render(GuiGraphicsExtractor graphics, Font font,
+    public static void render(GuiGraphics graphics, Font font,
                               AutoMiningController.Status status, int cooldownTicks,
                               @Nullable ClientMiningProgress progress) {
         int width = graphics.guiWidth();
@@ -39,7 +39,7 @@ public final class AutoMiningHazardHud {
         drawWarningBadge(graphics, font, width, accentColor, status, cooldownTicks, progress);
     }
 
-    private static void fillFrame(GuiGraphicsExtractor graphics, int width, int height,
+    private static void fillFrame(GuiGraphics graphics, int width, int height,
                                   int thickness, int color) {
         graphics.fill(0, 0, width, thickness, color);
         graphics.fill(0, height - thickness, width, height, color);
@@ -47,7 +47,7 @@ public final class AutoMiningHazardHud {
         graphics.fill(width - thickness, thickness, width, height - thickness, color);
     }
 
-    private static void fillInnerGlow(GuiGraphicsExtractor graphics, int width, int height, int color) {
+    private static void fillInnerGlow(GuiGraphics graphics, int width, int height, int color) {
         int inner = EDGE_THICKNESS + 4;
         graphics.fill(EDGE_THICKNESS, EDGE_THICKNESS, width - EDGE_THICKNESS, inner, color);
         graphics.fill(EDGE_THICKNESS, height - inner, width - EDGE_THICKNESS,
@@ -56,7 +56,7 @@ public final class AutoMiningHazardHud {
         graphics.fill(width - inner, inner, width - EDGE_THICKNESS, height - inner, color);
     }
 
-    private static void fillCorners(GuiGraphicsExtractor graphics, int width, int height,
+    private static void fillCorners(GuiGraphics graphics, int width, int height,
                                     int length, int color) {
         graphics.fill(0, 0, length, CORNER_THICKNESS, color);
         graphics.fill(0, 0, CORNER_THICKNESS, length, color);
@@ -71,7 +71,7 @@ public final class AutoMiningHazardHud {
         graphics.fill(width - CORNER_THICKNESS, height - length, width, height, color);
     }
 
-    private static void drawWarningBadge(GuiGraphicsExtractor graphics, Font font,
+    private static void drawWarningBadge(GuiGraphics graphics, Font font,
                                          int screenWidth, int accentColor,
                                          AutoMiningController.Status status, int cooldownTicks,
                                          @Nullable ClientMiningProgress progress) {
@@ -112,7 +112,7 @@ public final class AutoMiningHazardHud {
         graphics.fill(left, bottom - 1, right, bottom, accentColor);
         graphics.fill(left, top, left + 1, bottom, accentColor);
         graphics.fill(right - 1, top, right, bottom, accentColor);
-        graphics.centeredText(font, text, screenWidth / 2, top + 4, 0xFFFFE4D6);
+        graphics.drawCenteredString(font, text, screenWidth / 2, top + 4, 0xFFFFE4D6);
 
         if (progress != null) {
             ChainStatusHud.drawProgressBar(

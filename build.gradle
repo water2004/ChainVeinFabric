@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.17.1'
+    id 'net.fabricmc.fabric-loom-remap' version '1.17.1'
     id 'maven-publish'
 }
 
@@ -25,42 +25,9 @@ loom {
     }
 }
 
-fabricApi {
-    configureDataGeneration {
-        client = true
-    }
-
-    configureTests {
-        createSourceSet = true
-        modId = "chainveinfabric-gametest"
-        enableGameTests = true
-        enableClientGameTests = true
-        eula = true
-        clearRunDirectory = true
-    }
-}
-
-tasks.register("gametestJar", Jar) {
-    from(sourceSets.gametest.output)
-    archiveClassifier = "gametest"
-}
-
 repositories {
     maven {url = "https://masa.dy.fi/maven/sakura-ryoko"
         content {includeGroupAndSubgroups("fi.dy.masa")}
-    }
-    ivy {
-        name = "quickShulkerGitHubReleases"
-        url = uri("https://github.com/water2004/quickshulker/releases/download")
-        patternLayout {
-            artifact("[revision]/[artifact]-[revision].[ext]")
-        }
-        metadataSources {
-            artifact()
-        }
-        content {
-            includeModule("net.kyrptonaught.github", "quickshulker")
-        }
     }
     maven {url = 'https://maven.fallenbreath.me/releases'
         content {includeGroupAndSubgroups("me.fallenbreath")}
@@ -68,38 +35,16 @@ repositories {
     maven { url = 'https://maven.terraformersmc.com/releases/'
         content {includeGroupAndSubgroups("com.terraformersmc")}
     }
-    maven { url = 'https://jitpack.io' }
-    maven { url = 'https://maven.moranpcy.com/releases' }
 }
 
 dependencies {
-    // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    // mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-//    mappings loom.officialMojangMappings()
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    implementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
-    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    productionRuntimeMods "com.github.sakura-ryoko:malilib:${project.malilib_version}"
-    productionRuntimeMods files(tasks.named("gametestJar"))
-    compileOnly "com.github.sakura-ryoko:litematica:${project.litematica_version}"
-    compileOnly "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
-    compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
-
-    def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
-            .orElse("legacy").get()
-    if (quickShulkerGameTestMode in ["new", "new-legacy"]) {
-        def quickShulkerDependency = "net.kyrptonaught.github:quickshulker:${project.quickshulker_prerelease_version}"
-        gametestImplementation quickShulkerDependency
-        productionRuntimeMods quickShulkerDependency
-    } else if (quickShulkerGameTestMode == "legacy") {
-        def quickShulkerDependency = "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
-        gametestImplementation quickShulkerDependency
-        productionRuntimeMods quickShulkerDependency
-    } else if (quickShulkerGameTestMode != "none") {
-        throw new GradleException("quickshulkerGameTestMode must be none, legacy, new, or new-legacy")
-    }
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    modImplementation "fi.dy.masa.malilib:malilib-fabric-1.21:${project.malilib_version}"
+    modCompileOnly "fi.dy.masa.litematica:litematica-fabric-1.21:${project.litematica_version}"
+    modCompileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
 
@@ -107,24 +52,42 @@ test {
     useJUnitPlatform()
 }
 
-tasks.named("runClientGameTest") {
-    jvmArgs "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
-    jvmArgs "-Dchainveinfabric.gametest.serverInstalled=${providers.gradleProperty('chainveinGameTestServerInstalled').orElse('true').get()}"
-    jvmArgs "-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}"
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "chainveinfabric-gametest"
+        enableGameTests = true
+        enableClientGameTests = false
+        eula = true
+        clearRunDirectory = false
+    }
 }
 
-// Fabric's production client runner owns the Linux/Xvfb setup used by CI.
-tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
-    jvmArgs.add("-Dfabric.client.gametest")
-    jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
-    jvmArgs.add("-Dchainveinfabric.gametest.serverInstalled=${providers.gradleProperty('chainveinGameTestServerInstalled').orElse('true').get()}")
-    jvmArgs.add("-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}")
-    useXVFB = !org.gradle.internal.os.OperatingSystem.current().isWindows()
-    dependsOn(tasks.named("gametestJar"))
-}
+// 1.21.1 has server GameTests; the newer upstream client test API is unavailable.
+sourceSets.gametest.java.setIncludes([
+        "org/edtp/chainveinfabric/ChainVeinServerGameTests.java",
+        "org/edtp/chainveinfabric/QuickShulkerServerGameTests.java",
+        "org/edtp/chainveinfabric/gametest/mixin/QuickShulkerDirectCapabilityMixin.java"
+])
+sourceSets.gametest.resources.setSrcDirs(["src/gametest1211/resources"])
 
+def quickShulkerJar = providers.gradleProperty("quickshulkerJar")
+if (quickShulkerJar.isPresent()) {
+    dependencies {
+        modLocalRuntime files(quickShulkerJar.get())
+        modLocalRuntime "me.fallenbreath:conditional-mixin-fabric:0.6.4"
+    }
+}
+def quickShulkerTestMode = providers.gradleProperty("quickshulkerGameTestMode")
+        .orElse(quickShulkerJar.isPresent() ? "new" : "none").get()
+if (!(quickShulkerTestMode in ["none", "new", "new-legacy"])) {
+    throw new GradleException("quickshulkerGameTestMode must be none, new, or new-legacy")
+}
+if (quickShulkerTestMode != "none" && !quickShulkerJar.isPresent()) {
+    throw new GradleException("Quick Shulker integration tests require -PquickshulkerJar=/path/to/quickshulker.jar")
+}
 tasks.named("runGameTest") {
-    jvmArgs "-Dchainveinfabric.gametest.quickshulker=${providers.gradleProperty('quickshulkerGameTestMode').orElse('legacy').get()}"
+    jvmArgs "-Dchainveinfabric.gametest.quickshulker=${quickShulkerTestMode}"
 }
 
 processResources {
@@ -140,7 +103,7 @@ processResources {
     }
 }
 
-def targetJavaVersion = 25
+def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
     // ensure that the encoding is set to UTF-8, no matter what the system default is
     // this fixes some edge cases with special characters not displaying correctly

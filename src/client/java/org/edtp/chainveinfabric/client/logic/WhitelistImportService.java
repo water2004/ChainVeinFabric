@@ -69,7 +69,7 @@ public final class WhitelistImportService {
 
     private static void showOverlay(Minecraft client, Component message) {
         if (client.gui != null) {
-            client.gui.hud.setOverlayMessage(message, false);
+            client.gui.setOverlayMessage(message, false);
         }
     }
 

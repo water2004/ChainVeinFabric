@@ -3,12 +3,11 @@ package org.edtp.chainveinfabric.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import fi.dy.masa.malilib.event.RenderEventHandler;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
@@ -103,8 +102,8 @@ public class ChainveinfabricClient implements ClientModInitializer {
             onOutlineTick(client);
         });
 
-        // Use modern HudElementRegistry instead of deprecated HudRenderCallback
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("chainveinfabric", "indicator"), (context, deltaTracker) -> {
+        // Minecraft 1.21.1 exposes HUD rendering through HudRenderCallback.
+        HudRenderCallback.EVENT.register((context, deltaTracker) -> {
             Minecraft client = Minecraft.getInstance();
             ChainVeinClientApi.ClientMiningProgress progress =
                     ChainVeinClientApi.getClientMiningProgress(client);

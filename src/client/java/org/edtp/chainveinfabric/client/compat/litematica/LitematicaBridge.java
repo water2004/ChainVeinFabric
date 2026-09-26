@@ -8,7 +8,6 @@ import fi.dy.masa.litematica.selection.AreaSelection;
 import fi.dy.masa.litematica.selection.Box;
 import fi.dy.masa.litematica.util.IgnoreBlockRegistry;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
-import fi.dy.masa.litematica.world.ChunkSchematicState;
 import fi.dy.masa.litematica.world.WorldSchematic;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -128,9 +127,8 @@ final class LitematicaBridge {
         public boolean matches(ClientLevel world, BlockPos pos) {
             if (!contains(this.bounds, pos)
                     || (this.renderRange != null && !this.renderRange.contains(pos))
-                    || !this.schematicWorld.getChunkSource()
-                            .getChunkState(pos.getX() >> 4, pos.getZ() >> 4)
-                            .atLeast(ChunkSchematicState.LOADED)) {
+                    || this.schematicWorld.getChunkProvider()
+                            .getChunkIfExists(pos.getX() >> 4, pos.getZ() >> 4) == null) {
                 return false;
             }
 
@@ -160,8 +158,8 @@ final class LitematicaBridge {
     }
 
     private record RenderRange(Direction.Axis axis, int min, int max) {
-        static RenderRange snapshot(fi.dy.masa.malilib.util.position.LayerRange range) {
-            return new RenderRange(range.getAxis(), range.getMinLayerBoundary(), range.getMaxLayerBoundary());
+        static RenderRange snapshot(fi.dy.masa.malilib.util.LayerRange range) {
+            return new RenderRange(range.getAxis(), range.getLayerMin(), range.getLayerMax());
         }
 
         boolean contains(BlockPos pos) {

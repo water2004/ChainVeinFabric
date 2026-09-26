@@ -53,7 +53,7 @@ final class ClientJobDispatcher {
         }
 
         if (protectionCapacity < positions.size()) {
-            client.gui.hud.setOverlayMessage(
+            client.gui.setOverlayMessage(
                     Component.translatable("message.chainveinfabric.protection"), false);
         }
         return added;

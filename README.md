@@ -5,7 +5,7 @@
 A modern, efficient, and configurable chain mining and interaction mod for Minecraft Fabric.
 It works on vanilla servers in client-side mode and gains additional capabilities when installed on the server.
 
-> **Version support:** ChainVeinFabric 4.x supports the Minecraft 26.1.x, 26.2.x, and 26.3.x release lines. Version 3.x and later no longer support Minecraft 1.21.x; use ChainVeinFabric 2.2.1 for 1.21.x.
+> **This branch:** Minecraft **1.21.1 / Java 21** backport of ChainVeinFabric **4.1.0**. It retains the current mining, planting, presets, Litematica modes, and optional Quick Shulker integration. See [the backport notes](BACKPORT_1.21.1.md) for dependencies and validation limits. Upstream release branches remain available for their original Minecraft versions.
 
 ---
 
@@ -41,7 +41,7 @@ Every schematic mode supports manual whitelist editing and one-click import. Imp
 
 When the compatible [Quick Shulker fork](https://github.com/water2004/quickshulker) is installed on both the client and server, the Advanced page exposes **Overflow to Shulker Boxes**. This setting only applies when **Direct to Inventory** is enabled.
 
-This integration is available in the Minecraft 26.1.x, 26.2.x, and 26.3.x builds. On 26.3, the legacy Quick Shulker 3.x API remains supported; the 4.x release API is supported as an additional integration path.
+This Minecraft 1.21.1 branch supports Quick Shulker 4.0.1 through its direct storage API and retained legacy adapter. Both paths are exercised by server GameTests.
 
 ChainVein first inserts drops into the normal player inventory, then tries carried shulker boxes in inventory order. It uses Quick Shulker's public insertion rules, so nested shulker boxes remain prohibited. Anything that still does not fit drops into the world normally. The integration is optional and its setting is hidden when Quick Shulker is absent.
 
@@ -113,10 +113,10 @@ Enabling this option requires ChainVeinFabric 4.x on both the client and server.
 
 ### Minecraft and dependencies
 
-- **Minecraft:** Current 4.x builds target Minecraft 26.1.x, 26.2.x, and 26.3.x, while Minecraft 1.21.x remains on ChainVeinFabric 2.2.1.
-- **MaLiLib:** Required on the client.
-- **Litematica:** Optional. The compatible Minecraft 26.3 build is `0.28.99-dev` or newer; only the three schematic modes depend on it.
-- **Quick Shulker:** Optional. The 26.3 build keeps the 3.x legacy API (`3.1.0-26.3` or newer) in its compatibility range and also supports the 4.x release API. It enables shulker-box storage for Direct to Inventory overflow when installed on both sides.
+- **Minecraft:** This backport targets exactly Minecraft 1.21.1.
+- **MaLiLib:** 0.21.10 for Minecraft 1.21, required on the client.
+- **Litematica:** Optional. Use the Minecraft 1.21 build `0.19.61`; only the three schematic modes depend on it.
+- **Quick Shulker:** Optional. Use the Minecraft 1.21.1 build of Quick Shulker 4.0.1; both its direct storage API and legacy adapter are supported. It enables shulker-box storage for Direct to Inventory overflow when installed on both sides.
 - **Mod Menu:** Optional configuration entry point.
 
 ### Network compatibility

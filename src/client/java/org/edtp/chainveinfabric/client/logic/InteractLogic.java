@@ -80,7 +80,7 @@ public final class InteractLogic {
                 ChainveinfabricClient.CONFIG.toolProtection, remainingDurability);
 
         if (plan.limitedByDurability()) {
-            client.gui.hud.setOverlayMessage(
+            client.gui.setOverlayMessage(
                     Component.translatable("message.chainveinfabric.protection"), false);
         }
 
@@ -91,7 +91,7 @@ public final class InteractLogic {
         } else {
             ChainVeinClientApi.queueUseJobs(client, queuedPositions);
         }
-        client.gui.hud.setOverlayMessage(
+        client.gui.setOverlayMessage(
                 Component.translatable(translationKey, plan.affectedCount()), false);
     }
 }

@@ -198,7 +198,7 @@ public final class AutoMiningController {
         }
         this.awaitingTicks = 0;
         if (added > 1 && client.gui != null) {
-            client.gui.hud.setOverlayMessage(
+            client.gui.setOverlayMessage(
                     Component.translatable("message.chainveinfabric.broken", added), false);
         }
     }
@@ -285,7 +285,7 @@ public final class AutoMiningController {
 
     private static void showOverlay(Minecraft client, String translationKey) {
         if (client != null && client.gui != null) {
-            client.gui.hud.setOverlayMessage(Component.translatable(translationKey), false);
+            client.gui.setOverlayMessage(Component.translatable(translationKey), false);
         }
     }
 }

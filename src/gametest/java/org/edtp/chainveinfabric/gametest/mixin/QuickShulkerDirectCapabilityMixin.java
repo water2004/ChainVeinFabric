@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(targets = "org.edtp.chainveinfabric.compat.quickshulker.QuickStorageDirectBridge",
         remap = false)
 public abstract class QuickShulkerDirectCapabilityMixin {
-    @Inject(method = "isUsable", at = @At("HEAD"), cancellable = true, require = 0)
+    @Inject(method = "isUsable", at = @At("HEAD"), cancellable = true, require = 1)
     private static void chainVeinGameTest$forceLegacy(
             CallbackInfoReturnable<Boolean> cir) {
         if ("new-legacy".equals(System.getProperty(

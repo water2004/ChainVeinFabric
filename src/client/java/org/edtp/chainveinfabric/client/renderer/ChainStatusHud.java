@@ -1,7 +1,7 @@
 package org.edtp.chainveinfabric.client.renderer;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi.ClientMiningProgress;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +16,7 @@ public final class ChainStatusHud {
     private ChainStatusHud() {
     }
 
-    public static void render(GuiGraphicsExtractor graphics, Font font,
+    public static void render(GuiGraphics graphics, Font font,
                               @Nullable ClientMiningProgress progress) {
         int screenWidth = graphics.guiWidth();
         if (screenWidth <= 0) return;
@@ -27,7 +27,7 @@ public final class ChainStatusHud {
                         progress.currentBlock(), progress.totalBlocks())
                 : Component.translatable("hud.chainveinfabric.active");
         text = fitText(font, text, Math.max(1, screenWidth - SIDE_MARGIN * 2), progress);
-        graphics.centeredText(font, text, screenWidth / 2, TOP, 0xFFFF402F);
+        graphics.drawCenteredString(font, text, screenWidth / 2, TOP, 0xFFFF402F);
 
         if (progress == null || screenWidth <= SIDE_MARGIN * 2) return;
 
@@ -39,7 +39,7 @@ public final class ChainStatusHud {
                 progress.currentBlockProgress(), 0xFFFF4E36);
     }
 
-    static void drawProgressBar(GuiGraphicsExtractor graphics, int left, int right,
+    static void drawProgressBar(GuiGraphics graphics, int left, int right,
                                 int top, float progress, int fillColor) {
         if (right <= left) return;
 

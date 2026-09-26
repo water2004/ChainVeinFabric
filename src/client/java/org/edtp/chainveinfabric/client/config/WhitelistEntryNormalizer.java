@@ -1,7 +1,7 @@
 package org.edtp.chainveinfabric.client.config;
 
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -14,15 +14,15 @@ final class WhitelistEntryNormalizer {
     static String normalize(String entry) {
         if (entry == null || entry.isBlank()) return null;
 
-        Identifier identifier = Identifier.tryParse(entry);
+        ResourceLocation identifier = ResourceLocation.tryParse(entry);
         if (identifier == null) return null;
 
-        Item item = BuiltInRegistries.ITEM.getValue(identifier);
+        Item item = BuiltInRegistries.ITEM.get(identifier);
         if (item != Items.AIR && BuiltInRegistries.ITEM.getKey(item).equals(identifier)) {
             return identifier.toString();
         }
 
-        Block block = BuiltInRegistries.BLOCK.getValue(identifier);
+        Block block = BuiltInRegistries.BLOCK.get(identifier);
         return getWhitelistItemId(block);
     }
 

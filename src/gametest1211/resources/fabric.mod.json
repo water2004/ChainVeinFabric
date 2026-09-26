@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "chainveinfabric-gametest",
+  "version": "1.0.0",
+  "name": "ChainVeinFabric 1.21.1 Game Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "org.edtp.chainveinfabric.ChainVeinServerGameTests",
+      "org.edtp.chainveinfabric.QuickShulkerServerGameTests"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "1.21.1",
+    "chainveinfabric": "*"
+  },
+  "mixins": [
+    "chainveinfabric-gametest.mixins.json"
+  ]
+}

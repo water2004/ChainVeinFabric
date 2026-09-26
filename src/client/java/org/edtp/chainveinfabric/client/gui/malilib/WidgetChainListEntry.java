@@ -4,9 +4,9 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
-import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 
 public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
@@ -33,11 +33,11 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
     }
 
     @Override
-    public void render(GuiContext ctx, int mouseX, int mouseY, boolean selected) {
+    public void render(int mouseX, int mouseY, boolean selected, GuiGraphics ctx) {
         if (selected || this.isMouseOver(mouseX, mouseY)) {
-            RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x70FFFFFF);
+            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x70FFFFFF);
         } else if (this.isOdd) {
-            RenderUtils.drawRect(ctx, this.x, this.y, this.width, this.height, 0x20FFFFFF);
+            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x20FFFFFF);
         }
 
         if (this.entry != null && !this.entry.isEmpty()) {
@@ -56,15 +56,15 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
                         : "";
             }
             int textY = this.y + (this.height - 8) / 2 + 1;
-            this.drawString(ctx, textX, textY, 0xFFFFFFFF, itemName);
+            this.drawString(textX, textY, 0xFFFFFFFF, itemName, ctx);
         }
 
-        super.render(ctx, mouseX, mouseY, selected);
+        super.render(mouseX, mouseY, selected, ctx);
     }
 
     @Override
-    public boolean canSelectAt(net.minecraft.client.input.MouseButtonEvent click) {
-        return super.canSelectAt(click) && click.x() < this.buttonsStartX;
+    public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
+        return super.canSelectAt(mouseX, mouseY, mouseButton) && mouseX < this.buttonsStartX;
     }
 
     private static class ButtonListener implements IButtonActionListener {

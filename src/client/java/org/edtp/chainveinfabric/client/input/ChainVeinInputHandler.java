@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -91,7 +91,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 String messageKey = ChainveinfabricClient.CONFIG.isChainVeinEnabled
                         ? "message.chainveinfabric.enabled"
                         : "message.chainveinfabric.disabled";
-                client.gui.hud.setOverlayMessage(Component.translatable(messageKey), false);
+                client.gui.setOverlayMessage(Component.translatable(messageKey), false);
             }
 
             return true;
@@ -141,7 +141,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 : "message.chainveinfabric.modeSwitched";
         Minecraft client = Minecraft.getInstance();
         if (client.gui != null) {
-            client.gui.hud.setOverlayMessage(Component.translatable(messageKey, modeName), false);
+            client.gui.setOverlayMessage(Component.translatable(messageKey, modeName), false);
         }
         return true;
     }
@@ -199,7 +199,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 return null;
             }
 
-            Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             return new WhitelistTarget(id.toString(), stack.getHoverName());
         }
 
@@ -218,13 +218,13 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 return null;
             }
 
-            Identifier id = BuiltInRegistries.ITEM.getKey(item);
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             return new WhitelistTarget(id.toString(), new ItemStack(item).getHoverName());
         }
 
         private static void showOverlay(Minecraft client, Component message) {
             if (client.gui != null) {
-                client.gui.hud.setOverlayMessage(message, false);
+                client.gui.setOverlayMessage(message, false);
             }
         }
     }

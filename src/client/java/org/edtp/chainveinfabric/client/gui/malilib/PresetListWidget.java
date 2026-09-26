@@ -4,12 +4,9 @@ import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
-import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
@@ -77,11 +74,11 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
     }
 
     @Override
-    public boolean onKeyTyped(KeyEvent input) {
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
         for (PresetEntryWidget widget : this.listWidgets) {
-            if (widget.onKeyTyped(input)) return true;
+            if (widget.onKeyTyped(keyCode, scanCode, modifiers)) return true;
         }
-        return super.onKeyTyped(input);
+        return super.onKeyTyped(keyCode, scanCode, modifiers);
     }
 
     private static String nextWhitelistPresetName(ChainVeinConfig config,
@@ -310,67 +307,67 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
         }
 
         @Override
-        public void render(GuiContext context, int mouseX, int mouseY, boolean selected) {
+        public void render(int mouseX, int mouseY, boolean selected, GuiGraphics context) {
             if (this.entry != null && this.entry.type == PresetRow.Type.WHITELIST_HEADER) {
                 String label = fitText(
                         StringUtils.translate("options.chainveinfabric.preset.whitelist"),
                         this.headerLabelWidth);
-                this.drawString(context, this.x + 2, this.y + 8, 0xFFFFFFFF, label);
-                super.render(context, mouseX, mouseY, selected);
+                this.drawString(this.x + 2, this.y + 8, 0xFFFFFFFF, label, context);
+                super.render(mouseX, mouseY, selected, context);
                 return;
             }
             if (this.entry != null && this.entry.type == PresetRow.Type.CONFIG_HEADER) {
                 String label = fitText(
                         StringUtils.translate("options.chainveinfabric.preset.config"),
                         Math.max(1, this.width - 4));
-                this.drawString(context, this.x + 2, this.y + 8, 0xFFFFFFFF, label);
+                this.drawString(this.x + 2, this.y + 8, 0xFFFFFFFF, label, context);
                 return;
             }
 
             if (selected || this.isMouseOver(mouseX, mouseY)) {
-                RenderUtils.drawRect(context, this.x, this.y, this.width, this.height, 0x50FFFFFF);
+                RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x50FFFFFF);
             } else if (this.isOdd) {
-                RenderUtils.drawRect(context, this.x, this.y, this.width, this.height, 0x20FFFFFF);
+                RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x20FFFFFF);
             }
             if (this.nameField != null) {
-                this.nameField.extractRenderState(context.getGuiGraphics(), mouseX, mouseY, 0.0F);
+                this.nameField.render(context, mouseX, mouseY, 0.0F);
             }
-            super.render(context, mouseX, mouseY, selected);
+            super.render(mouseX, mouseY, selected, context);
         }
 
         @Override
-        public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
-            if (this.nameField != null && this.nameField.mouseClicked(click, doubleClick)) return true;
-            if (this.nameField != null && !this.nameField.isMouseOver(click.x(), click.y())) {
+        public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+            if (this.nameField != null && this.nameField.mouseClicked(mouseX, mouseY, mouseButton)) return true;
+            if (this.nameField != null && !this.nameField.isMouseOver(mouseX, mouseY)) {
                 this.nameField.setFocused(false);
             }
-            return super.onMouseClicked(click, doubleClick);
+            return super.onMouseClicked(mouseX, mouseY, mouseButton);
         }
 
         @Override
-        public boolean onKeyTyped(KeyEvent input) {
+        public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
             if (this.nameField != null && this.nameField.isFocused()) {
                 String before = this.nameField.getValue();
-                boolean handled = this.nameField.keyPressed(input);
+                boolean handled = this.nameField.keyPressed(keyCode, scanCode, modifiers);
                 if (!before.equals(this.nameField.getValue())) saveName();
                 return handled;
             }
-            return super.onKeyTyped(input);
+            return super.onKeyTyped(keyCode, scanCode, modifiers);
         }
 
         @Override
-        public boolean onCharTyped(CharacterEvent input) {
+        public boolean onCharTyped(char charIn, int modifiers) {
             if (this.nameField != null && this.nameField.isFocused()) {
                 String before = this.nameField.getValue();
-                boolean handled = this.nameField.charTyped(input);
+                boolean handled = this.nameField.charTyped(charIn, modifiers);
                 if (!before.equals(this.nameField.getValue())) saveName();
                 return handled;
             }
-            return super.onCharTyped(input);
+            return super.onCharTyped(charIn, modifiers);
         }
 
         @Override
-        public boolean canSelectAt(MouseButtonEvent click) {
+        public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
             return false;
         }
 

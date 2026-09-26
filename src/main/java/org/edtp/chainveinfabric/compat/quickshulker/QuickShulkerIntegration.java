@@ -69,7 +69,7 @@ public final class QuickShulkerIntegration {
 
         private DirectTargets(ServerPlayer player) {
             this.player = player;
-            int size = player.getInventory().getNonEquipmentItems().size();
+            int size = player.getInventory().items.size();
             this.targets = new OverflowInsertion.Target[size];
             this.resolved = new boolean[size];
         }

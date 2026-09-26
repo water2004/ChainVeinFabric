@@ -7,7 +7,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import org.edtp.chainveinfabric.server.ChainVeinServerCommands;
@@ -17,8 +17,8 @@ import java.util.List;
 
 public class Chainveinfabric implements ModInitializer {
 
-    public static final Identifier MINE_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "mine_v4");
-    public static final Identifier INTERACT_PACKET_ID = Identifier.fromNamespaceAndPath("chainveinfabric", "interact_v4");
+    public static final ResourceLocation MINE_PACKET_ID = ResourceLocation.fromNamespaceAndPath("chainveinfabric", "mine_v4");
+    public static final ResourceLocation INTERACT_PACKET_ID = ResourceLocation.fromNamespaceAndPath("chainveinfabric", "interact_v4");
 
     @Override
     public void onInitialize() {
