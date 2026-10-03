@@ -76,7 +76,10 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
 
         @Override
         public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
-            if (mouseButton == 0) {
+            // Minecraft 26.3's MouseButtonInfo uses 1 for the primary button
+            // (the old 26.2 input API used 0), which is what malilib forwards
+            // to this listener through MouseButtonEvent.input().
+            if (mouseButton == 1) {
                 widget.parent.onButtonAction(widget.entry, widget.isWhitelist);
             }
         }
