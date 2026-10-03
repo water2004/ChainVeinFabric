@@ -50,8 +50,8 @@ repositories {
         content {includeGroupAndSubgroups("fi.dy.masa")}
     }
     ivy {
-        name = "quickShulkerGitHubReleases"
-        url = uri("https://github.com/water2004/quickshulker/releases/download")
+        name = "quickShulkerLegacyGitHubReleases"
+        url = uri("https://github.com/MoRanpcy/quickshulker/releases/download")
         patternLayout {
             artifact("[revision]/[artifact]-[revision].[ext]")
         }
@@ -63,8 +63,8 @@ repositories {
         }
     }
     ivy {
-        name = "quickShulkerLegacyGitHubReleases"
-        url = uri("https://github.com/MoRanpcy/quickshulker/releases/download")
+        name = "quickShulkerGitHubReleases"
+        url = uri("https://github.com/water2004/quickshulker/releases/download")
         patternLayout {
             artifact("[revision]/[artifact]-[revision].[ext]")
         }
@@ -82,7 +82,6 @@ repositories {
         content {includeGroupAndSubgroups("com.terraformersmc")}
     }
     maven { url = 'https://jitpack.io' }
-    maven { url = 'https://maven.moranpcy.com/releases' }
 }
 
 dependencies {
@@ -97,7 +96,8 @@ dependencies {
     productionRuntimeMods "com.github.sakura-ryoko:malilib:${project.malilib_version}"
     productionRuntimeMods files(tasks.named("gametestJar"))
     compileOnly "com.github.sakura-ryoko:litematica:${project.litematica_version}"
-    compileOnly "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
+    // Keep the 3.x API on the GitHub release path; the Maven host is not required for CI.
+    compileOnly "net.kyrptonaught.github:quickshulker:${project.quickshulker_version}"
     compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
 
     def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
@@ -107,7 +107,7 @@ dependencies {
         gametestImplementation quickShulkerDependency
         productionRuntimeMods quickShulkerDependency
     } else if (quickShulkerGameTestMode == "legacy") {
-        def quickShulkerDependency = "net.kyrptonaught:quickshulker:${project.quickshulker_version}"
+        def quickShulkerDependency = "net.kyrptonaught.github:quickshulker:${project.quickshulker_version}"
         gametestImplementation quickShulkerDependency
         productionRuntimeMods quickShulkerDependency
     } else if (quickShulkerGameTestMode != "none") {
