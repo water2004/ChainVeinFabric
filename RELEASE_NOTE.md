@@ -1,4 +1,14 @@
-## ChainVeinFabric v4.1.0
+## ChainVeinFabric v4.1.1
+
+### 补丁修复 / Patch fixes
+
+- 修复 Minecraft 26.3 配置界面中 Add 和 Remove 主按钮点击无响应的问题
+- 修复 Quick Shulker 3.x legacy 依赖在 CI 中无法从 Maven 主机下载的问题，同时保持 4.x 新 API 测试独立
+- 修复 release 产物误包含仅测试用的 GameTest jar
+
+- Fixed unresponsive Add and Remove primary buttons in the Minecraft 26.3 configuration screen
+- Fixed CI resolution of the Quick Shulker 3.x legacy dependency while keeping the 4.x API tests separate
+- Prevented the release from including the test-only GameTest jar
 
 > [!CAUTION]
 > **自动挖掘安全提示：** 自动挖掘会在玩家周围批量搜索并破坏方块。启用前请确认当前模式、白名单、搜索算法与范围；每次左键只触发一轮搜索，并受冷却时间限制。
@@ -76,11 +86,11 @@
 ### 兼容性 / Compatibility
 
 - 同时提供 Minecraft 26.2 与 26.1.x 构建；Minecraft 1.21.x 继续使用 ChainVeinFabric 2.2.1
-- 相比 4.0.x，4.1.0 未更改 4.x 网络负载格式、客户端配置 schema 或公开 `ChainVeinClientApi` 方法签名，可在同一 Minecraft 版本内与 4.0.x 混用
+- 相比 4.0.x，4.1.1 未更改 4.x 网络负载格式、客户端配置 schema 或公开 `ChainVeinClientApi` 方法签名，可在同一 Minecraft 版本内与 4.0.x 混用
 - 4.x 专用协议仍与 1.x～3.x 分离；版本不匹配时会安全退回纯客户端模式，而不会尝试解码不兼容的数据包
 - Quick Shulker 仍为可选依赖；未安装时不影响其他连锁功能
 
 - Builds are provided for both Minecraft 26.2 and 26.1.x; Minecraft 1.21.x remains on ChainVeinFabric 2.2.1
-- Compared with 4.0.x, 4.1.0 keeps the 4.x network payload format, client configuration schema, and public `ChainVeinClientApi` method signatures unchanged, allowing 4.0.x interoperability within the same Minecraft version
+- Compared with 4.0.x, 4.1.1 keeps the 4.x network payload format, client configuration schema, and public `ChainVeinClientApi` method signatures unchanged, allowing 4.0.x interoperability within the same Minecraft version
 - The 4.x dedicated protocol remains separate from 1.x–3.x; mismatched versions safely use client-side mode instead of decoding incompatible payloads
 - Quick Shulker remains optional and its absence does not affect other chaining features
