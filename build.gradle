@@ -59,7 +59,7 @@ repositories {
             artifact()
         }
         content {
-            includeModule("net.kyrptonaught.github", "quickshulker")
+            includeModule("net.kyrptonaught.legacy", "quickshulker")
         }
     }
     ivy {
@@ -72,7 +72,7 @@ repositories {
             artifact()
         }
         content {
-            includeModule("net.kyrptonaught", "quickshulker")
+            includeModule("net.kyrptonaught.github", "quickshulker")
         }
     }
     maven {url = 'https://maven.fallenbreath.me/releases'
@@ -96,8 +96,8 @@ dependencies {
     productionRuntimeMods "com.github.sakura-ryoko:malilib:${project.malilib_version}"
     productionRuntimeMods files(tasks.named("gametestJar"))
     compileOnly "com.github.sakura-ryoko:litematica:${project.litematica_version}"
-    // Keep the 3.x API on the GitHub release path; the Maven host is not required for CI.
-    compileOnly "net.kyrptonaught.github:quickshulker:${project.quickshulker_version}"
+    // The GitHub-only group keeps the compatible 3.x API independent from the 4.x release repo.
+    compileOnly "net.kyrptonaught.legacy:quickshulker:${project.quickshulker_version}"
     compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
 
     def quickShulkerGameTestMode = providers.gradleProperty("quickshulkerGameTestMode")
@@ -107,7 +107,7 @@ dependencies {
         gametestImplementation quickShulkerDependency
         productionRuntimeMods quickShulkerDependency
     } else if (quickShulkerGameTestMode == "legacy") {
-        def quickShulkerDependency = "net.kyrptonaught.github:quickshulker:${project.quickshulker_version}"
+        def quickShulkerDependency = "net.kyrptonaught.legacy:quickshulker:${project.quickshulker_version}"
         gametestImplementation quickShulkerDependency
         productionRuntimeMods quickShulkerDependency
     } else if (quickShulkerGameTestMode != "none") {
