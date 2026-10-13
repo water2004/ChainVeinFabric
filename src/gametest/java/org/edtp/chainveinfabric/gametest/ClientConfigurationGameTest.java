@@ -1,6 +1,9 @@
 package org.edtp.chainveinfabric.gametest;
 
 import fi.dy.masa.malilib.event.InputEventHandler;
+import fi.dy.masa.malilib.gui.button.ButtonBase;
+import fi.dy.masa.malilib.gui.button.IButtonActionListener;
+import fi.dy.masa.malilib.util.StringUtils;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -12,6 +15,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.gui.malilib.ConfigProxies;
+import org.edtp.chainveinfabric.client.gui.malilib.GuiChainVein;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.Set;
@@ -35,6 +39,7 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
                     && client.player.getMainHandItem().is(Items.WHEAT_SEEDS));
 
             configureAndTestControls(context);
+            testAutoToggleClicks(context);
             testModeHotkeys(context);
             testHeldPlantWhitelistHotkey(context, singleplayer);
             testTargetedBlockWhitelistHotkey(context, singleplayer);
@@ -113,6 +118,66 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
                         config.mode == ChainVeinConfig.ChainMode.CHAIN_UTILITY
                                 && config.isChainVeinEnabled,
                 "The direct mode hotkey did not select Utility and enable chaining");
+    }
+
+    private static void testAutoToggleClicks(ClientGameTestContext context) {
+        context.setScreen(AutoToggleTestScreen::new);
+        context.waitForScreen(AutoToggleTestScreen.class);
+        context.waitTicks(2);
+        double[] cursor = context.computeOnClient(client -> {
+            var screen = (AutoToggleTestScreen) client.gui.screen();
+            ButtonBase toggle = screen.toggle;
+            assertState(toggle != null, "The mining toggle button was not found");
+            var window = client.getWindow();
+            return new double[] {
+                    (toggle.getX() + toggle.getWidth() / 2.0)
+                            * window.getScreenWidth() / window.getGuiScaledWidth(),
+                    (toggle.getY() + toggle.getHeight() / 2.0)
+                            * window.getScreenHeight() / window.getGuiScaledHeight()
+            };
+        });
+        context.getInput().setCursorPos(cursor[0], cursor[1]);
+        try {
+            clickToggle(context, true, true, true, "Ctrl-click from OFF did not arm AUTO");
+            clickToggle(context, false, false, false, "Clicking AUTO did not disable chaining");
+            clickToggle(context, false, true, false, "A normal click did not enable chaining");
+            clickToggle(context, true, true, true, "Ctrl-click from ON did not arm AUTO");
+            clickToggle(context, true, false, false, "Ctrl-clicking AUTO did not disable chaining");
+            clickToggle(context, false, true, false, "Releasing Ctrl left the toggle in AUTO mode");
+            clickToggle(context, false, false, false, "A normal click did not disable chaining");
+        } finally {
+            context.getInput().releaseControl();
+            context.runOnClient(client -> {
+                ChainveinfabricClient.disarmAutoMining();
+                client.gui.setScreen(null);
+            });
+        }
+    }
+
+    private static void clickToggle(ClientGameTestContext context, boolean control,
+                                    boolean enabled, boolean automatic, String message) {
+        if (control) context.getInput().holdControl();
+        try {
+            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        } finally {
+            if (control) context.getInput().releaseControl();
+        }
+        assertClientState(context, config -> config.isChainVeinEnabled == enabled
+                && ChainveinfabricClient.isAutoMiningArmed() == automatic, message);
+    }
+
+    /** Locates the real toggle without bypassing its screen or button click handlers. */
+    private static final class AutoToggleTestScreen extends GuiChainVein {
+        private ButtonBase toggle;
+
+        @Override
+        public <T extends ButtonBase> T addButton(T button, IButtonActionListener listener) {
+            if (button.getHoverStrings().contains(
+                    StringUtils.translate("options.chainveinfabric.autoMine.ctrlHint"))) {
+                this.toggle = button;
+            }
+            return super.addButton(button, listener);
+        }
     }
 
     private static void testHeldPlantWhitelistHotkey(
