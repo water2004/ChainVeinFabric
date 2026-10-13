@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -158,7 +159,18 @@ public final class ClientConfigurationGameTest implements FabricClientGameTest {
                                     boolean enabled, boolean automatic, String message) {
         if (control) context.getInput().holdControl();
         try {
-            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+            if (control) {
+                // Fabric's TestInput.pressMouse sends modifiers=0 even when Ctrl is held.
+                // Send the SDL-style modified event through Minecraft's real mouse handler.
+                context.runOnClient(client -> {
+                    var click = new MouseButtonInfo(
+                            InputConstants.MOUSE_BUTTON_LEFT, InputConstants.MOD_CONTROL);
+                    client.mouseHandler.onButton(client.getWindow().handle(), click, 1);
+                    client.mouseHandler.onButton(client.getWindow().handle(), click, 0);
+                });
+            } else {
+                context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+            }
         } finally {
             if (control) context.getInput().releaseControl();
         }
