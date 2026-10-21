@@ -1,0 +1,49 @@
+name: Append verified Minecraft 1.21.10 asset
+on:
+  push:
+    branches: ["dory/1.21.10"]
+    paths: [".github/workflows/append-1.21.10.yml"]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  append:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dory/1.21.10'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Verify pinned successful test run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${{ github.repository }}/actions/runs/39585368531 > /tmp/verified-run.json
+          jq -e '.conclusion == "success" and .head_sha == "cb89c01014bb2cecdb6f15c74da9da0ef1726cdf"' /tmp/verified-run.json
+          gh release view 'v4.1.0' --repo '${{ github.repository }}'
+      - uses: actions/checkout@v4
+        with:
+          ref: cb89c01014bb2cecdb6f15c74da9da0ef1726cdf
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Rebuild pinned tested Chain source
+        run: |
+          chmod +x gradlew
+          ./gradlew build runGameTest --no-daemon
+          mkdir release
+          cp 'build/libs/ChainVeinFabric-4.1.0-backport.2-1.21.10.jar' release/
+      - name: Append only the expected production asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(find release -type f | wc -l)" -eq 1
+          test -f 'release/ChainVeinFabric-4.1.0-backport.2-1.21.10.jar'
+          sha256sum 'release/ChainVeinFabric-4.1.0-backport.2-1.21.10.jar'
+          # No clobber: preserve every existing release asset and its metadata.
+          gh release upload 'v4.1.0' 'release/ChainVeinFabric-4.1.0-backport.2-1.21.10.jar' --repo '${{ github.repository }}'
+
