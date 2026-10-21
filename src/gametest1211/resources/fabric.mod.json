@@ -13,7 +13,7 @@
   "depends": {
     "fabricloader": "*",
     "fabric-api": "*",
-    "minecraft": "1.21.1",
+    "minecraft": "1.21.10",
     "chainveinfabric": "*"
   },
   "mixins": [

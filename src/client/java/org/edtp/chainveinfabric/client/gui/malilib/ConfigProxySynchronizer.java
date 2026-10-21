@@ -1,4 +1,7 @@
 package org.edtp.chainveinfabric.client.gui.malilib;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 
 import fi.dy.masa.malilib.config.options.ConfigBase;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;

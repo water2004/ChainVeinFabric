@@ -7,6 +7,9 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import fi.dy.masa.malilib.event.InputEventHandler;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -501,7 +504,7 @@ public class GuiChainVein extends GuiConfigsBase {
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
-            if (this.searchBar != null) this.searchBar.render(mouseX, mouseY, false, ctx);
+            if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
 
             if (this.basicLayout != null && !this.basicLayout.singlePane) {
                 this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.basicLayout.leftList.x, this.basicLayout.titleY, 0xFFFFFF);
@@ -514,8 +517,8 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawButtonHoverTexts(int mouseX, int mouseY, float partialTicks, GuiGraphics ctx) {
-        super.drawButtonHoverTexts(mouseX, mouseY, partialTicks, ctx);
+    protected void drawButtonHoverTexts(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
+        super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
         this.renderOpenDropdowns(ctx, mouseX, mouseY);
     }
 
@@ -529,23 +532,24 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
-        this.controlClick = Screen.hasControlDown();
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
+        int mouseX = (int) click.x(), mouseY = (int) click.y(), mouseButton = click.button();
+        this.controlClick = (click.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL) != 0;
         try {
             for (OverlayDropdown<?> dd : this.activeDropdowns) {
                 if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
                     if (dd.isMouseOver(mouseX, mouseY)) {
-                        return dd.onMouseClicked(mouseX, mouseY, mouseButton);
+                        return dd.onMouseClicked(click, doubleClick);
                     }
                 }
             }
-            if (super.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+            if (super.onMouseClicked(click, doubleClick)) return true;
             if (currentTab == Tab.BASIC) {
-                if (this.searchBar != null && this.searchBar.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
-                if (this.leftList != null && this.leftList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
-                if (this.rightList != null && this.rightList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+                if (this.searchBar != null && this.searchBar.onMouseClicked(click, doubleClick)) return true;
+                if (this.leftList != null && this.leftList.onMouseClicked(click, doubleClick)) return true;
+                if (this.rightList != null && this.rightList.onMouseClicked(click, doubleClick)) return true;
             } else if (currentTab == Tab.PRESETS) {
-                if (this.presetList != null && this.presetList.onMouseClicked(mouseX, mouseY, mouseButton)) return true;
+                if (this.presetList != null && this.presetList.onMouseClicked(click, doubleClick)) return true;
             }
             return false;
         } finally {
@@ -554,19 +558,21 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public boolean onMouseReleased(int mouseX, int mouseY, int mouseButton) {
-        if (super.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
+    public boolean onMouseReleased(MouseButtonEvent click) {
+        int mouseX = (int) click.x(), mouseY = (int) click.y(), mouseButton = click.button();
+        if (super.onMouseReleased(click)) return true;
         if (currentTab == Tab.BASIC) {
-            if (this.leftList != null && this.leftList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
-            if (this.rightList != null && this.rightList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
+            if (this.leftList != null && this.leftList.onMouseReleased(click)) return true;
+            if (this.rightList != null && this.rightList.onMouseReleased(click)) return true;
         } else if (currentTab == Tab.PRESETS) {
-            if (this.presetList != null && this.presetList.onMouseReleased(mouseX, mouseY, mouseButton)) return true;
+            if (this.presetList != null && this.presetList.onMouseReleased(click)) return true;
         }
         return false;
     }
 
     @Override
-    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean onMouseScrolled(double mouseXIn, double mouseYIn, double horizontalAmount, double verticalAmount) {
+        int mouseX = (int) mouseXIn, mouseY = (int) mouseYIn;
         for (OverlayDropdown<?> dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
                 if (dd.isMouseOver(mouseX, mouseY)) {
@@ -585,29 +591,31 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onKeyTyped(keyCode, scanCode, modifiers)) return true;
+    public boolean onKeyTyped(KeyEvent keyEvent) {
+        int keyCode = keyEvent.key(), scanCode = keyEvent.scancode(), modifiers = keyEvent.modifiers();
+        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onKeyTyped(keyEvent)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
-            if (this.searchBar.onKeyTyped(keyCode, scanCode, modifiers)) {
+            if (this.searchBar.onKeyTyped(keyEvent)) {
                 this.refreshLists();
                 return true;
             }
         } else if (currentTab == Tab.PRESETS && this.presetList != null) {
-            if (this.presetList.onKeyTyped(keyCode, scanCode, modifiers)) return true;
+            if (this.presetList.onKeyTyped(keyEvent)) return true;
         }
         return false;
     }
 
     @Override
-    public boolean onCharTyped(char charIn, int modifiers) {
-        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onCharTyped(charIn, modifiers)) return true;
+    public boolean onCharTyped(CharacterEvent characterEvent) {
+        char charIn = (char) characterEvent.codepoint(); int modifiers = characterEvent.modifiers();
+        if ((currentTab == Tab.SETTINGS || currentTab == Tab.HOTKEYS) && super.onCharTyped(characterEvent)) return true;
         if (currentTab == Tab.BASIC && this.searchBar != null) {
-            if (this.searchBar.onCharTyped(charIn, modifiers)) {
+            if (this.searchBar.onCharTyped(characterEvent)) {
                 this.refreshLists();
                 return true;
             }
         } else if (currentTab == Tab.PRESETS && this.presetList != null) {
-            if (this.presetList.onCharTyped(charIn, modifiers)) return true;
+            if (this.presetList.onCharTyped(characterEvent)) return true;
         }
         return false;
     }
@@ -771,7 +779,7 @@ public class GuiChainVein extends GuiConfigsBase {
             ResourceLocation identifier = ResourceLocation.tryParse(id);
             if (identifier == null) continue;
 
-            Item item = BuiltInRegistries.ITEM.get(identifier);
+            Item item = BuiltInRegistries.ITEM.getValue(identifier);
             if (item != null && item != Items.AIR) list.add(new ItemStack(item));
         }
         return list;

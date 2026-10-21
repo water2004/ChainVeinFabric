@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version '1.17.1'
+    id 'net.fabricmc.fabric-loom-remap' version '1.17.20'
     id 'maven-publish'
 }
 
@@ -26,6 +26,7 @@ loom {
 }
 
 repositories {
+    maven { url = 'https://api.modrinth.com/maven' }
     maven {url = "https://masa.dy.fi/maven/sakura-ryoko"
         content {includeGroupAndSubgroups("fi.dy.masa")}
     }
@@ -42,8 +43,8 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    modImplementation "fi.dy.masa.malilib:malilib-fabric-1.21:${project.malilib_version}"
-    modCompileOnly "fi.dy.masa.litematica:litematica-fabric-1.21:${project.litematica_version}"
+    modImplementation "maven.modrinth:malilib:${project.malilib_version}"
+    modCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
     modCompileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
@@ -143,6 +144,7 @@ publishing {
 
     // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
+    maven { url = 'https://api.modrinth.com/maven' }
         // Add repositories to publish to here.
         // Notice: This block does NOT have the same function as the block in the top level.
         // The repositories here will be used for publishing your artifact, not for

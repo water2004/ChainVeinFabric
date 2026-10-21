@@ -1,4 +1,7 @@
 package org.edtp.chainveinfabric.client.gui.malilib;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;

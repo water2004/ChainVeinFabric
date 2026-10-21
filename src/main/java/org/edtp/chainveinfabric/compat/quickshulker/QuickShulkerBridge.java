@@ -34,7 +34,7 @@ final class QuickShulkerBridge {
     private static List<LegacyTarget> findTargets(ServerPlayer player) {
         Inventory inventory = player.getInventory();
         List<LegacyTarget> targets = new ArrayList<>();
-        int size = inventory.items.size();
+        int size = inventory.getNonEquipmentItems().size();
         for (int slot = 0; slot < size; slot++) {
             ItemStack host = inventory.getItem(slot);
             if (!isShulkerBox(host)) continue;
