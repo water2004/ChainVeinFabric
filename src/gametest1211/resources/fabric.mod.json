@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "chainveinfabric-gametest",
   "version": "1.0.0",
-  "name": "ChainVeinFabric 1.21.1 Game Tests",
+  "name": "ChainVeinFabric 1.21.2 Game Tests",
   "environment": "*",
   "entrypoints": {
     "fabric-gametest": [
@@ -13,7 +13,7 @@
   "depends": {
     "fabricloader": "*",
     "fabric-api": "*",
-    "minecraft": "1.21.1",
+    "minecraft": "1.21.2",
     "chainveinfabric": "*"
   },
   "mixins": [

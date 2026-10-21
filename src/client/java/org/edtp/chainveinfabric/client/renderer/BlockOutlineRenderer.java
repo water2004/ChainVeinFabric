@@ -39,7 +39,7 @@ public class BlockOutlineRenderer implements IRenderer {
 
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         RenderSystem.lineWidth(LINE_WIDTH);
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.setShader(net.minecraft.client.renderer.CoreShaders.POSITION_COLOR);
         RenderUtils.setupBlend();
         RenderSystem.disableDepthTest();
 
