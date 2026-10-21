@@ -48,7 +48,17 @@ jobs:
           jars=[p for p in Path("build/libs").glob("*.jar") if not any(part in p.name for part in ["-sources","-dev","audit","smoke"])]
           assert len(jars)==1,jars
           path=jars[0]
-          assert fingerprint(path)=="725b8ae71595ae0fedb7ec2a4149de22172d79074bc7be2b3602c75df6d1051a", "Build differs from locally exercised production"
+          if fingerprint(path)!="725b8ae71595ae0fedb7ec2a4149de22172d79074bc7be2b3602c75df6d1051a":
+              with zipfile.ZipFile(path) as archive:
+                  rows={}
+                  for entry in sorted(n for n in archive.namelist() if not n.endswith("/")):
+                      data=archive.read(entry)
+                      if entry=="META-INF/MANIFEST.MF":data=("\n".join(sorted(line for line in data.decode().splitlines() if line))+"\n").encode()
+                      rows[entry]=hashlib.sha256(data).hexdigest()
+                  print("VERIFY_ENTRIES "+json.dumps(rows),flush=True)
+                  print("VERIFY_MANIFEST "+json.dumps(archive.read("META-INF/MANIFEST.MF").decode()),flush=True)
+              raise AssertionError("Build differs from locally exercised production")
+
           name="ChainVeinFabric-4.1.2+1.21.10.jar"
           release=api("/releases/411959495")
           assert release["tag_name"]=="v4.1.2" and not release["draft"]
