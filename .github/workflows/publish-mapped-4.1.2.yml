@@ -56,7 +56,9 @@ jobs:
                       if entry=="META-INF/MANIFEST.MF":data=("\n".join(sorted(line for line in data.decode().splitlines() if line))+"\n").encode()
                       rows[entry]=hashlib.sha256(data).hexdigest()
                   print("VERIFY_ENTRIES "+json.dumps(rows),flush=True)
-                  print("VERIFY_MANIFEST "+json.dumps(archive.read("META-INF/MANIFEST.MF").decode()),flush=True)
+                  import base64
+                  for entry in ["org/edtp/chainveinfabric/client/gui/malilib/GuiChainVein$1.class","org/edtp/chainveinfabric/client/gui/malilib/GuiChainVein$2.class","org/edtp/chainveinfabric/client/gui/malilib/PresetListWidget$PresetEntryWidget$1.class"]:
+                      print("VERIFY_CLASS "+json.dumps({"name":entry,"base64":base64.b64encode(archive.read(entry)).decode()}),flush=True)
               raise AssertionError("Build differs from locally exercised production")
 
           name="ChainVeinFabric-4.1.2+1.21.10.jar"
