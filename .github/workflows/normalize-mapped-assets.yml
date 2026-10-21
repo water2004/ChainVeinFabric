@@ -27,5 +27,12 @@ jobs:
           if asset["name"] != "ChainVeinFabric-4.1.0+1.21.10.jar":
               asset=api("/releases/assets/662183060", {"name":"ChainVeinFabric-4.1.0+1.21.10.jar"})
           assert asset["name"] == "ChainVeinFabric-4.1.0+1.21.10.jar" and asset["digest"] == "sha256:c7ffaf7cee609e29ee05b9c3f3bd117089d979aec65be20da3dfb5e893fd226d"
+          release=api("/releases/382907789")
+          assert release["tag_name"] == "v4.1.0"
+          marker="<!-- mapped-1.21.10-download -->"
+          original=release.get("body") or ""
+          note="## Minecraft 1.21.10 download\n\n- Fabric / Java 21: `ChainVeinFabric-4.1.0+1.21.10.jar`\n- Artifact filenames use `mod-version+minecraft.jar`.\n"
+          if marker not in original:
+              api("/releases/382907789", {"body":original.rstrip()+"\n\n"+marker+"\n"+note})
           print(asset["browser_download_url"])
           PY
