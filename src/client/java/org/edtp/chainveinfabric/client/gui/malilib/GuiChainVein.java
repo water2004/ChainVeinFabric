@@ -31,6 +31,7 @@ import fi.dy.masa.malilib.util.StringUtils;
 import java.util.*;
 
 import static org.edtp.chainveinfabric.client.gui.malilib.GuiChainVeinLayout.BASIC_BODY_MAX_WIDTH;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 import static org.edtp.chainveinfabric.client.gui.malilib.GuiChainVeinLayout.CONTROL_HEIGHT;
 import static org.edtp.chainveinfabric.client.gui.malilib.GuiChainVeinLayout.PAGE_MARGIN;
 
@@ -289,7 +290,7 @@ public class GuiChainVein extends GuiConfigsBase {
         ButtonGeneric toggleBtn = new ButtonGeneric(toggle.x, toggle.y, toggle.width, toggle.height, getToggleString());
         this.updateAutoToggleTooltip(toggleBtn);
         this.addButton(toggleBtn, (button, mb) -> {
-            if (mb == 0 && ChainveinfabricClient.isAutoMiningArmed()) {
+            if (mb == GLFW_MOUSE_BUTTON_LEFT && ChainveinfabricClient.isAutoMiningArmed()) {
                 ChainveinfabricClient.disarmAutoMining();
                 ChainveinfabricClient.CONFIG.isChainVeinEnabled = false;
                 ChainveinfabricClient.CONFIG.save();
@@ -298,7 +299,7 @@ public class GuiChainVein extends GuiConfigsBase {
                 return;
             }
 
-            if (mb == 0 && this.controlClick
+            if (mb == GLFW_MOUSE_BUTTON_LEFT && this.controlClick
                     && ChainveinfabricClient.CONFIG.mode.isMiningMode()) {
                 ChainveinfabricClient.toggleAutoMining();
                 ChainveinfabricClient.CONFIG.save();

@@ -80,7 +80,7 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
 
         @Override
         public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
-            if (mouseButton == 0) {
+            if (mouseButton == org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) {
                 widget.parent.onButtonAction(widget.entry, widget.isWhitelist);
             }
         }
