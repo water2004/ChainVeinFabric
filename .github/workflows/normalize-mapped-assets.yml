@@ -1,0 +1,31 @@
+name: Normalize mapped release filenames
+on:
+  push:
+    branches: ["dory/1.21.10"]
+    paths: [".github/workflows/normalize-mapped-assets.yml"]
+permissions:
+  contents: write
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rename the existing tested artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          base = "https://api.github.com/repos/water2004/ChainVeinFabric"
+          headers = {"Authorization":"Bearer "+os.environ["GH_TOKEN"], "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"}
+          def api(path, data=None):
+              req=urllib.request.Request(base+path, data=None if data is None else json.dumps(data).encode(), headers=headers, method="GET" if data is None else "PATCH")
+              with urllib.request.urlopen(req, timeout=60) as r: return json.load(r)
+          asset=api("/releases/assets/662183060")
+          assert asset["name"] in ["ChainVeinFabric-4.1.0-backport.2-1.21.10.jar","ChainVeinFabric-4.1.0+1.21.10.jar"]
+          assert asset["digest"] == "sha256:c7ffaf7cee609e29ee05b9c3f3bd117089d979aec65be20da3dfb5e893fd226d"
+          assert asset["size"] == 568170
+          if asset["name"] != "ChainVeinFabric-4.1.0+1.21.10.jar":
+              asset=api("/releases/assets/662183060", {"name":"ChainVeinFabric-4.1.0+1.21.10.jar"})
+          assert asset["name"] == "ChainVeinFabric-4.1.0+1.21.10.jar" and asset["digest"] == "sha256:c7ffaf7cee609e29ee05b9c3f3bd117089d979aec65be20da3dfb5e893fd226d"
+          print(asset["browser_download_url"])
+          PY
