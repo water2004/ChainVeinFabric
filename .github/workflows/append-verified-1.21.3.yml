@@ -1,0 +1,39 @@
+name: Append verified MC 1.21.3 asset
+on:
+  push:
+    branches: ["dory/1.21.3"]
+    paths: [".github/workflows/append-verified-1.21.3.yml", ".github/verified-assets/1.21.3.json"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: append-verified-mapped-release
+  cancel-in-progress: false
+jobs:
+  append:
+    if: github.ref == 'refs/heads/dory/1.21.3'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ac52f22e4632135ce6b3e7aad956abf7c338a37c
+          path: .ci/pinned
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build the pinned passing source
+        working-directory: .ci/pinned
+        run: |
+          chmod +x gradlew
+          ./gradlew test remapJar --no-daemon --stacktrace
+      - name: Check every class and resource, then append the canonical asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_ASSET_CONFIG: .github/verified-assets/1.21.3.json
+        run: python .github/scripts/append_verified_release_asset.py
