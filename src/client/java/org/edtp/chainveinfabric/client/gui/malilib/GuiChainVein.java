@@ -771,7 +771,7 @@ public class GuiChainVein extends GuiConfigsBase {
             ResourceLocation identifier = ResourceLocation.tryParse(id);
             if (identifier == null) continue;
 
-            Item item = BuiltInRegistries.ITEM.get(identifier);
+            Item item = BuiltInRegistries.ITEM.getValue(identifier);
             if (item != null && item != Items.AIR) list.add(new ItemStack(item));
         }
         return list;

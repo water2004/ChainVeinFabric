@@ -2,10 +2,9 @@ package org.edtp.chainveinfabric;
 
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
-import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.gametest.framework.GameTest;
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
@@ -29,8 +28,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public final class ChainVeinServerGameTests implements FabricGameTest {
-    @GameTest(template = "chainveinfabric-gametest:empty")
+public final class ChainVeinServerGameTests {
+    @GameTest
     public void schedulerProcessesThenReplacesAndKeepsFirstPacketPerTick(
             GameTestHelper helper) {
         List<BlockPos> original = List.of(
@@ -59,12 +58,12 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
                     player,
                     original.stream().map(helper::absolutePos).toList(),
                     false,
-                    false), "The first packet in a tick should be accepted");
+                    false), net.minecraft.network.chat.Component.literal("The first packet in a tick should be accepted"));
             helper.assertFalse(ChainVeinServerScheduler.submitMine(
                     player,
                     List.of(helper.absolutePos(ignoredInitial)),
                     false,
-                    false), "A second packet from the same player and tick must be ignored");
+                    false), net.minecraft.network.chat.Component.literal("A second packet from the same player and tick must be ignored"));
 
             ChainVeinServerScheduler.runEndTickForTests(
                     helper.getLevel().getServer());
@@ -76,12 +75,12 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
                     player,
                     firstReplacement.stream().map(helper::absolutePos).toList(),
                     false,
-                    false), "The first packet in the next tick should be accepted");
+                    false), net.minecraft.network.chat.Component.literal("The first packet in the next tick should be accepted"));
             helper.assertFalse(ChainVeinServerScheduler.submitMine(
                     player,
                     List.of(helper.absolutePos(ignoredReplacement)),
                     false,
-                    false), "Only the first replacement packet should be retained");
+                    false), net.minecraft.network.chat.Component.literal("Only the first replacement packet should be retained"));
 
             ChainVeinServerScheduler.runEndTickForTests(
                     helper.getLevel().getServer());
@@ -108,7 +107,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void serverMiningHasNoPlayerDistanceLimit(GameTestHelper helper) {
         BlockPos target = new BlockPos(1, 1, 1);
         helper.setBlock(target, Blocks.DIRT);
@@ -127,7 +126,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void directPickupOnlyCapturesDropsInsideConfiguredRadius(GameTestHelper helper) {
         BlockPos near = new BlockPos(1, 1, 1);
         BlockPos far = new BlockPos(5, 1, 1);
@@ -147,14 +146,13 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
             ChainVeinServerConfig.setPickupRadius(previous);
         }
 
-        helper.assertValueEqual(countItem(player, Items.DIRT), 1,
-                "Only the near drop should enter inventory or Quick Shulker handling");
+        helper.assertValueEqual(countItem(player, Items.DIRT), 1, net.minecraft.network.chat.Component.literal("Only the near drop should enter inventory or Quick Shulker handling"));
         helper.assertItemEntityNotPresent(Items.DIRT, near, 1.5);
         helper.assertItemEntityPresent(Items.DIRT, far, 1.5);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void chainInteractionUsesVanillaBlockInteractionRange(GameTestHelper helper) {
         BlockPos near = new BlockPos(1, 1, 1);
         BlockPos far = new BlockPos(5, 1, 1);
@@ -173,7 +171,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void chainInteractionFollowsExpandedServerRange(GameTestHelper helper) {
         BlockPos target = new BlockPos(1, 1, 1);
         helper.setBlock(target, Blocks.FARMLAND);
@@ -189,7 +187,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void miningIceWithoutSilkTouchLeavesWater(GameTestHelper helper) {
         BlockPos vanillaTarget = new BlockPos(1, 2, 1);
         List<BlockPos> chainTargets = List.of(
@@ -211,8 +209,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
 
         // First establish that water can exist here and the unenchanted tool
         // produces vanilla's expected ice-to-water result.
-        helper.assertTrue(player.gameMode.destroyBlock(helper.absolutePos(vanillaTarget)),
-                "Vanilla control ice should be breakable");
+        helper.assertTrue(player.gameMode.destroyBlock(helper.absolutePos(vanillaTarget)), net.minecraft.network.chat.Component.literal("Vanilla control ice should be breakable"));
         helper.assertBlockPresent(Blocks.WATER, vanillaTarget);
 
         Chainveinfabric.handleMine(
@@ -227,7 +224,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void directMiningPreservesContainerContents(GameTestHelper helper) {
         List<BlockPos> targets = List.of(
                 new BlockPos(1, 2, 1),
@@ -258,19 +255,16 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         for (BlockPos target : targets) {
             helper.assertBlockNotPresent(Blocks.CHEST, target);
         }
-        helper.assertValueEqual(countItem(player, Items.CHEST), targets.size(),
-                "Every mined chest should enter the inventory exactly once");
-        helper.assertValueEqual(countItem(player, Items.DIAMOND), 7,
-                "The first chest's contents should be preserved exactly");
-        helper.assertValueEqual(countItem(player, Items.STICK), 19,
-                "The second chest's contents should be preserved exactly");
+        helper.assertValueEqual(countItem(player, Items.CHEST), targets.size(), net.minecraft.network.chat.Component.literal("Every mined chest should enter the inventory exactly once"));
+        helper.assertValueEqual(countItem(player, Items.DIAMOND), 7, net.minecraft.network.chat.Component.literal("The first chest's contents should be preserved exactly"));
+        helper.assertValueEqual(countItem(player, Items.STICK), 19, net.minecraft.network.chat.Component.literal("The second chest's contents should be preserved exactly"));
         helper.assertItemEntityNotPresent(Items.CHEST);
         helper.assertItemEntityNotPresent(Items.DIAMOND);
         helper.assertItemEntityNotPresent(Items.STICK);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void directMiningCollectsEveryDrop(GameTestHelper helper) {
         List<BlockPos> relativeTargets = List.of(
                 new BlockPos(1, 1, 1),
@@ -290,12 +284,10 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
         Vec3 center = Vec3.atCenterOf(absoluteTargets.getFirst());
         // Position the fixture directly without emitting teleport packets.
         player.setPosRaw(center.x, center.y + 1.0, center.z);
-        helper.assertTrue(player.getMainHandItem().getItem() == Items.DIAMOND_SHOVEL,
-                "Player should hold the configured shovel");
-        helper.assertFalse(player.isCreative(), "Mock player should use survival drop rules");
+        helper.assertTrue(player.getMainHandItem().getItem() == Items.DIAMOND_SHOVEL, net.minecraft.network.chat.Component.literal("Player should hold the configured shovel"));
+        helper.assertFalse(player.isCreative(), net.minecraft.network.chat.Component.literal("Mock player should use survival drop rules"));
         helper.assertTrue(player.hasCorrectToolForDrops(
-                        helper.getLevel().getBlockState(absoluteTargets.getFirst())),
-                "Mock player should be able to harvest dirt");
+                        helper.getLevel().getBlockState(absoluteTargets.getFirst())), net.minecraft.network.chat.Component.literal("Mock player should be able to harvest dirt"));
 
         Chainveinfabric.handleMine(player, absoluteTargets, true, false);
 
@@ -303,13 +295,12 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
             helper.assertBlockNotPresent(Blocks.DIRT, target);
         }
         int dirt = countItem(player, Items.DIRT);
-        helper.assertValueEqual(dirt, relativeTargets.size(),
-                "Direct mining should insert every drop into the inventory");
+        helper.assertValueEqual(dirt, relativeTargets.size(), net.minecraft.network.chat.Component.literal("Direct mining should insert every drop into the inventory"));
         helper.assertItemEntityNotPresent(Items.DIRT);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void fullyCollectedLazyDropNeverConstructsItemEntity(GameTestHelper helper) {
         BlockPos origin = new BlockPos(2, 2, 2);
         ServerPlayer player = createSurvivalPlayer(
@@ -335,15 +326,13 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
                                             drop);
                                 })));
 
-        helper.assertValueEqual(entityConstructions.get(), 0,
-                "A fully collected lazy drop must not construct an ItemEntity");
-        helper.assertValueEqual(countItem(player, Items.DIRT), 17,
-                "Deferring entity construction must not change the collected count");
+        helper.assertValueEqual(entityConstructions.get(), 0, net.minecraft.network.chat.Component.literal("A fully collected lazy drop must not construct an ItemEntity"));
+        helper.assertValueEqual(countItem(player, Items.DIRT), 17, net.minecraft.network.chat.Component.literal("Deferring entity construction must not change the collected count"));
         helper.assertItemEntityNotPresent(Items.DIRT);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void itemFrameDropsUseEntityFallbackWithoutDuplication(
             GameTestHelper helper) {
         BlockPos framePosition = new BlockPos(3, 2, 3);
@@ -356,25 +345,21 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
                 helper.absolutePos(framePosition),
                 Direction.SOUTH);
         frame.setItem(new ItemStack(Items.DIAMOND));
-        helper.assertTrue(helper.getLevel().addFreshEntity(frame),
-                "The item frame should be added to the test world");
+        helper.assertTrue(helper.getLevel().addFreshEntity(frame), net.minecraft.network.chat.Component.literal("The item frame should be added to the test world"));
 
         DirectDropCollector.run(player, false, 64, () -> {
-            boolean removedItem = frame.hurt(
+            boolean removedItem = frame.hurtServer(helper.getLevel(),
                     player.damageSources().playerAttack(player),
                     1.0F);
-            boolean removedFrame = frame.hurt(
+            boolean removedFrame = frame.hurtServer(helper.getLevel(),
                     player.damageSources().playerAttack(player),
                     1.0F);
             return removedItem && removedFrame;
         });
 
-        helper.assertTrue(frame.isRemoved(),
-                "The second hit should remove the empty item frame");
-        helper.assertValueEqual(countItem(player, Items.DIAMOND), 1,
-                "The displayed item must be collected exactly once");
-        helper.assertValueEqual(countItem(player, Items.ITEM_FRAME), 1,
-                "The frame item must be collected exactly once");
+        helper.assertTrue(frame.isRemoved(), net.minecraft.network.chat.Component.literal("The second hit should remove the empty item frame"));
+        helper.assertValueEqual(countItem(player, Items.DIAMOND), 1, net.minecraft.network.chat.Component.literal("The displayed item must be collected exactly once"));
+        helper.assertValueEqual(countItem(player, Items.ITEM_FRAME), 1, net.minecraft.network.chat.Component.literal("The frame item must be collected exactly once"));
         helper.assertItemEntityNotPresent(Items.DIAMOND);
         helper.assertItemEntityNotPresent(Items.ITEM_FRAME);
         helper.succeed();
@@ -412,7 +397,7 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
     }
 
     private static int countItem(ServerPlayer player, Item item) {
-        return player.getInventory().items.stream()
+        return player.getInventory().getNonEquipmentItems().stream()
                 .filter(stack -> stack.getItem() == item)
                 .mapToInt(ItemStack::getCount)
                 .sum();

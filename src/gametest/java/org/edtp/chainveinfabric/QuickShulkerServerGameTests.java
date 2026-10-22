@@ -7,10 +7,9 @@ import java.util.UUID;
 
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
-import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.gametest.framework.GameTest;
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
@@ -32,14 +31,14 @@ import net.minecraft.world.phys.Vec3;
 import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import org.edtp.chainveinfabric.server.DirectDropCollector;
 
-public final class QuickShulkerServerGameTests implements FabricGameTest {
+public final class QuickShulkerServerGameTests {
     private static final int CONTAINER_SLOTS = 27;
     private static final int STACK_SIZE = 64;
     private static final int SHULKER_CAPACITY = CONTAINER_SLOTS * STACK_SIZE;
     private static final Item OVERFLOW_BOX_ITEM = Items.BLUE_SHULKER_BOX;
     private static final Item CONTAINED_BOX_ITEM = Items.RED_SHULKER_BOX;
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void filledShulkerFromChestRemainsIntactWhenItCannotBeNested(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -61,24 +60,20 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
 
         helper.assertBlockNotPresent(Blocks.CHEST, target);
         Container overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, CONTAINED_BOX_ITEM), 0,
-                "Quick Shulker must not nest a shulker box inside another shulker box");
+        helper.assertValueEqual(countItem(overflowInventory, CONTAINED_BOX_ITEM), 0, net.minecraft.network.chat.Component.literal("Quick Shulker must not nest a shulker box inside another shulker box"));
 
         ItemStack droppedBox = findGroundStack(helper, CONTAINED_BOX_ITEM);
-        helper.assertValueEqual(droppedBox.getCount(), 1,
-                "The non-nestable shulker box should remain as one ground item");
+        helper.assertValueEqual(droppedBox.getCount(), 1, net.minecraft.network.chat.Component.literal("The non-nestable shulker box should remain as one ground item"));
         helper.assertValueEqual(
-                countItem(getShulkerInventory(player, droppedBox), Items.EMERALD), 13,
-                "The dropped shulker box must retain its exact contents");
+                countItem(getShulkerInventory(player, droppedBox), Items.EMERALD), 13, net.minecraft.network.chat.Component.literal("The dropped shulker box must retain its exact contents"));
         helper.assertValueEqual(
                 countItem(overflowInventory, Items.CHEST)
                         + countGroundItems(helper, Items.CHEST),
-                1,
-                "The mined chest item must also be preserved");
+                1, net.minecraft.network.chat.Component.literal("The mined chest item must also be preserved"));
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void chestOverflowFitsCompletelyInsideCarriedShulker(GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
         BlockPos target = new BlockPos(2, 2, 2);
@@ -93,18 +88,14 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 player, List.of(helper.absolutePos(target)), true, true);
 
         Container overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 20 * STACK_SIZE,
-                "All chest contents should overflow into the carried shulker box");
-        helper.assertValueEqual(countItem(overflowInventory, Items.CHEST), 1,
-                "The mined chest should overflow into the carried shulker box too");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 0,
-                "No chest contents should remain on the ground when shulker capacity is sufficient");
-        helper.assertValueEqual(countGroundItems(helper, Items.CHEST), 0,
-                "The chest item should not remain on the ground when shulker capacity is sufficient");
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 20 * STACK_SIZE, net.minecraft.network.chat.Component.literal("All chest contents should overflow into the carried shulker box"));
+        helper.assertValueEqual(countItem(overflowInventory, Items.CHEST), 1, net.minecraft.network.chat.Component.literal("The mined chest should overflow into the carried shulker box too"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 0, net.minecraft.network.chat.Component.literal("No chest contents should remain on the ground when shulker capacity is sufficient"));
+        helper.assertValueEqual(countGroundItems(helper, Items.CHEST), 0, net.minecraft.network.chat.Component.literal("The chest item should not remain on the ground when shulker capacity is sufficient"));
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void excessBeyondInventoryAndShulkerCapacityRemainsOnGround(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -132,24 +123,19 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
         int storedChests = countItem(overflowInventory, Items.CHEST);
         int droppedChests = countGroundItems(helper, Items.CHEST);
 
-        helper.assertValueEqual(countItems(overflowInventory), SHULKER_CAPACITY,
-                "The carried shulker box should be filled to its exact capacity");
+        helper.assertValueEqual(countItems(overflowInventory), SHULKER_CAPACITY, net.minecraft.network.chat.Component.literal("The carried shulker box should be filled to its exact capacity"));
         helper.assertValueEqual(
                 storedDiamonds + droppedDiamonds,
-                targets.size() * CONTAINER_SLOTS * STACK_SIZE,
-                "All diamonds must be preserved across shulker storage and ground drops");
+                targets.size() * CONTAINER_SLOTS * STACK_SIZE, net.minecraft.network.chat.Component.literal("All diamonds must be preserved across shulker storage and ground drops"));
         helper.assertValueEqual(
                 storedChests + droppedChests,
-                targets.size(),
-                "Every mined chest item must be preserved when all storage is full");
-        helper.assertTrue(droppedDiamonds > 0,
-                "Diamonds beyond inventory and shulker capacity must remain on the ground");
-        helper.assertTrue(droppedChests > 0,
-                "Chest items beyond inventory and shulker capacity must remain on the ground");
+                targets.size(), net.minecraft.network.chat.Component.literal("Every mined chest item must be preserved when all storage is full"));
+        helper.assertTrue(droppedDiamonds > 0, net.minecraft.network.chat.Component.literal("Diamonds beyond inventory and shulker capacity must remain on the ground"));
+        helper.assertTrue(droppedChests > 0, net.minecraft.network.chat.Component.literal("Chest items beyond inventory and shulker capacity must remain on the ground"));
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void transactionalOverflowMergesStacksBeforeUsingEmptySlots(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -175,17 +161,14 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 true);
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.DIRT), 66,
-                "Compatible overflow should fill the existing stack before using an empty slot");
-        helper.assertValueEqual(countOccupiedSlots(overflowInventory, Items.DIRT), 2,
-                "Three mined blocks should occupy only the two required stack slots");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
-                "All overflow should fit in the resolved storage slots");
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIRT), 66, net.minecraft.network.chat.Component.literal("Compatible overflow should fill the existing stack before using an empty slot"));
+        helper.assertValueEqual(countOccupiedSlots(overflowInventory, Items.DIRT), 2, net.minecraft.network.chat.Component.literal("Three mined blocks should occupy only the two required stack slots"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0, net.minecraft.network.chat.Component.literal("All overflow should fit in the resolved storage slots"));
         for (BlockPos target : targets) helper.assertBlockNotPresent(Blocks.DIRT, target);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void everyPathFillsEarlierBoxBeforeLaterPartialStack(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -213,16 +196,13 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
 
         Container earlierInventory = getShulkerInventory(player, earlierEmptyBox);
         laterInventory = getShulkerInventory(player, laterMergeBox);
-        helper.assertValueEqual(countItem(earlierInventory, Items.DIRT), 2,
-                "Every path must preserve carried-box priority");
-        helper.assertValueEqual(countItem(laterInventory, Items.DIRT), 63,
-                "No path should prefer a later partial stack");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0,
-                "Both drops should fit in the earlier carried box");
+        helper.assertValueEqual(countItem(earlierInventory, Items.DIRT), 2, net.minecraft.network.chat.Component.literal("Every path must preserve carried-box priority"));
+        helper.assertValueEqual(countItem(laterInventory, Items.DIRT), 63, net.minecraft.network.chat.Component.literal("No path should prefer a later partial stack"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), 0, net.minecraft.network.chat.Component.literal("Both drops should fit in the earlier carried box"));
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void fullCarriedShulkerLeavesUnacceptedDropsInWorld(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -247,46 +227,37 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 true);
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.DIRT), 0,
-                "A full carried shulker must not overwrite existing contents");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), targets.size(),
-                "Every item that fits neither inventory nor shulker must spawn in the world");
-        helper.assertValueEqual(countItems(overflowInventory), SHULKER_CAPACITY,
-                "Rejected overflow must leave the full box unchanged");
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIRT), 0, net.minecraft.network.chat.Component.literal("A full carried shulker must not overwrite existing contents"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIRT), targets.size(), net.minecraft.network.chat.Component.literal("Every item that fits neither inventory nor shulker must spawn in the world"));
+        helper.assertValueEqual(countItems(overflowInventory), SHULKER_CAPACITY, net.minecraft.network.chat.Component.literal("Rejected overflow must leave the full box unchanged"));
         for (BlockPos target : targets) helper.assertBlockNotPresent(Blocks.DIRT, target);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void configuredQuickShulkerPathIsActuallyAvailable(GameTestHelper helper) {
         String mode = quickShulkerMode();
         if (mode.equals("none")) {
-            helper.assertTrue(!QuickShulkerIntegration.isAvailable(),
-                    "Quick Shulker integration must remain safely disabled when the mod is absent");
+            helper.assertTrue(!QuickShulkerIntegration.isAvailable(), net.minecraft.network.chat.Component.literal("Quick Shulker integration must remain safely disabled when the mod is absent"));
             ItemStack remainder = new ItemStack(Items.STONE, 7);
             ServerPlayer player = createPlayer(helper, new BlockPos(1, 1, 1));
-            helper.assertValueEqual(QuickShulkerIntegration.insertOverflow(player, remainder), 0,
-                    "Absent integration must not claim any items");
-            helper.assertValueEqual(remainder.getCount(), 7,
-                    "Absent integration must preserve the complete remainder");
+            helper.assertValueEqual(QuickShulkerIntegration.insertOverflow(player, remainder), 0, net.minecraft.network.chat.Component.literal("Absent integration must not claim any items"));
+            helper.assertValueEqual(remainder.getCount(), 7, net.minecraft.network.chat.Component.literal("Absent integration must preserve the complete remainder"));
             helper.succeed();
             return;
         }
 
-        helper.assertTrue(QuickShulkerIntegration.isAvailable(),
-                "Configured Quick Shulker integration should be available");
+        helper.assertTrue(QuickShulkerIntegration.isAvailable(), net.minecraft.network.chat.Component.literal("Configured Quick Shulker integration should be available"));
         String selectedPath = selectedPath();
-        helper.assertValueEqual(selectedPath, mode.equals("new") ? "DIRECT" : "LEGACY",
-                "The adapter selected the wrong Quick Shulker path");
+        helper.assertValueEqual(selectedPath, mode.equals("new") ? "DIRECT" : "LEGACY", net.minecraft.network.chat.Component.literal("The adapter selected the wrong Quick Shulker path"));
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void batchedTorchOverflowKeepsStackLimitAndOriginalDropPositions(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
-        helper.assertValueEqual(new ItemStack(Items.TORCH).getMaxStackSize(), 64,
-                "Torch should exercise the standard 64-item stack limit");
+        helper.assertValueEqual(new ItemStack(Items.TORCH).getMaxStackSize(), 64, net.minecraft.network.chat.Component.literal("Torch should exercise the standard 64-item stack limit"));
 
         List<BlockPos> targets = List.of(
                 new BlockPos(1, 2, 2),
@@ -312,19 +283,17 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 true);
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.TORCH), 64,
-                "Batched torch insertion must stop at the slot's stack limit");
+        helper.assertValueEqual(countItem(overflowInventory, Items.TORCH), 64, net.minecraft.network.chat.Component.literal("Batched torch insertion must stop at the slot's stack limit"));
         assertConsumedThenDroppedAtOriginalPositions(helper, Items.TORCH, targets);
         for (BlockPos target : targets) helper.assertBlockNotPresent(Blocks.TORCH, target);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void batchedEnderPearlOverflowKeepsSixteenItemStackLimitAndPositions(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
-        helper.assertValueEqual(new ItemStack(Items.ENDER_PEARL).getMaxStackSize(), 16,
-                "Ender pearls should exercise the 16-item stack limit");
+        helper.assertValueEqual(new ItemStack(Items.ENDER_PEARL).getMaxStackSize(), 16, net.minecraft.network.chat.Component.literal("Ender pearls should exercise the 16-item stack limit"));
 
         List<BlockPos> origins = List.of(
                 new BlockPos(1, 2, 2),
@@ -341,13 +310,12 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
         captureDropsAt(helper, player, origins, Items.ENDER_PEARL);
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.ENDER_PEARL), 16,
-                "Batched pearl insertion must stop at the 16-item stack limit");
+        helper.assertValueEqual(countItem(overflowInventory, Items.ENDER_PEARL), 16, net.minecraft.network.chat.Component.literal("Batched pearl insertion must stop at the 16-item stack limit"));
         assertConsumedThenDroppedAtOriginalPositions(helper, Items.ENDER_PEARL, origins);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void batchedTorchStacksKeepPartialCountsAtOriginalPositions(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -370,20 +338,18 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 new ItemStack(Items.TORCH, 9)));
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.TORCH), 64,
-                "The batched request should insert exactly the four available torches");
+        helper.assertValueEqual(countItem(overflowInventory, Items.TORCH), 64, net.minecraft.network.chat.Component.literal("The batched request should insert exactly the four available torches"));
         helper.assertItemEntityNotPresent(Items.TORCH, origins.get(0), 1.25);
         helper.assertItemEntityCountIs(Items.TORCH, origins.get(1), 1.25, 3);
         helper.assertItemEntityCountIs(Items.TORCH, origins.get(2), 1.25, 9);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void batchedUnstackableOverflowKeepsOneItemLimitAndPosition(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
-        helper.assertValueEqual(new ItemStack(Items.DIAMOND_PICKAXE).getMaxStackSize(), 1,
-                "Diamond pickaxes should exercise the unstackable-item limit");
+        helper.assertValueEqual(new ItemStack(Items.DIAMOND_PICKAXE).getMaxStackSize(), 1, net.minecraft.network.chat.Component.literal("Diamond pickaxes should exercise the unstackable-item limit"));
 
         List<BlockPos> origins = List.of(
                 new BlockPos(2, 2, 2),
@@ -399,16 +365,14 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
         captureDropsAt(helper, player, origins, Items.DIAMOND_PICKAXE);
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND_PICKAXE), 1,
-                "A batched unstackable item must occupy exactly one storage slot");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND_PICKAXE), 1,
-                "The second unstackable item must remain in the world");
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND_PICKAXE), 1, net.minecraft.network.chat.Component.literal("A batched unstackable item must occupy exactly one storage slot"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND_PICKAXE), 1, net.minecraft.network.chat.Component.literal("The second unstackable item must remain in the world"));
         helper.assertItemEntityNotPresent(Items.DIAMOND_PICKAXE, origins.get(0), 1.25);
         helper.assertItemEntityCountIs(Items.DIAMOND_PICKAXE, origins.get(1), 1.25, 1);
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void itemFrameDropsOverflowThroughEntityFallback(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -420,20 +384,15 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
         ItemFrame frame = breakDiamondItemFrame(helper, player, framePosition);
 
         Container overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertTrue(frame.isRemoved(),
-                "The item frame should be removed after its second hit");
-        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 1,
-                "The displayed item must overflow exactly once");
-        helper.assertValueEqual(countItem(overflowInventory, Items.ITEM_FRAME), 1,
-                "The frame item must overflow exactly once");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 0,
-                "A stored displayed item must not also remain in the world");
-        helper.assertValueEqual(countGroundItems(helper, Items.ITEM_FRAME), 0,
-                "A stored frame item must not also remain in the world");
+        helper.assertTrue(frame.isRemoved(), net.minecraft.network.chat.Component.literal("The item frame should be removed after its second hit"));
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 1, net.minecraft.network.chat.Component.literal("The displayed item must overflow exactly once"));
+        helper.assertValueEqual(countItem(overflowInventory, Items.ITEM_FRAME), 1, net.minecraft.network.chat.Component.literal("The frame item must overflow exactly once"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 0, net.minecraft.network.chat.Component.literal("A stored displayed item must not also remain in the world"));
+        helper.assertValueEqual(countGroundItems(helper, Items.ITEM_FRAME), 0, net.minecraft.network.chat.Component.literal("A stored frame item must not also remain in the world"));
         helper.succeed();
     }
 
-    @GameTest(template = "chainveinfabric-gametest:empty")
+    @GameTest
     public void fullShulkerLeavesItemFrameDropsInWorldThroughEntityFallback(
             GameTestHelper helper) {
         if (skipWithoutQuickShulker(helper)) return;
@@ -447,16 +406,11 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
         ItemFrame frame = breakDiamondItemFrame(helper, player, framePosition);
 
         overflowInventory = getShulkerInventory(player, overflowBox);
-        helper.assertTrue(frame.isRemoved(),
-                "The item frame should still be removed when storage is full");
-        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 0,
-                "A full shulker must not overwrite contents with the displayed item");
-        helper.assertValueEqual(countItem(overflowInventory, Items.ITEM_FRAME), 0,
-                "A full shulker must not overwrite contents with the frame item");
-        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 1,
-                "The rejected displayed item must remain in the world exactly once");
-        helper.assertValueEqual(countGroundItems(helper, Items.ITEM_FRAME), 1,
-                "The rejected frame item must remain in the world exactly once");
+        helper.assertTrue(frame.isRemoved(), net.minecraft.network.chat.Component.literal("The item frame should still be removed when storage is full"));
+        helper.assertValueEqual(countItem(overflowInventory, Items.DIAMOND), 0, net.minecraft.network.chat.Component.literal("A full shulker must not overwrite contents with the displayed item"));
+        helper.assertValueEqual(countItem(overflowInventory, Items.ITEM_FRAME), 0, net.minecraft.network.chat.Component.literal("A full shulker must not overwrite contents with the frame item"));
+        helper.assertValueEqual(countGroundItems(helper, Items.DIAMOND), 1, net.minecraft.network.chat.Component.literal("The rejected displayed item must remain in the world exactly once"));
+        helper.assertValueEqual(countGroundItems(helper, Items.ITEM_FRAME), 1, net.minecraft.network.chat.Component.literal("The rejected frame item must remain in the world exactly once"));
         helper.succeed();
     }
 
@@ -470,14 +424,13 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 helper.absolutePos(framePosition),
                 Direction.SOUTH);
         frame.setItem(new ItemStack(Items.DIAMOND));
-        helper.assertTrue(helper.getLevel().addFreshEntity(frame),
-                "The item frame should be added before drop capture starts");
+        helper.assertTrue(helper.getLevel().addFreshEntity(frame), net.minecraft.network.chat.Component.literal("The item frame should be added before drop capture starts"));
 
         DirectDropCollector.run(player, true, 64, () -> {
-            boolean removedItem = frame.hurt(
+            boolean removedItem = frame.hurtServer(helper.getLevel(),
                     player.damageSources().playerAttack(player),
                     1.0F);
-            boolean removedFrame = frame.hurt(
+            boolean removedFrame = frame.hurtServer(helper.getLevel(),
                     player.damageSources().playerAttack(player),
                     1.0F);
             return removedItem && removedFrame;
@@ -580,7 +533,7 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
 
     private static void fillPlayerInventory(ServerPlayer player, ItemStack overflowBox) {
         player.getInventory().clearContent();
-        player.getInventory().selected = 0;
+        player.getInventory().setSelectedSlot(0);
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             player.getInventory().setItem(slot, new ItemStack(Items.COBBLESTONE, STACK_SIZE));
         }

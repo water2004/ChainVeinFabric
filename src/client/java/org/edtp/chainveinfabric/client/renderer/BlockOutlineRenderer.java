@@ -2,20 +2,21 @@ package org.edtp.chainveinfabric.client.renderer;
 
 import java.util.function.Supplier;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.buffers.BufferUsage;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.FogParameters;
+import net.minecraft.client.renderer.RenderBuffers;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 import fi.dy.masa.malilib.interfaces.IRenderer;
+import fi.dy.masa.malilib.render.MaLiLibPipelines;
+import fi.dy.masa.malilib.render.RenderContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 
 public class BlockOutlineRenderer implements IRenderer {
@@ -33,38 +34,37 @@ public class BlockOutlineRenderer implements IRenderer {
     }
 
     @Override
-    public void onRenderWorldLast(Matrix4f posMatrix, Matrix4f projMatrix) {
+    public void onRenderWorldLastAdvanced(RenderTarget fb, Matrix4f posMatrix, Matrix4f projMatrix,
+                                          Frustum frustum, Camera camera, FogParameters fog, RenderBuffers buffers,
+                                          ProfilerFiller profiler) {
         OutlineData data = this.worker.getCurrentData();
         if (data == null || data.lines().isEmpty()) return;
 
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        RenderSystem.lineWidth(LINE_WIDTH);
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderUtils.setupBlend();
-        RenderSystem.disableDepthTest();
+        try (RenderContext ctx = new RenderContext(
+                () -> "chainveinfabric:block_outlines",
+                MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_NO_DEPTH_NO_CULL,
+                BufferUsage.STATIC_WRITE)) {
 
-        Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-
-        try {
-            Vec3 camPos = camera.getPosition();
+            ctx.lineWidth(LINE_WIDTH);
+            BufferBuilder buffer = ctx.getBuilder();
+            Vec3 camPos = RenderUtils.camPos();
             float cx = (float) camPos.x;
             float cy = (float) camPos.y;
             float cz = (float) camPos.z;
 
             for (LineSegment segment : data.lines()) {
                 buffer.addVertex(segment.x1() - cx, segment.y1() - cy, segment.z1() - cz)
-                        .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a);
+                    .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a);
                 buffer.addVertex(segment.x2() - cx, segment.y2() - cy, segment.z2() - cz)
-                        .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a);
+                    .setColor(segment.color().r, segment.color().g, segment.color().b, segment.color().a);
             }
 
-            MeshData meshData = buffer.buildOrThrow();
-            BufferUploader.drawWithShader(meshData);
+            MeshData meshData = buffer.build();
+            if (meshData != null) {
+                ctx.draw(meshData, false, true);
+                meshData.close();
+            }
         } catch (Exception ignored) {
-        } finally {
-            RenderSystem.enableDepthTest();
-            RenderSystem.disableBlend();
         }
     }
 }

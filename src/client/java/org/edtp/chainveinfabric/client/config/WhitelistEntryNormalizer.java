@@ -17,12 +17,12 @@ final class WhitelistEntryNormalizer {
         ResourceLocation identifier = ResourceLocation.tryParse(entry);
         if (identifier == null) return null;
 
-        Item item = BuiltInRegistries.ITEM.get(identifier);
+        Item item = BuiltInRegistries.ITEM.getValue(identifier);
         if (item != Items.AIR && BuiltInRegistries.ITEM.getKey(item).equals(identifier)) {
             return identifier.toString();
         }
 
-        Block block = BuiltInRegistries.BLOCK.get(identifier);
+        Block block = BuiltInRegistries.BLOCK.getValue(identifier);
         return getWhitelistItemId(block);
     }
 
