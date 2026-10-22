@@ -1,0 +1,15 @@
+{
+  "minecraft": "1.21.9",
+  "repository": "water2004/ChainVeinFabric",
+  "release": 382907789,
+  "source": "be1d4565fc46d8fa046ca216630bf5e4ca0c7042",
+  "run": 39735830950,
+  "jar": "build/libs/ChainVeinFabric-4.1.0-backport.2-1.21.9.jar",
+  "name": "ChainVeinFabric-4.1.0+1.21.9.jar",
+  "normalizeLF": [],
+  "classes": 135,
+  "fingerprint": "91c203a0a17ca595973e146faf8dfdb81d14385932b12c2ef6c47743c65e54a7",
+  "notes": "## Minecraft 1.21.9 mapped build \u2014 known printer packet-loss failure\n\n`ChainVeinFabric-4.1.0+1.21.9.jar` \u2014 Fabric / Java 21.\n\n**The unchanged-upstream Printer 1.1.3 combination failed the strict 15% bidirectional-loss test with Servux hand confirmation enabled: 4 wrong server blocks.** Material totals remained conserved and the direct API did not remain busy. This failed check remains a known limitation; it is not counted as a passing acceptance result. The experimental prediction change is not included.\n\nOrdinary production survival clients, genuine v3/v4 and vanilla/Fabric TCP clients, companion unit/server cases and both released bedrock miners passed. The source preserves upstream placement behavior. Further ghost-support investigation is deferred.\n\nSource: [be1d456](https://github.com/water2004/ChainVeinFabric/tree/be1d4565fc46d8fa046ca216630bf5e4ca0c7042). [Compilation and applicable CI checks](https://github.com/water2004/ChainVeinFabric/actions/runs/39735830950).",
+  "validationStatus": "PARTIAL_KNOWN_PRINTER_LOSS_FAILURE",
+  "knownPrinterWrongBlocks": 4
+}

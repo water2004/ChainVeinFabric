@@ -1,0 +1,58 @@
+name: Append fingerprint-checked remaining mapped builds
+on:
+  push:
+    branches: ["dory/1.21.5"]
+    paths: [".github/workflows/append-verified-remaining.yml", ".github/verified-assets/1.21.[5-9].json"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: append-verified-mapped-release
+  cancel-in-progress: false
+jobs:
+  append:
+    if: github.ref == 'refs/heads/dory/1.21.5'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        minecraft: ["1.21.5", "1.21.6", "1.21.7", "1.21.8", "1.21.9"]
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select the exact passing source commit
+        id: config
+        env:
+          MINECRAFT: ${{ matrix.minecraft }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          config = json.loads((Path('.github/verified-assets') / (os.environ['MINECRAFT'] + '.json')).read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('source=' + config['source'] + '\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.config.outputs.source }}
+          path: .ci/pinned
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build the pinned tested source
+        working-directory: .ci/pinned
+        env:
+          MINECRAFT: ${{ matrix.minecraft }}
+        run: |
+          chmod +x gradlew
+          ./gradlew test remapJar --no-daemon --max-workers=2 --stacktrace
+      - name: Compare every class and resource, then append only the canonical file
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_ASSET_CONFIG: .github/verified-assets/${{ matrix.minecraft }}.json
+        run: python .github/scripts/append_verified_release_asset.py
