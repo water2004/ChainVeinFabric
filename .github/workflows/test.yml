@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - "1.21.1"
+      - "dory/1.21.4"
   pull_request:
 
 permissions:
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
   verify:
-    name: Minecraft 1.21.1 build and server tests
+    name: Minecraft 1.21.4 build and server tests
     runs-on: ubuntu-latest
 
     steps:
@@ -30,9 +31,27 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build runGameTest --no-daemon
 
-      # Minecraft 1.21.1 predates Fabric's client GameTest API. The upstream
-      # client suites remain in src/gametest; local joint client validation and
-      # optional Quick Shulker direct/legacy commands are in BACKPORT_1.21.1.md.
+      - name: Check out matching Quick Shulker source
+        uses: actions/checkout@v4
+        with:
+          repository: water2004/quickshulker
+          ref: dory/1.21.4
+          path: .ci/quickshulker
+
+      - name: Build matching Quick Shulker
+        run: |
+          chmod +x .ci/quickshulker/gradlew
+          .ci/quickshulker/gradlew -p .ci/quickshulker build --no-daemon
+
+      - name: Verify direct and forced legacy integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t jars < <(find .ci/quickshulker/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar')
+          test "${#jars[@]}" -eq 1
+          jar="$(realpath "${jars[0]}")"
+          ./gradlew runGameTest -PquickshulkerJar="$jar" -PquickshulkerGameTestMode=new --no-daemon
+          ./gradlew runGameTest -PquickshulkerJar="$jar" -PquickshulkerGameTestMode=new-legacy --no-daemon
 
       - name: Upload test reports
         if: always()
