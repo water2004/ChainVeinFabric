@@ -307,20 +307,20 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
         }
 
         @Override
-        public void render(int mouseX, int mouseY, boolean selected, GuiGraphics context) {
+        public void render(GuiGraphics context, int mouseX, int mouseY, boolean selected) {
             if (this.entry != null && this.entry.type == PresetRow.Type.WHITELIST_HEADER) {
                 String label = fitText(
                         StringUtils.translate("options.chainveinfabric.preset.whitelist"),
                         this.headerLabelWidth);
-                this.drawString(this.x + 2, this.y + 8, 0xFFFFFFFF, label, context);
-                super.render(mouseX, mouseY, selected, context);
+                this.drawString(context, this.x + 2, this.y + 8, 0xFFFFFFFF, label);
+                super.render(context, mouseX, mouseY, selected);
                 return;
             }
             if (this.entry != null && this.entry.type == PresetRow.Type.CONFIG_HEADER) {
                 String label = fitText(
                         StringUtils.translate("options.chainveinfabric.preset.config"),
                         Math.max(1, this.width - 4));
-                this.drawString(this.x + 2, this.y + 8, 0xFFFFFFFF, label, context);
+                this.drawString(context, this.x + 2, this.y + 8, 0xFFFFFFFF, label);
                 return;
             }
 
@@ -332,7 +332,7 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
             if (this.nameField != null) {
                 this.nameField.render(context, mouseX, mouseY, 0.0F);
             }
-            super.render(mouseX, mouseY, selected, context);
+            super.render(context, mouseX, mouseY, selected);
         }
 
         @Override

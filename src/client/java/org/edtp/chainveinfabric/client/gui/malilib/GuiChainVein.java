@@ -501,7 +501,7 @@ public class GuiChainVein extends GuiConfigsBase {
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
             if (this.rightList != null) this.rightList.drawContents(ctx, mouseX, mouseY, partialTicks);
-            if (this.searchBar != null) this.searchBar.render(mouseX, mouseY, false, ctx);
+            if (this.searchBar != null) this.searchBar.render(ctx, mouseX, mouseY, false);
 
             if (this.basicLayout != null && !this.basicLayout.singlePane) {
                 this.drawString(ctx, StringUtils.translate("options.chainveinfabric.allBlocks"), this.basicLayout.leftList.x, this.basicLayout.titleY, 0xFFFFFF);
@@ -514,8 +514,8 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawButtonHoverTexts(int mouseX, int mouseY, float partialTicks, GuiGraphics ctx) {
-        super.drawButtonHoverTexts(mouseX, mouseY, partialTicks, ctx);
+    protected void drawButtonHoverTexts(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
+        super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
         this.renderOpenDropdowns(ctx, mouseX, mouseY);
     }
 

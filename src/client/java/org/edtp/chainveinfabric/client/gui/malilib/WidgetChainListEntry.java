@@ -33,7 +33,7 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, GuiGraphics ctx) {
+    public void render(GuiGraphics ctx, int mouseX, int mouseY, boolean selected) {
         if (selected || this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x70FFFFFF);
         } else if (this.isOdd) {
@@ -56,10 +56,10 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
                         : "";
             }
             int textY = this.y + (this.height - 8) / 2 + 1;
-            this.drawString(textX, textY, 0xFFFFFFFF, itemName, ctx);
+            this.drawString(ctx, textX, textY, 0xFFFFFFFF, itemName);
         }
 
-        super.render(mouseX, mouseY, selected, ctx);
+        super.render(ctx, mouseX, mouseY, selected);
     }
 
     @Override

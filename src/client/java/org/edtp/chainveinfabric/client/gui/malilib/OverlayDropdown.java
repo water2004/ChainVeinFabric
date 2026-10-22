@@ -61,10 +61,10 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, GuiGraphics context) {
+    public void render(GuiGraphics context, int mouseX, int mouseY, boolean selected) {
         boolean wasOpen = this.isOpen;
         this.isOpen = false;
-        super.render(mouseX, mouseY, selected, context);
+        super.render(context, mouseX, mouseY, selected);
         this.isOpen = wasOpen;
         this.lastDrawn = System.currentTimeMillis();
     }
@@ -72,7 +72,7 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
     void renderOverlay(GuiGraphics context, int mouseX, int mouseY, boolean selected) {
         boolean wasOpen = this.isOpen;
         this.isOpen = true;
-        super.render(mouseX, mouseY, selected, context);
+        super.render(context, mouseX, mouseY, selected);
         this.isOpen = wasOpen;
     }
 }
