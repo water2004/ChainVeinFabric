@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - "1.21.1"
-      - "dory/1.21.6"
+      - "dory/1.21.7"
   pull_request:
 
 permissions:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   verify:
-    name: Minecraft 1.21.6 build and server tests
+    name: Minecraft 1.21.7 build and server tests
     runs-on: ubuntu-latest
 
     steps:
@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: water2004/quickshulker
-          ref: dory/1.21.6
+          ref: dory/1.21.7
           path: .ci/quickshulker
 
       - name: Build matching Quick Shulker
