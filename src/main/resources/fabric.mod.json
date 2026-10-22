@@ -32,10 +32,10 @@
     "fabric-api": "*",
     "java": ">=21",
     "minecraft": "${minecraft_version}",
-    "malilib": ">=0.25.7"
+    "malilib": ">=0.26.8"
   },
   "suggests": {
-    "litematica": ">=0.23.7",
+    "litematica": ">=0.24.9",
     "quickshulker": "*"
   }
 }

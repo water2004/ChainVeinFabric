@@ -7,6 +7,9 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.world.item.ItemStack;
 
 public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
@@ -63,8 +66,9 @@ public class WidgetChainListEntry extends WidgetListEntryBase<ItemStack> {
     }
 
     @Override
-    public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
-        return super.canSelectAt(mouseX, mouseY, mouseButton) && mouseX < this.buttonsStartX;
+    public boolean canSelectAt(MouseButtonEvent click) {
+        int mouseX = (int) click.x(), mouseY = (int) click.y(), mouseButton = click.button();
+        return super.canSelectAt(click) && mouseX < this.buttonsStartX;
     }
 
     private static class ButtonListener implements IButtonActionListener {

@@ -4,6 +4,9 @@ import fi.dy.masa.malilib.gui.widgets.WidgetDropDownList;
 import fi.dy.masa.malilib.interfaces.IStringRetriever;
 import fi.dy.masa.malilib.util.MathUtils;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 
 import java.util.List;
 
@@ -37,7 +40,8 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
     }
 
     @Override
-    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
+        int mouseX = (int) click.x(), mouseY = (int) click.y(), mouseButton = click.button();
         double clickY = mouseY;
         if (this.isOpen && clickY > this.y + this.height) {
             int visible = Math.min(this.maxVisibleEntries, this.filteredEntries.size());
@@ -57,7 +61,7 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
                 return true;
             }
         }
-        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+        return super.onMouseClicked(click, doubleClick);
     }
 
     @Override

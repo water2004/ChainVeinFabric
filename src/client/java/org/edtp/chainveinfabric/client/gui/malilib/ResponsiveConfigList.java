@@ -1,4 +1,7 @@
 package org.edtp.chainveinfabric.client.gui.malilib;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 
 import fi.dy.masa.malilib.config.ConfigType;
 import fi.dy.masa.malilib.config.IConfigBase;
@@ -71,7 +74,7 @@ final class ResponsiveConfigList extends WidgetListConfigOptions {
         }
 
         @Override
-        protected void addConfigOption(int x, int y, float zLevel, int labelWidth,
+        protected void addConfigOption(int x, int y, int labelWidth,
                                        int configWidth, IConfigBase config) {
             if (config.getType() == ConfigType.HOTKEY) {
                 y += 1;
@@ -101,7 +104,7 @@ final class ResponsiveConfigList extends WidgetListConfigOptions {
 
             int controlsX = getControlsX(configWidth);
             super.addConfigOption(
-                    x, y, zLevel, Math.max(1, controlsX - x - LABEL_GAP), configWidth, config);
+                    x, y, Math.max(1, controlsX - x - LABEL_GAP), configWidth, config);
         }
 
         private void addOptionList(int x, int y, int configWidth, IConfigBase config) {

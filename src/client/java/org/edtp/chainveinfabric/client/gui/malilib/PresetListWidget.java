@@ -7,6 +7,9 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 import org.edtp.chainveinfabric.client.ChainveinfabricClient;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.client.config.preset.ConfigPreset;
@@ -74,11 +77,12 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+    public boolean onKeyTyped(KeyEvent keyEvent) {
+        int keyCode = keyEvent.key(), scanCode = keyEvent.scancode(), modifiers = keyEvent.modifiers();
         for (PresetEntryWidget widget : this.listWidgets) {
-            if (widget.onKeyTyped(keyCode, scanCode, modifiers)) return true;
+            if (widget.onKeyTyped(keyEvent)) return true;
         }
-        return super.onKeyTyped(keyCode, scanCode, modifiers);
+        return super.onKeyTyped(keyEvent);
     }
 
     private static String nextWhitelistPresetName(ChainVeinConfig config,
@@ -336,38 +340,42 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
         }
 
         @Override
-        public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
-            if (this.nameField != null && this.nameField.mouseClicked(mouseX, mouseY, mouseButton)) return true;
+        public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
+        int mouseX = (int) click.x(), mouseY = (int) click.y(), mouseButton = click.button();
+            if (this.nameField != null && this.nameField.mouseClicked(click, doubleClick)) return true;
             if (this.nameField != null && !this.nameField.isMouseOver(mouseX, mouseY)) {
                 this.nameField.setFocused(false);
             }
-            return super.onMouseClicked(mouseX, mouseY, mouseButton);
+            return super.onMouseClicked(click, doubleClick);
         }
 
         @Override
-        public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        public boolean onKeyTyped(KeyEvent keyEvent) {
+        int keyCode = keyEvent.key(), scanCode = keyEvent.scancode(), modifiers = keyEvent.modifiers();
             if (this.nameField != null && this.nameField.isFocused()) {
                 String before = this.nameField.getValue();
-                boolean handled = this.nameField.keyPressed(keyCode, scanCode, modifiers);
+                boolean handled = this.nameField.keyPressed(keyEvent);
                 if (!before.equals(this.nameField.getValue())) saveName();
                 return handled;
             }
-            return super.onKeyTyped(keyCode, scanCode, modifiers);
+            return super.onKeyTyped(keyEvent);
         }
 
         @Override
-        public boolean onCharTyped(char charIn, int modifiers) {
+        public boolean onCharTyped(CharacterEvent characterEvent) {
+        char charIn = (char) characterEvent.codepoint(); int modifiers = characterEvent.modifiers();
             if (this.nameField != null && this.nameField.isFocused()) {
                 String before = this.nameField.getValue();
-                boolean handled = this.nameField.charTyped(charIn, modifiers);
+                boolean handled = this.nameField.charTyped(characterEvent);
                 if (!before.equals(this.nameField.getValue())) saveName();
                 return handled;
             }
-            return super.onCharTyped(charIn, modifiers);
+            return super.onCharTyped(characterEvent);
         }
 
         @Override
-        public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
+        public boolean canSelectAt(MouseButtonEvent click) {
+        int mouseX = (int) click.x(), mouseY = (int) click.y(), mouseButton = click.button();
             return false;
         }
 
