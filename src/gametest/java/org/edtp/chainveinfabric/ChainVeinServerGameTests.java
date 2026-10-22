@@ -360,10 +360,10 @@ public final class ChainVeinServerGameTests implements FabricGameTest {
                 "The item frame should be added to the test world");
 
         DirectDropCollector.run(player, false, 64, () -> {
-            boolean removedItem = frame.hurt(
+            boolean removedItem = frame.hurtServer(helper.getLevel(), 
                     player.damageSources().playerAttack(player),
                     1.0F);
-            boolean removedFrame = frame.hurt(
+            boolean removedFrame = frame.hurtServer(helper.getLevel(), 
                     player.damageSources().playerAttack(player),
                     1.0F);
             return removedItem && removedFrame;

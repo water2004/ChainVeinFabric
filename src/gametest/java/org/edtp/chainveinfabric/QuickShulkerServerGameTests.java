@@ -474,10 +474,10 @@ public final class QuickShulkerServerGameTests implements FabricGameTest {
                 "The item frame should be added before drop capture starts");
 
         DirectDropCollector.run(player, true, 64, () -> {
-            boolean removedItem = frame.hurt(
+            boolean removedItem = frame.hurtServer(helper.getLevel(), 
                     player.damageSources().playerAttack(player),
                     1.0F);
-            boolean removedFrame = frame.hurt(
+            boolean removedFrame = frame.hurtServer(helper.getLevel(), 
                     player.damageSources().playerAttack(player),
                     1.0F);
             return removedItem && removedFrame;
