@@ -1,0 +1,23 @@
+name: Withdraw agent-owned Minecraft 1.21 releases
+on:
+  push:
+    branches: ['dory/withdraw-1.21-releases-20261024']
+    paths: ['.github/withdraw-20261024/**', '.github/workflows/withdraw-1.21-releases.yml']
+permissions:
+  contents: write
+jobs:
+  withdraw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply pinned user-requested withdrawal and verify original releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/withdraw-20261024/withdraw.py
+      - name: Preserve exact withdrawal and preservation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: withdrawal-evidence-${{ github.repository_id }}
+          path: .github/withdraw-20261024/
