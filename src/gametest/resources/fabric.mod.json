@@ -13,6 +13,8 @@
       "org.edtp.chainveinfabric.gametest.PlantingClientGameTest",
       "org.edtp.chainveinfabric.gametest.ServerAbsentFallbackGameTest",
       "org.edtp.chainveinfabric.gametest.ClientConfigurationGameTest",
+      "org.edtp.chainveinfabric.gametest.AutoMiningClientGameTest",
+      "org.edtp.chainveinfabric.gametest.SchematicAutoMiningClientGameTest",
       "org.edtp.chainveinfabric.client.gui.malilib.ConfigurationScreenClientGameTest"
     ]
   },

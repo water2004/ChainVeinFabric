@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import org.edtp.chainveinfabric.client.api.ChainVeinClientApi.ClientMiningProgress;
 import org.edtp.chainveinfabric.client.logic.AutoMiningController;
+import org.edtp.chainveinfabric.client.logic.AutoMiningTrigger;
 import org.jetbrains.annotations.Nullable;
 
 /** A deliberately persistent safety indicator for automatic mining. */
@@ -18,6 +19,7 @@ public final class AutoMiningHazardHud {
 
     public static void render(GuiGraphicsExtractor graphics, Font font,
                               AutoMiningController.Status status, int cooldownTicks,
+                              AutoMiningTrigger trigger,
                               @Nullable ClientMiningProgress progress) {
         int width = graphics.guiWidth();
         int height = graphics.guiHeight();
@@ -36,7 +38,7 @@ public final class AutoMiningHazardHud {
 
         int cornerLength = Math.max(14, Math.min(30, Math.min(width, height) / 8));
         fillCorners(graphics, width, height, cornerLength, accentColor);
-        drawWarningBadge(graphics, font, width, accentColor, status, cooldownTicks, progress);
+        drawWarningBadge(graphics, font, width, accentColor, status, cooldownTicks, trigger, progress);
     }
 
     private static void fillFrame(GuiGraphicsExtractor graphics, int width, int height,
@@ -74,6 +76,7 @@ public final class AutoMiningHazardHud {
     private static void drawWarningBadge(GuiGraphicsExtractor graphics, Font font,
                                          int screenWidth, int accentColor,
                                          AutoMiningController.Status status, int cooldownTicks,
+                                         AutoMiningTrigger trigger,
                                          @Nullable ClientMiningProgress progress) {
         Component text = progress != null
                 ? Component.translatable(
@@ -84,7 +87,7 @@ public final class AutoMiningHazardHud {
                     case COOLDOWN -> Component.translatable(
                             "hud.chainveinfabric.autoMine.cooldown",
                             Math.max(1, (cooldownTicks + 19) / 20));
-                    case ARMED, INACTIVE -> Component.translatable("hud.chainveinfabric.autoMine.armed");
+                    case ARMED, INACTIVE -> Component.translatable(trigger.armedHudKey());
                 };
         int horizontalMargin = Math.min(6, Math.max(0, screenWidth / 4));
         int availableWidth = Math.max(1, screenWidth - horizontalMargin * 2 - 20);

@@ -21,6 +21,7 @@ import org.edtp.chainveinfabric.client.compat.litematica.LitematicaIntegration;
 import org.edtp.chainveinfabric.client.config.ChainVeinConfig;
 import org.edtp.chainveinfabric.compat.quickshulker.QuickShulkerIntegration;
 import org.edtp.chainveinfabric.client.logic.PlantingItems;
+import org.edtp.chainveinfabric.client.logic.AutoMiningTrigger;
 import org.edtp.chainveinfabric.client.logic.WhitelistImportService;
 
 import fi.dy.masa.malilib.gui.LeftRight;
@@ -288,31 +289,7 @@ public class GuiChainVein extends GuiConfigsBase {
         GuiChainVeinLayout.Rect toggle = this.basicLayout.toggle;
         ButtonGeneric toggleBtn = new ButtonGeneric(toggle.x, toggle.y, toggle.width, toggle.height, getToggleString());
         this.updateAutoToggleTooltip(toggleBtn);
-        this.addButton(toggleBtn, (button, mb) -> {
-            if (mb == MOUSE_BUTTON_LEFT && ChainveinfabricClient.isAutoMiningArmed()) {
-                ChainveinfabricClient.disarmAutoMining();
-                ChainveinfabricClient.CONFIG.isChainVeinEnabled = false;
-                ChainveinfabricClient.CONFIG.save();
-                button.setDisplayString(getToggleString());
-                this.updateAutoToggleTooltip(button);
-                return;
-            }
-
-            if (mb == MOUSE_BUTTON_LEFT && this.controlClick
-                    && ChainveinfabricClient.CONFIG.mode.isMiningMode()) {
-                ChainveinfabricClient.toggleAutoMining();
-                ChainveinfabricClient.CONFIG.save();
-                button.setDisplayString(getToggleString());
-                this.updateAutoToggleTooltip(button);
-                return;
-            }
-
-            ChainveinfabricClient.disarmAutoMining();
-            ChainveinfabricClient.CONFIG.isChainVeinEnabled = !ChainveinfabricClient.CONFIG.isChainVeinEnabled;
-            ChainveinfabricClient.CONFIG.save();
-            button.setDisplayString(getToggleString());
-            this.updateAutoToggleTooltip(button);
-        });
+        this.addButton(toggleBtn, this::onToggleClicked);
 
         // Toggle outlines
         GuiChainVeinLayout.Rect outline = this.basicLayout.outline;
@@ -673,6 +650,22 @@ public class GuiChainVein extends GuiConfigsBase {
         };
     }
 
+    private void onToggleClicked(ButtonBase button, int mouseButton) {
+        ChainVeinConfig config = ChainveinfabricClient.CONFIG;
+        if (mouseButton == MOUSE_BUTTON_LEFT && ChainveinfabricClient.isAutoMiningArmed()) {
+            ChainveinfabricClient.disarmAutoMining();
+            config.isChainVeinEnabled = false;
+        } else if (mouseButton == MOUSE_BUTTON_LEFT && this.controlClick && config.mode.isMiningMode()) {
+            ChainveinfabricClient.toggleAutoMining();
+        } else {
+            ChainveinfabricClient.disarmAutoMining();
+            config.isChainVeinEnabled = !config.isChainVeinEnabled;
+        }
+        config.save();
+        button.setDisplayString(getToggleString());
+        this.updateAutoToggleTooltip(button);
+    }
+
     private String getToggleString() {
         if (ChainveinfabricClient.isAutoMiningArmed()) return "AUTO";
         return ChainveinfabricClient.CONFIG.isChainVeinEnabled ? "ON" : "OFF";
@@ -682,7 +675,8 @@ public class GuiChainVein extends GuiConfigsBase {
         if (ChainveinfabricClient.isAutoMiningArmed()) {
             button.setHoverStrings(StringUtils.translate("options.chainveinfabric.autoMine.clickToDisable"));
         } else if (ChainveinfabricClient.CONFIG.mode.isMiningMode()) {
-            button.setHoverStrings(StringUtils.translate("options.chainveinfabric.autoMine.ctrlHint"));
+            button.setHoverStrings(StringUtils.translate(
+                    AutoMiningTrigger.forMode(ChainveinfabricClient.CONFIG.mode).enableTooltipKey()));
         } else {
             button.clearHoverStrings();
         }

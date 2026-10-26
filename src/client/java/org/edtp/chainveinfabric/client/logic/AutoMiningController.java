@@ -22,8 +22,8 @@ import org.edtp.chainveinfabric.client.logic.search.SearchResult;
 import org.edtp.chainveinfabric.client.logic.search.SearchService;
 
 /**
- * Guards the opt-in automatic-mining state and runs at most one search-and-mine
- * batch for each accepted attack press.
+ * Guards the opt-in automatic-mining state. Schematic modes repeat batches after
+ * the cooldown; ordinary mining starts one batch for each accepted attack press.
  */
 public final class AutoMiningController {
     private static final int WORLD_UPDATE_TIMEOUT_TICKS = 40;
@@ -35,6 +35,9 @@ public final class AutoMiningController {
         COOLDOWN
     }
 
+    /** An active batch is either searching or waiting for its submitted blocks to change. */
+    private enum BatchPhase { IDLE, SEARCHING, WAITING_FOR_UPDATES }
+
     private final SearchService searchService;
     private final Map<BlockPos, BlockState> awaitingWorldUpdates = new LinkedHashMap<>();
     private ClientLevel armedLevel;
@@ -42,8 +45,7 @@ public final class AutoMiningController {
     private SearchRequest activeRequest;
     private long generation;
     private boolean armed;
-    private boolean batchActive;
-    private boolean searchInFlight;
+    private BatchPhase batchPhase = BatchPhase.IDLE;
     private int awaitingTicks;
     private int cooldownTicks;
 
@@ -70,7 +72,7 @@ public final class AutoMiningController {
         this.armedMode = config.mode;
         this.clearBatch();
         this.cooldownTicks = 0;
-        showOverlay(client, "message.chainveinfabric.autoMine.armed");
+        showOverlay(client, AutoMiningTrigger.forMode(this.armedMode).armedMessageKey());
         return true;
     }
 
@@ -85,7 +87,9 @@ public final class AutoMiningController {
             return false;
         }
 
-        this.trigger(client);
+        if (AutoMiningTrigger.forMode(this.armedMode) == AutoMiningTrigger.LEFT_CLICK) {
+            this.trigger(client);
+        }
         return true;
     }
 
@@ -96,11 +100,15 @@ public final class AutoMiningController {
             return;
         }
 
-        if (!this.batchActive) {
+        if (this.batchPhase == BatchPhase.IDLE) {
             if (this.cooldownTicks > 0) this.cooldownTicks--;
+            if (this.cooldownTicks == 0
+                    && AutoMiningTrigger.forMode(this.armedMode) == AutoMiningTrigger.COOLDOWN) {
+                this.trigger(client);
+            }
             return;
         }
-        if (this.searchInFlight) return;
+        if (this.batchPhase == BatchPhase.SEARCHING) return;
 
         this.discardCompletedPositions(client);
         if (ChainVeinClientApi.hasPendingMineJobs()) return;
@@ -121,7 +129,7 @@ public final class AutoMiningController {
 
     public Status status() {
         if (!this.armed) return Status.INACTIVE;
-        if (this.batchActive) return Status.RUNNING;
+        if (this.batchPhase != BatchPhase.IDLE) return Status.RUNNING;
         if (this.cooldownTicks > 0) return Status.COOLDOWN;
         return Status.ARMED;
     }
@@ -131,7 +139,7 @@ public final class AutoMiningController {
     }
 
     private void trigger(Minecraft client) {
-        if (this.batchActive || this.cooldownTicks > 0
+        if (this.batchPhase != BatchPhase.IDLE || this.cooldownTicks > 0
                 || ChainVeinClientApi.hasPendingMineJobs()) {
             return;
         }
@@ -157,8 +165,7 @@ public final class AutoMiningController {
 
         long requestGeneration = this.generation;
         this.activeRequest = request;
-        this.batchActive = true;
-        this.searchInFlight = true;
+        this.batchPhase = BatchPhase.SEARCHING;
         this.awaitingWorldUpdates.clear();
         this.awaitingTicks = 0;
         this.searchService.submit(
@@ -170,7 +177,7 @@ public final class AutoMiningController {
 
     private void acceptResult(Minecraft client, SearchResult result, long requestGeneration) {
         if (requestGeneration != this.generation || !this.armed) return;
-        this.searchInFlight = false;
+        this.batchPhase = BatchPhase.WAITING_FOR_UPDATES;
 
         if (!this.isStillValid(client, result.request())) {
             this.finishBatch();
@@ -265,8 +272,7 @@ public final class AutoMiningController {
 
     private void clearBatch() {
         this.activeRequest = null;
-        this.batchActive = false;
-        this.searchInFlight = false;
+        this.batchPhase = BatchPhase.IDLE;
         this.awaitingWorldUpdates.clear();
         this.awaitingTicks = 0;
     }

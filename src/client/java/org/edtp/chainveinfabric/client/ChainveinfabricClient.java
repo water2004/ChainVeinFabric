@@ -24,6 +24,7 @@ import org.edtp.chainveinfabric.client.renderer.BlockOutlineRenderer;
 import org.edtp.chainveinfabric.client.renderer.ChainStatusHud;
 import org.edtp.chainveinfabric.client.renderer.SearchWorker;
 import org.edtp.chainveinfabric.client.logic.AutoMiningController;
+import org.edtp.chainveinfabric.client.logic.AutoMiningTrigger;
 import org.edtp.chainveinfabric.client.logic.search.SearchConfig;
 import org.edtp.chainveinfabric.client.logic.search.SearchRequest;
 import org.edtp.chainveinfabric.client.logic.search.SearchService;
@@ -117,6 +118,7 @@ public class ChainveinfabricClient implements ClientModInitializer {
                         client.font,
                         getAutoMiningStatus(),
                         getAutoMiningCooldownTicks(),
+                        AutoMiningTrigger.forMode(CONFIG.mode),
                         progress);
             } else {
                 ChainStatusHud.render(context, client.font, progress);
