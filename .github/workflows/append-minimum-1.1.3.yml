@@ -1,8 +1,8 @@
-name: Append verified minimum MC 1.21 files
+name: Rehome ChainVein minimum versions to 4.1.0
 on:
   push:
     branches: ['dory/1.21.11']
-    paths: ['.github/republish-1.1.3/publish-settings.json']
+    paths: ['.github/republish-1.1.3/rehome-config.json']
   workflow_dispatch:
 permissions:
   contents: write
@@ -22,14 +22,14 @@ jobs:
           github-token: ${{ github.token }}
           path: minimum-release-files
           merge-multiple: true
-      - name: Append only this repository's twelve verified minimum files
+      - name: Rehome only the two owned assets after public-copy verification
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python .github/republish-1.1.3/publish-append.py
+        run: python .github/republish-1.1.3/rehome-chain.py
       - name: Retain preservation and public-download verification
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: minimum-companion-publication-${{ github.sha }}
-          path: .ci/release-publication/
+          name: rehome-chain-publication-${{ github.sha }}
+          path: .ci/rehome-chain/
           if-no-files-found: warn
