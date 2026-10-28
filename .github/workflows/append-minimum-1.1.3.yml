@@ -1,0 +1,35 @@
+name: Append verified minimum MC 1.21 files
+on:
+  push:
+    branches: ['dory/1.21.11']
+    paths: ['.github/republish-1.1.3/publish-settings.json']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the fixed, verified 36-file candidate
+        uses: actions/download-artifact@v4
+        with:
+          repository: water2004/litematica-printer
+          run-id: 40684303397
+          artifact-ids: '12813538530'
+          github-token: ${{ github.token }}
+          path: minimum-release-files
+          merge-multiple: true
+      - name: Append only this repository's twelve verified minimum files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/republish-1.1.3/publish-append.py
+      - name: Retain preservation and public-download verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minimum-companion-publication-${{ github.sha }}
+          path: .ci/release-publication/
+          if-no-files-found: warn
