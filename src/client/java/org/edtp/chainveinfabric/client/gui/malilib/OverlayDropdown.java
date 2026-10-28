@@ -3,7 +3,7 @@ package org.edtp.chainveinfabric.client.gui.malilib;
 import fi.dy.masa.malilib.gui.widgets.WidgetDropDownList;
 import fi.dy.masa.malilib.interfaces.IStringRetriever;
 import fi.dy.masa.malilib.util.MathUtils;
-import net.minecraft.client.gui.GuiGraphics;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.CharacterEvent;
@@ -54,8 +54,8 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
                 relativeIndex = MathUtils.clamp(relativeIndex, 0, visible - 1);
                 this.setSelectedEntry(this.scrollBar.getValue() + relativeIndex);
                 this.isOpen = false;
-                if (this.searchBar != null && this.searchBar.getTextField() != null) {
-                    this.searchBar.getTextField().setValue("");
+                if (this.searchBar != null && this.searchBar.textField() != null) {
+                    this.searchBar.textField().setValue("");
                 }
                 this.updateFilteredEntries();
                 return true;
@@ -65,7 +65,7 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, boolean selected) {
+    public void render(GuiContext context, int mouseX, int mouseY, boolean selected) {
         boolean wasOpen = this.isOpen;
         this.isOpen = false;
         super.render(context, mouseX, mouseY, selected);
@@ -73,7 +73,7 @@ abstract class OverlayDropdown<T> extends WidgetDropDownList<T> {
         this.lastDrawn = System.currentTimeMillis();
     }
 
-    void renderOverlay(GuiGraphics context, int mouseX, int mouseY, boolean selected) {
+    void renderOverlay(GuiContext context, int mouseX, int mouseY, boolean selected) {
         boolean wasOpen = this.isOpen;
         this.isOpen = true;
         super.render(context, mouseX, mouseY, selected);

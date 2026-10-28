@@ -49,7 +49,7 @@ final class ChainVeinServerPacketHandler {
         boolean isCreative = player.isCreative();
 
         for (BlockPos pos : positions) {
-            if (!player.canInteractWithBlock(pos, 1.0)) continue;
+            if (!player.isWithinBlockInteractionRange(pos, 1.0)) continue;
             if (!world.isLoaded(pos)) continue;
             if (world.getServer().isUnderSpawnProtection(world, pos, player)
                     || !world.mayInteract(player, pos)) continue;

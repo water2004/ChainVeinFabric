@@ -45,7 +45,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     modImplementation "maven.modrinth:malilib:${project.malilib_version}"
     modCompileOnly "maven.modrinth:litematica:${project.litematica_version}"
-    modCompileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
+    modCompileOnly("com.terraformersmc:modmenu:${project.mod_menu_version}") { transitive = false }
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
 

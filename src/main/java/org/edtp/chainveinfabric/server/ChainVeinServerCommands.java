@@ -14,7 +14,7 @@ public final class ChainVeinServerCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
                 dispatcher.register(Commands.literal("chainvein")
-                        .requires(source -> source.hasPermission(4))
+                        .requires(Commands.hasPermission(Commands.LEVEL_OWNERS))
                         .then(Commands.literal("maxBlocks")
                                 .executes(context -> showMaxBlocks(context.getSource()))
                                 .then(Commands.argument("value", IntegerArgumentType.integer(

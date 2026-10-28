@@ -6,13 +6,13 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import fi.dy.masa.malilib.event.InputEventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -81,7 +81,7 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawTitle(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
+    protected void drawTitle(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
         if (!this.compactHeader) {
             super.drawTitle(ctx, mouseX, mouseY, partialTicks);
         }
@@ -500,7 +500,7 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    public void drawContents(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
+    public void drawContents(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(ctx, mouseX, mouseY, partialTicks);
         if (currentTab == Tab.BASIC) {
             if (this.leftList != null) this.leftList.drawContents(ctx, mouseX, mouseY, partialTicks);
@@ -518,12 +518,12 @@ public class GuiChainVein extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawButtonHoverTexts(GuiGraphics ctx, int mouseX, int mouseY, float partialTicks) {
+    protected void drawButtonHoverTexts(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
         super.drawButtonHoverTexts(ctx, mouseX, mouseY, partialTicks);
         this.renderOpenDropdowns(ctx, mouseX, mouseY);
     }
 
-    private void renderOpenDropdowns(GuiGraphics ctx, int mouseX, int mouseY) {
+    private void renderOpenDropdowns(GuiContext ctx, int mouseX, int mouseY) {
         for (OverlayDropdown<?> dd : this.activeDropdowns) {
             if (dd.isMenuOpen() && Math.abs(System.currentTimeMillis() - dd.getLastDrawn()) < 50) {
                 boolean selected = dd.isMouseOver(mouseX, mouseY);
@@ -777,7 +777,7 @@ public class GuiChainVein extends GuiConfigsBase {
 
         List<ItemStack> list = new ArrayList<>();
         for (String id : whitelist) {
-            ResourceLocation identifier = ResourceLocation.tryParse(id);
+            Identifier identifier = Identifier.tryParse(id);
             if (identifier == null) continue;
 
             Item item = BuiltInRegistries.ITEM.getValue(identifier);

@@ -6,7 +6,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.client.gui.GuiGraphics;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.CharacterEvent;
@@ -311,7 +311,7 @@ final class PresetListWidget extends WidgetListBase<PresetListWidget.PresetRow,
         }
 
         @Override
-        public void render(GuiGraphics context, int mouseX, int mouseY, boolean selected) {
+        public void render(GuiContext context, int mouseX, int mouseY, boolean selected) {
             if (this.entry != null && this.entry.type == PresetRow.Type.WHITELIST_HEADER) {
                 String label = fitText(
                         StringUtils.translate("options.chainveinfabric.preset.whitelist"),

@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -199,7 +199,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 return null;
             }
 
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             return new WhitelistTarget(id.toString(), stack.getHoverName());
         }
 
@@ -218,7 +218,7 @@ public class ChainVeinInputHandler implements IKeybindProvider {
                 return null;
             }
 
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             return new WhitelistTarget(id.toString(), new ItemStack(item).getHoverName());
         }
 

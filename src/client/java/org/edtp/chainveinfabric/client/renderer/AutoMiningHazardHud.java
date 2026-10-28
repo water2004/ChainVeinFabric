@@ -1,6 +1,6 @@
 package org.edtp.chainveinfabric.client.renderer;
 
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
