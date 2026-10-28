@@ -1,7 +1,8 @@
 {
   "repository": "water2004/ChainVeinFabric",
   "releaseTags": {
-    "382907789": "v4.1.0"
+    "382907789": "v4.1.0",
+    "411959495": "v4.1.2"
   },
   "protectedRefs": {
     "master": "db90200ffa192801f57a494f49935d096da4840a"
