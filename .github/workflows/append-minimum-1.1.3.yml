@@ -1,8 +1,8 @@
-name: Rehome ChainVein minimum versions to 4.1.0
+name: Rollback this turn ChainVein release rehome
 on:
   push:
     branches: ['dory/1.21.11']
-    paths: ['.github/republish-1.1.3/rehome-config.json']
+    paths: ['.github/republish-1.1.3/rollback-config.json']
   workflow_dispatch:
 permissions:
   contents: write
@@ -22,14 +22,14 @@ jobs:
           github-token: ${{ github.token }}
           path: minimum-release-files
           merge-multiple: true
-      - name: Rehome only the two owned assets after public-copy verification
+      - name: Restore the two prior byte-identical files and release notes
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python .github/republish-1.1.3/rehome-chain.py
+        run: python .github/republish-1.1.3/rollback-rehome.py
       - name: Retain preservation and public-download verification
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rehome-chain-publication-${{ github.sha }}
-          path: .ci/rehome-chain/
+          name: rollback-rehome-${{ github.sha }}
+          path: .ci/rollback-rehome/
           if-no-files-found: warn
